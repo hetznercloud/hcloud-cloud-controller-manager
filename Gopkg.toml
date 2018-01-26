@@ -1,0 +1,41 @@
+[[override]]
+  # only needed until kubernetes moves to dep or github.com/docker/distribution's latest tag builds with kubernetes.
+  name = "github.com/docker/distribution"
+  #revision = "master"
+  revision = "edc3ab29cdff8694dd6feb85cfeb4b5f1b38ed9c"
+
+[[constraint]]
+  name = "github.com/hetznercloud/hcloud-go"
+  version = "v1.3.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/golang/glog"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/spf13/pflag"
+
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.8.2"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.8.2"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.8.2"
+
+[[constraint]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.8.2"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.8.2"
+
+[[constraint]]
+  name = "k8s.io/kubernetes"
+  version = "1.8.2"
