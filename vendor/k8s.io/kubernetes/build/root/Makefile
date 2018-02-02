@@ -291,7 +291,6 @@ else
 test-cmd: generated_files
 	hack/make-rules/test-kubeadm-cmd.sh
 	hack/make-rules/test-cmd.sh
-	hack/make-rules/test-federation-cmd.sh
 endif
 
 define CLEAN_HELP_INFO
@@ -309,7 +308,7 @@ clean:
 else
 clean: clean_meta
 	build/make-clean.sh
-	git clean -Xdf
+	hack/make-rules/clean.sh
 endif
 
 define CLEAN_META_HELP_INFO
@@ -482,21 +481,6 @@ $(notdir $(abspath $(wildcard plugin/cmd/*/))): generated_files
 	hack/make-rules/build.sh plugin/cmd/$@
 endif
 
-define FED_CMD_HELP_INFO
-# Add rules for all directories in federation/cmd/
-#
-# Example:
-#   make federation-apiserver federation-controller-manager
-endef
-.PHONY: $(notdir $(abspath $(wildcard federation/cmd/*/)))
-ifeq ($(PRINT_HELP),y)
-$(notdir $(abspath $(wildcard federation/cmd/*/))):
-	@echo "$$FED_CMD_HELP_INFO"
-else
-$(notdir $(abspath $(wildcard federation/cmd/*/))): generated_files
-	hack/make-rules/build.sh federation/cmd/$@
-endif
-
 define GENERATED_FILES_HELP_INFO
 # Produce auto-generated files needed for the build.
 #
@@ -555,8 +539,9 @@ endef
 bazel-build:
 	@echo "$$BAZEL_BUILD_HELP_INFO"
 else
+# Some things in vendor don't build due to empty target lists for cross-platform rules.
 bazel-build:
-	bazel build //cmd/... //hack/... //pkg/... //federation/... //plugin/... //third_party/... //examples/... //test/... //vendor/k8s.io/...
+	bazel build -- //... -//vendor/...
 endif
 
 
@@ -570,8 +555,15 @@ endef
 bazel-test:
 	@echo "$$BAZEL_TEST_HELP_INFO"
 else
+# //hack:verify-all is a manual target.
+# We don't want to build any of the release artifacts when running tests.
+# Some things in vendor don't build due to empty target lists for cross-platform rules.
 bazel-test:
-	bazel test --test_tag_filters=-integration --flaky_test_attempts=3 //cmd/... //pkg/... //federation/... //plugin/... //third_party/... //hack/... //hack:verify-all //vendor/k8s.io/...
+	bazel test --build_tag_filters=-e2e,-integration --test_tag_filters=-e2e,-integration --flaky_test_attempts=3 -- \
+	  //... \
+	  //hack:verify-all \
+	  -//build/... \
+	  -//vendor/...
 endif
 
 ifeq ($(PRINT_HELP),y)
