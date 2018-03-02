@@ -1,5 +1,4 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
-
 [![Build Status](https://travis-ci.org/hetznercloud/hcloud-cloud-controller-manager.svg?branch=master)](https://travis-ci.org/hetznercloud/hcloud-cloud-controller-manager)
 
 The Hetzner Cloud cloud controller mangager integrates your Kubernets cluster with the Hetzner Cloud API.
@@ -103,7 +102,7 @@ kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud
 7. Deploy the `hcloud-cloud-controller-manager`:
 
 ```
-kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/v1.1.0.yaml
+kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/v1.2.0.yaml
 
 ```
 
