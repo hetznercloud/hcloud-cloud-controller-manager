@@ -157,8 +157,8 @@
     "hcloud",
     "hcloud/schema"
   ]
-  revision = "8ba5ecb6e802d98c3b7a65f755a240cbe79bebea"
-  version = "v1.3.0"
+  revision = "b37849e439d7a02b07d495f65e7b797bec30eeae"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
@@ -331,6 +331,7 @@
   revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
 
 [[projects]]
+  branch = "release-1.9"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -362,8 +363,7 @@
     "storage/v1alpha1",
     "storage/v1beta1"
   ]
-  revision = "006a217681ae70cbacdd66a5e2fca1a61a8ff28e"
-  version = "kubernetes-1.9.1"
+  revision = "acf347b865f29325eb61f4cd2df11e86e073a5ee"
 
 [[projects]]
   branch = "master"
@@ -372,6 +372,7 @@
   revision = "ed43f04e5359fe96ddec30cceeb7053be9300bd1"
 
 [[projects]]
+  branch = "release-1.9"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/equality",
@@ -422,8 +423,7 @@
     "third_party/forked/golang/json",
     "third_party/forked/golang/reflect"
   ]
-  revision = "68f9c3a1feb3140df59c67ced62d3a5df8e6c9c2"
-  version = "kubernetes-1.9.1"
+  revision = "19e3f5aa3adca672c153d324e6b7d82ff8935f03"
 
 [[projects]]
   name = "k8s.io/apiserver"
@@ -437,8 +437,8 @@
     "pkg/util/flag",
     "pkg/util/logs"
   ]
-  revision = "2a1092aaa7202e8f9b188281ff9424a014ce61c2"
-  version = "kubernetes-1.9.2"
+  revision = "40b00dd493d8fb98c255f0c6427f97fbf865a538"
+  version = "kubernetes-1.9.3"
 
 [[projects]]
   name = "k8s.io/client-go"
@@ -628,12 +628,12 @@
     "plugin/pkg/scheduler/schedulercache",
     "plugin/pkg/scheduler/util"
   ]
-  revision = "5fa2db2bd46ac79e5e00a4e6ed24191080aa463b"
-  version = "v1.9.2"
+  revision = "d2835416544f298c919e2ead3be3d0864b52323b"
+  version = "v1.9.3"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4578ae790eebeb0ce7c702a270b8353bff957c96af31490bbfaed27a85457744"
+  inputs-digest = "2d6f4254d5a13838590b99e059cd0538ef7dce0db8543d2b46811259a6e5b84a"
   solver-name = "gps-cdcl"
   solver-version = 1
