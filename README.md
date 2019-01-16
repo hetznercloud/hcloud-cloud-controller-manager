@@ -1,7 +1,7 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
 [![Build Status](https://travis-ci.org/hetznercloud/hcloud-cloud-controller-manager.svg?branch=master)](https://travis-ci.org/hetznercloud/hcloud-cloud-controller-manager)
 
-The Hetzner Cloud cloud controller mangager integrates your Kubernets cluster with the Hetzner Cloud API.
+The Hetzner Cloud cloud controller manager integrates your Kubernets cluster with the Hetzner Cloud API.
 Read more about kubernetes cloud controller managers in the [kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 
 ## Features
