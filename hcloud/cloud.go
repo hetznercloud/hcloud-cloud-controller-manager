@@ -31,6 +31,7 @@ const (
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hcloud"
+	providerVersion      = "v1.2.0"
 )
 
 type cloud struct {
@@ -51,6 +52,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
+		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
 	}
 	if endpoint := os.Getenv(hcloudEndpointENVVar); endpoint != "" {
 		opts = append(opts, hcloud.WithEndpoint(endpoint))
