@@ -203,7 +203,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(schema.ErrorResponse{
 				Error: schema.Error{
-					Code: hcloud.ErrorCodeNotFound,
+					Code: string(hcloud.ErrorCodeNotFound),
 				},
 			})
 		})
