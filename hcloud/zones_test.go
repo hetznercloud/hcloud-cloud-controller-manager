@@ -17,6 +17,7 @@ limitations under the License.
 package hcloud
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -48,7 +49,7 @@ func TestGetZone(t *testing.T) {
 	})
 
 	zones := newZones(env.Client, "node6")
-	zone, err := zones.GetZone()
+	zone, err := zones.GetZone(context.TODO())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -84,7 +85,7 @@ func TestGetZoneForServer(t *testing.T) {
 	})
 
 	zones := newZones(env.Client, "node6")
-	zone, err := zones.GetZoneByNodeName("node15")
+	zone, err := zones.GetZoneByNodeName(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -115,7 +116,7 @@ func TestGetZoneByProviderID(t *testing.T) {
 	})
 
 	zones := newZones(env.Client, "node6")
-	zone, err := zones.GetZoneByProviderID("hcloud://1")
+	zone, err := zones.GetZoneByProviderID(context.TODO(), "hcloud://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

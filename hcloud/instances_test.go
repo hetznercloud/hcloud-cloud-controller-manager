@@ -17,6 +17,7 @@ limitations under the License.
 package hcloud
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -44,7 +45,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	addr, err := instances.NodeAddressesByProviderID("hcloud://1")
+	addr, err := instances.NodeAddressesByProviderID(context.TODO(), "hcloud://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -78,7 +79,7 @@ func TestNodeAddresses(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	addr, err := instances.NodeAddresses("node15")
+	addr, err := instances.NodeAddresses(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -106,7 +107,7 @@ func TestExternalID(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	id, err := instances.ExternalID("node15")
+	id, err := instances.ExternalID(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -135,7 +136,7 @@ func TestInstanceType(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	serverType, err := instances.InstanceType("node15")
+	serverType, err := instances.InstanceType(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -160,7 +161,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	instanceType, err := instances.InstanceTypeByProviderID("hcloud://1")
+	instanceType, err := instances.InstanceTypeByProviderID(context.TODO(), "hcloud://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 		})
 
 		instances := newInstances(env.Client)
-		exists, err := instances.InstanceExistsByProviderID("hcloud://1")
+		exists, err := instances.InstanceExistsByProviderID(context.TODO(), "hcloud://1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -209,7 +210,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 		})
 
 		instances := newInstances(env.Client)
-		exists, err := instances.InstanceExistsByProviderID("hcloud://1")
+		exists, err := instances.InstanceExistsByProviderID(context.TODO(), "hcloud://1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -223,7 +224,7 @@ func TestCurrentNodeName(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 	instances := newInstances(env.Client)
-	nodeName, err := instances.CurrentNodeName("hostname")
+	nodeName, err := instances.CurrentNodeName(context.TODO(), "hostname")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -31,7 +31,7 @@ const (
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hcloud"
-	providerVersion      = "v1.2.0"
+	providerVersion      = "v1.3.0"
 )
 
 type cloud struct {
