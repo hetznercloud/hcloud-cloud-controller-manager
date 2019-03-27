@@ -43,7 +43,7 @@ type cloud struct {
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	token := os.Getenv(hcloudTokenENVVar)
 	if token == "" {
-		return nil, fmt.Errorf("environment variable %q is required", hcloudEndpointENVVar)
+		return nil, fmt.Errorf("environment variable %q is required", hcloudTokenENVVar)
 	}
 	nodeName := os.Getenv(nodeNameENVVar)
 	if nodeName == "" {

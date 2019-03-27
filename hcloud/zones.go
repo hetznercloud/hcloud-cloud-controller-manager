@@ -21,6 +21,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"log"
 )
 
 type zones struct {
@@ -33,6 +34,7 @@ func newZones(client *hcloud.Client, nodeName string) cloudprovider.Zones {
 }
 
 func (z zones) GetZone(ctx context.Context) (zone cloudprovider.Zone, err error) {
+	log.Print("GetZone")
 	var server *hcloud.Server
 	server, err = getServerByName(z.client, z.nodeName)
 	if err != nil {
@@ -43,6 +45,7 @@ func (z zones) GetZone(ctx context.Context) (zone cloudprovider.Zone, err error)
 }
 
 func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (zone cloudprovider.Zone, err error) {
+	log.Print("GetZoneByProviderID")
 	var id int
 	if id, err = providerIDToServerID(providerID); err != nil {
 		return
@@ -57,6 +60,7 @@ func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (zone
 }
 
 func (z zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (zone cloudprovider.Zone, err error) {
+	log.Print("GetZoneByNodeName")
 	var server *hcloud.Server
 	server, err = getServerByName(z.client, string(nodeName))
 	if err != nil {
@@ -67,6 +71,7 @@ func (z zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (
 }
 
 func zoneFromServer(server *hcloud.Server) (zone cloudprovider.Zone) {
+	log.Print("zoneFromServer")
 	return cloudprovider.Zone{
 		Region:        server.Datacenter.Location.Name,
 		FailureDomain: server.Datacenter.Name,

@@ -57,7 +57,7 @@ func providerIDToServerID(providerID string) (id int, err error) {
 		return
 	}
 
-	idString := strings.Replace(providerID, providerPrefix, "", 1)
+	idString := strings.ReplaceAll(providerID, providerPrefix, "")
 	if idString == "" {
 		err = fmt.Errorf("missing server id in providerID: %s", providerID)
 		return

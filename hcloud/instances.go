@@ -64,7 +64,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 	if err != nil {
 		return "", err
 	}
-	return strconv.Itoa(server.ID), nil
+	return providerName + "://" + strconv.Itoa(server.ID), nil
 }
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
