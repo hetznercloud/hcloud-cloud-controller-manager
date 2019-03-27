@@ -111,7 +111,7 @@ func TestExternalID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if id != "1" {
+	if id != "hcloud://1" {
 		t.Errorf("Unexpected id: %v", id)
 	}
 }
