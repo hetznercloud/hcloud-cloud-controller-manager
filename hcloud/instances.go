@@ -40,7 +40,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	server, err := getServerByID(i.client, id)
+	server, err := getServerByID(i.client, id, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 }
 
 func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+	server, err := getServerByName(i.client, string(nodeName), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (st
 }
 
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+	server, err := getServerByName(i.client, string(nodeName), ctx)
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +68,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 }
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+	server, err := getServerByName(i.client, string(nodeName), ctx)
 	if err != nil {
 		return "", err
 	}
@@ -81,7 +81,7 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 		return "", err
 	}
 
-	server, err := getServerByID(i.client, id)
+	server, err := getServerByID(i.client, id, ctx)
 	if err != nil {
 		return "", err
 	}
@@ -104,7 +104,7 @@ func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID st
 	}
 
 	var server *hcloud.Server
-	server, _, err = i.client.Server.GetByID(context.Background(), id)
+	server, _, err = i.client.Server.GetByID(ctx, id)
 	if err != nil {
 		return
 	}
@@ -120,7 +120,7 @@ func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID 
 	}
 
 	var server *hcloud.Server
-	server, _, err = i.client.Server.GetByID(context.Background(), id)
+	server, _, err = i.client.Server.GetByID(ctx, id)
 	if err != nil {
 		return
 	}

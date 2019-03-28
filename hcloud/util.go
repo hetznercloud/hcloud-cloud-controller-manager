@@ -26,8 +26,8 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider"
 )
 
-func getServerByName(c *hcloud.Client, name string) (server *hcloud.Server, err error) {
-	server, _, err = c.Server.GetByName(context.Background(), name)
+func getServerByName(c *hcloud.Client, name string, ctx context.Context) (server *hcloud.Server, err error) {
+	server, _, err = c.Server.GetByName(ctx, name)
 	if err != nil {
 		return
 	}
@@ -38,8 +38,8 @@ func getServerByName(c *hcloud.Client, name string) (server *hcloud.Server, err 
 	return
 }
 
-func getServerByID(c *hcloud.Client, id int) (server *hcloud.Server, err error) {
-	server, _, err = c.Server.GetByID(context.Background(), id)
+func getServerByID(c *hcloud.Client, id int, ctx context.Context) (server *hcloud.Server, err error) {
+	server, _, err = c.Server.GetByID(ctx, id)
 	if err != nil {
 		return
 	}
