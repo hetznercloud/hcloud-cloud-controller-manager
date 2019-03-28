@@ -40,7 +40,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 		return nil, err
 	}
 
-	server, err := getServerByID(i.client, id, ctx)
+	server, err := getServerByID(ctx, i.client, id)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 }
 
 func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
-	server, err := getServerByName(i.client, string(nodeName), ctx)
+	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (st
 }
 
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName), ctx)
+	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +68,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 }
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName), ctx)
+	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
 		return "", err
 	}
@@ -81,7 +81,7 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 		return "", err
 	}
 
-	server, err := getServerByID(i.client, id, ctx)
+	server, err := getServerByID(ctx, i.client, id)
 	if err != nil {
 		return "", err
 	}

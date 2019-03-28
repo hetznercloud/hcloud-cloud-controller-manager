@@ -34,7 +34,7 @@ func newZones(client *hcloud.Client, nodeName string) cloudprovider.Zones {
 
 func (z zones) GetZone(ctx context.Context) (zone cloudprovider.Zone, err error) {
 	var server *hcloud.Server
-	server, err = getServerByName(z.client, z.nodeName, ctx)
+	server, err = getServerByName(ctx, z.client, z.nodeName)
 	if err != nil {
 		return
 	}
@@ -48,7 +48,7 @@ func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (zone
 		return
 	}
 	var server *hcloud.Server
-	server, err = getServerByID(z.client, id, ctx)
+	server, err = getServerByID(ctx, z.client, id)
 	if err != nil {
 		return
 	}
@@ -58,7 +58,7 @@ func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (zone
 
 func (z zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (zone cloudprovider.Zone, err error) {
 	var server *hcloud.Server
-	server, err = getServerByName(z.client, string(nodeName), ctx)
+	server, err = getServerByName(ctx, z.client, string(nodeName))
 	if err != nil {
 		return
 	}
