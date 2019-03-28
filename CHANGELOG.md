@@ -1,6 +1,11 @@
 Changelog
 =========
 
+v1.3.0
+------
+* Kubernetes 1.11 and 1.12 are now supported
+* update hcloud-go to 1.12.0
+
 v1.2.0
 ------
 
