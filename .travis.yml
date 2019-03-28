@@ -1,11 +1,11 @@
-sudo: false
+dist: xenial
 language: go
 go:
   - 1.12
 env:
   - GO111MODULE=on
 before_script:
-  - go get github.com/golang/lint/golint
+  - go get golang.org/x/lint/golint
 script:
   - make test
   - make

@@ -33,7 +33,12 @@ import (
 )
 
 func main() {
-	s := options.NewCloudControllerManagerServer()
+	s, err := options.NewCloudControllerManagerOptions()
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 	s.AddFlags(pflag.CommandLine)
 
 	flag.InitFlags()
@@ -42,7 +47,12 @@ func main() {
 
 	verflag.PrintAndExitIfRequested()
 
-	if err := app.Run(s); err != nil {
+	config, err := s.Config()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	if err := app.Run(config.Complete()); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

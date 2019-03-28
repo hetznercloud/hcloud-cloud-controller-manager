@@ -34,69 +34,69 @@ func newInstances(client *hcloud.Client) *instances {
 	return &instances{client}
 }
 
-func (i *instances) NodeAddressesByProviderID(providerID string) ([]v1.NodeAddress, error) {
+func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
 		return nil, err
 	}
 
-	server, err := getServerByID(i.client, id)
+	server, err := getServerByID(ctx, i.client, id)
 	if err != nil {
 		return nil, err
 	}
 	return nodeAddresses(server), nil
 }
 
-func (i *instances) NodeAddresses(nodeName types.NodeName) ([]v1.NodeAddress, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
+	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
 		return nil, err
 	}
 	return nodeAddresses(server), nil
 }
 
-func (i *instances) ExternalID(nodeName types.NodeName) (string, error) {
-	return i.InstanceID(nodeName)
+func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (string, error) {
+	return i.InstanceID(ctx, nodeName)
 }
 
-func (i *instances) InstanceID(nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
+	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
 		return "", err
 	}
-	return strconv.Itoa(server.ID), nil
+	return providerName + "://" + strconv.Itoa(server.ID), nil
 }
 
-func (i *instances) InstanceType(nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
+	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
 		return "", err
 	}
 	return server.ServerType.Name, nil
 }
 
-func (i *instances) InstanceTypeByProviderID(providerID string) (string, error) {
+func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
 		return "", err
 	}
 
-	server, err := getServerByID(i.client, id)
+	server, err := getServerByID(ctx, i.client, id)
 	if err != nil {
 		return "", err
 	}
 	return server.ServerType.Name, nil
 }
 
-func (i *instances) AddSSHKeyToAllInstances(user string, keyData []byte) error {
+func (i *instances) AddSSHKeyToAllInstances(ctx context.Context, user string, keyData []byte) error {
 	return errors.New("not implemented")
 }
 
-func (i *instances) CurrentNodeName(hostname string) (types.NodeName, error) {
+func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types.NodeName, error) {
 	return types.NodeName(hostname), nil
 }
 
-func (i instances) InstanceExistsByProviderID(providerID string) (exists bool, err error) {
+func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (exists bool, err error) {
 	var id int
 	id, err = providerIDToServerID(providerID)
 	if err != nil {
@@ -104,11 +104,27 @@ func (i instances) InstanceExistsByProviderID(providerID string) (exists bool, e
 	}
 
 	var server *hcloud.Server
-	server, _, err = i.client.Server.GetByID(context.Background(), id)
+	server, _, err = i.client.Server.GetByID(ctx, id)
 	if err != nil {
 		return
 	}
 	exists = server != nil
+	return
+}
+
+func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (isOff bool, err error) {
+	var id int
+	id, err = providerIDToServerID(providerID)
+	if err != nil {
+		return
+	}
+
+	var server *hcloud.Server
+	server, _, err = i.client.Server.GetByID(ctx, id)
+	if err != nil {
+		return
+	}
+	isOff = server.Status == hcloud.ServerStatusOff
 	return
 }
 
