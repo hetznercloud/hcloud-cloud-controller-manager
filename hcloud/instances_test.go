@@ -111,7 +111,7 @@ func TestExternalID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if id != "hcloud://1" {
+	if id != "1" {
 		t.Errorf("Unexpected id: %v", id)
 	}
 }
@@ -216,6 +216,76 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 		}
 		if exists {
 			t.Errorf("Unexpected exist state: %v", exists)
+		}
+	})
+}
+
+func TestInstanceShutdownByProviderID(t *testing.T) {
+	t.Run("Shutdown", func(t *testing.T) {
+		env := newTestEnv()
+		defer env.Teardown()
+
+		env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(schema.ServerGetResponse{
+				Server: schema.Server{
+					Status: string(hcloud.ServerStatusOff),
+				},
+			})
+		})
+
+		instances := newInstances(env.Client)
+		isOff, err := instances.InstanceShutdownByProviderID(context.TODO(), "hcloud://1")
+		if !isOff {
+			t.Errorf("Unexpected isOff state: %v", isOff)
+		}
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+	})
+
+	t.Run("NotShutdown", func(t *testing.T) {
+		env := newTestEnv()
+		defer env.Teardown()
+
+		env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(schema.ServerGetResponse{
+				Server: schema.Server{
+					Status: string(hcloud.ServerStatusRunning),
+				},
+			})
+		})
+
+		instances := newInstances(env.Client)
+		isOff, err := instances.InstanceShutdownByProviderID(context.TODO(), "hcloud://1")
+		if isOff {
+			t.Errorf("Unexpected isOff state: %v", isOff)
+		}
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		env := newTestEnv()
+		defer env.Teardown()
+
+		env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(schema.ErrorResponse{
+				Error: schema.Error{
+					Code: string(hcloud.ErrorCodeNotFound),
+				},
+			})
+		})
+
+		instances := newInstances(env.Client)
+		isOff, err := instances.InstanceShutdownByProviderID(context.TODO(), "hcloud://1")
+		if isOff {
+			t.Errorf("Unexpected isOff state: %v", isOff)
+		}
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 }
