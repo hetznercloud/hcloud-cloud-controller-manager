@@ -18,7 +18,7 @@ package hcloud
 
 import (
 	"context"
-	"errors"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"strconv"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
@@ -64,7 +64,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 	if err != nil {
 		return "", err
 	}
-	return providerName + "://" + strconv.Itoa(server.ID), nil
+	return strconv.Itoa(server.ID), nil
 }
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
@@ -89,7 +89,7 @@ func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID str
 }
 
 func (i *instances) AddSSHKeyToAllInstances(ctx context.Context, user string, keyData []byte) error {
-	return errors.New("not implemented")
+	return cloudprovider.NotImplemented
 }
 
 func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types.NodeName, error) {
@@ -124,7 +124,7 @@ func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID 
 	if err != nil {
 		return
 	}
-	isOff = server.Status == hcloud.ServerStatusOff
+	isOff = server != nil && server.Status == hcloud.ServerStatusOff
 	return
 }
 
