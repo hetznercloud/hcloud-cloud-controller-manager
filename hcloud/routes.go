@@ -42,14 +42,6 @@ func newRoutes(client *hcloud.Client, network string) (*routes, error) {
 }
 
 // ListRoutes lists all managed routes that belong to the specified clusterName
-
-// CreateRoute creates the described managed route
-// route.Name will be ignored, although the cloud-provider may use nameHint
-// to create a more user-meaningful name.
-
-// DeleteRoute deletes the specified managed route
-// Route should be as returned by ListRoutes
-
 func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudprovider.Route, error) {
 	var routes []*cloudprovider.Route
 	for _, route := range r.network.Routes {
@@ -62,6 +54,9 @@ func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudpr
 	return routes, nil
 }
 
+// CreateRoute creates the described managed route
+// route.Name will be ignored, although the cloud-provider may use nameHint
+// to create a more user-meaningful name.
 func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint string, route *cloudprovider.Route) error {
 	ip, ok := r.serverIPs[string(route.TargetNode)]
 	if !ok {
@@ -80,7 +75,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 	action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
 	if err != nil {
 		if hcloud.IsError(err, hcloud.ErrorCodeLocked) || hcloud.IsError(err, hcloud.ErrorCodeConflict) {
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 1)
 			return r.CreateRoute(ctx, clusterName, nameHint, route)
 		}
 		return err
@@ -89,6 +84,8 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 	return err
 }
 
+// DeleteRoute deletes the specified managed route
+// Route should be as returned by ListRoutes
 func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *cloudprovider.Route) error {
 	ip, ok := r.serverIPs[string(route.TargetNode)]
 	if !ok {

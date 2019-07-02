@@ -64,15 +64,11 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	}
 	client := hcloud.NewClient(opts...)
 
-	routes, err := newRoutes(client, network)
-	if err != nil {
-		return nil, err
-	}
 	return &cloud{
 		client:    client,
 		zones:     newZones(client, nodeName),
 		instances: newInstances(client),
-		routes:    routes,
+		routes:    nil,
 		network:   network,
 	}, nil
 }
@@ -97,7 +93,12 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 	if len(c.network) > 0 {
-		return c.routes, true
+		r, err := newRoutes(c.client, c.network)
+		if err != nil {
+			fmt.Printf("%+v", err)
+			return nil, false
+		}
+		return r, true
 	}
 	return nil, false // If no network is configured, disable the routes part
 

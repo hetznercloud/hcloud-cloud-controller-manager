@@ -2,6 +2,10 @@ dist: xenial
 language: go
 go:
   - 1.12
+  - docker pull lkdevelopment/hetzner-cloud-api-mock
+  - docker run -d -p 127.0.0.1:4000:8080 lkdevelopment/hetzner-cloud-api-mock
+  - docker ps -a
+  - sleep 10
 env:
   - GO111MODULE=on
 before_script:
