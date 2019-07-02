@@ -35,7 +35,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
 	github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47 // indirect
-	github.com/hetznercloud/hcloud-go v1.12.0
+	github.com/hetznercloud/hcloud-go v1.13.0
 	github.com/imdario/mergo v0.0.0-20180119215619-163f41321a19 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -61,7 +61,7 @@ require (
 	github.com/spf13/cobra v0.0.1 // indirect
 	github.com/spf13/pflag v0.0.0-20171106142849-4c012f6dcd95
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
-	github.com/ugorji/go v1.1.1
+	github.com/ugorji/go v1.1.1 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.2 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
@@ -74,12 +74,14 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.0 // indirect
 	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
-	k8s.io/apiextensions-apiserver v0.0.0-20180718013825-06dfdaae5c2b
+	k8s.io/apiextensions-apiserver v0.0.0-20180718013825-06dfdaae5c2b // indirect
 	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
 	k8s.io/apiserver v0.0.0-20180718002855-8b122ec9e3bb
-	k8s.io/client-go v2.0.0-alpha.0.0.20180718001006-59698c7d9724+incompatible
+	k8s.io/client-go v2.0.0-alpha.0.0.20180718001006-59698c7d9724+incompatible // indirect
 	k8s.io/klog v0.2.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20181106182614-a9a16210091c // indirect
 	k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
+
+replace github.com/hetznercloud/hcloud-go => ../../hetznercloud/hcloud-go
