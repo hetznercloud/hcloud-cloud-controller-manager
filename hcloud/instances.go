@@ -19,6 +19,7 @@ package hcloud
 import (
 	"context"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"os"
 	"strconv"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
@@ -44,7 +45,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 	if err != nil {
 		return nil, err
 	}
-	return nodeAddresses(server), nil
+	return i.nodeAddresses(ctx, server), nil
 }
 
 func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
@@ -52,7 +53,7 @@ func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) 
 	if err != nil {
 		return nil, err
 	}
-	return nodeAddresses(server), nil
+	return i.nodeAddresses(ctx, server), nil
 }
 
 func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (string, error) {
@@ -128,12 +129,27 @@ func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID 
 	return
 }
 
-func nodeAddresses(server *hcloud.Server) []v1.NodeAddress {
+func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []v1.NodeAddress {
 	var addresses []v1.NodeAddress
 	addresses = append(
 		addresses,
 		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
 		v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
 	)
+	n := os.Getenv(hcloudNetworkENVVar)
+	if len(n) > 0 {
+		network, _, _ := i.client.Network.Get(ctx, n)
+		if network != nil {
+			for _, privateNet := range server.PrivateNet {
+				if privateNet.Network.ID == network.ID {
+					addresses = append(
+						addresses,
+						v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
+					)
+				}
+			}
+
+		}
+	}
 	return addresses
 }

@@ -73,6 +73,8 @@ github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47 h1:UnszMmmmm5
 github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hetznercloud/hcloud-go v1.12.0 h1:ugZO8a8ADekqSWi7xWlcs6pxr4QE0tw5VnyjXcL5n28=
 github.com/hetznercloud/hcloud-go v1.12.0/go.mod h1:g5pff0YNAZywQaivY/CmhUYFVp7oP0nu3MiODC2W4Hw=
+github.com/hetznercloud/hcloud-go v1.14.0 h1:6IdF0Vox/6j1pyEdUCbFPIzEH/K9xZZzVuSFro8Y2vw=
+github.com/hetznercloud/hcloud-go v1.14.0/go.mod h1:8lR3yHBHZWy2uGcUi9Ibt4UOoop2wrVdERJgCtxsF3Q=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/imdario/mergo v0.0.0-20180119215619-163f41321a19 h1:geJOJJZwkYI1yqxWrAMcgrwDvy4P1XyNNgIyN9d6UXc=
 github.com/imdario/mergo v0.0.0-20180119215619-163f41321a19/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=

@@ -35,7 +35,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
 	github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47 // indirect
-	github.com/hetznercloud/hcloud-go v1.13.0
+	github.com/hetznercloud/hcloud-go v1.14.0
 	github.com/imdario/mergo v0.0.0-20180119215619-163f41321a19 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -83,5 +83,3 @@ require (
 	k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
-
-replace github.com/hetznercloud/hcloud-go => ../../hetznercloud/hcloud-go
