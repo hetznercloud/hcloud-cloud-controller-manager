@@ -1,7 +1,7 @@
 export CGO_ENABLED:=0
 
-VERSION=$(shell ./scripts/git-version.bash)
-DOCKER_REPO=hetznercloud/hcloud-cloud-controller-manager
+VERSION?=$(shell ./scripts/git-version.bash)
+DOCKER_REPO?=hetznercloud/hcloud-cloud-controller-manager
 
 all: build
 
