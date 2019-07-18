@@ -24,7 +24,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestNodeAddressesByProviderID(t *testing.T) {
@@ -73,6 +73,9 @@ func TestNodeAddresses(t *testing.T) {
 							IP: "131.232.99.1",
 						},
 					},
+					PrivateNet: []schema.ServerPrivateNet{
+						{IP: "10.0.1.42"},
+					},
 				},
 			},
 		})
@@ -83,9 +86,10 @@ func TestNodeAddresses(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if len(addr) != 2 ||
+	if len(addr) != 3 ||
 		addr[0].Type != v1.NodeHostName || addr[0].Address != "node15" ||
-		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "131.232.99.1" {
+		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "131.232.99.1" ||
+		addr[2].Type != v1.NodeInternalIP || addr[2].Address != "10.0.1.42" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
 }

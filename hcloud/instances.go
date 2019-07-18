@@ -18,11 +18,12 @@ package hcloud
 
 import (
 	"context"
-	"k8s.io/kubernetes/pkg/cloudprovider"
 	"strconv"
 
+	"k8s.io/kubernetes/pkg/cloudprovider"
+
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -135,5 +136,13 @@ func nodeAddresses(server *hcloud.Server) []v1.NodeAddress {
 		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
 		v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
 	)
+
+	for _, network := range server.PrivateNet {
+		addresses = append(
+			addresses,
+			v1.NodeAddress{Type: v1.NodeInternalIP, Address: network.IP.String()},
+		)
+	}
+
 	return addresses
 }

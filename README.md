@@ -1,4 +1,5 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
+
 [![Build Status](https://travis-ci.org/hetznercloud/hcloud-cloud-controller-manager.svg?branch=master)](https://travis-ci.org/hetznercloud/hcloud-cloud-controller-manager)
 
 The Hetzner Cloud cloud controller manager integrates your Kubernets cluster with the Hetzner Cloud API.
@@ -7,9 +8,9 @@ Read more about kubernetes cloud controller managers in the [kubernetes document
 ## Features
 
 - **instances interface**
-Adds the server type to the `beta.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
+  Adds the server type to the `beta.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
 - **zones interface**
-Makes Kubernetes aware of the failure domain of the server by setting the `failure-domain.beta.kubernetes.io/region` and `failure-domain.beta.kubernetes.io/zone` labels on the node.
+  Makes Kubernetes aware of the failure domain of the server by setting the `failure-domain.beta.kubernetes.io/region` and `failure-domain.beta.kubernetes.io/zone` labels on the node.
 
 ## Example
 
@@ -20,10 +21,10 @@ metadata:
   annotations:
     flannel.alpha.coreos.com/backend-data: '{"VtepMAC":"06:b3:ee:88:92:36"}'
     flannel.alpha.coreos.com/backend-type: vxlan
-    flannel.alpha.coreos.com/kube-subnet-manager: "true"
+    flannel.alpha.coreos.com/kube-subnet-manager: 'true'
     flannel.alpha.coreos.com/public-ip: 78.46.208.178
-    node.alpha.kubernetes.io/ttl: "0"
-    volumes.kubernetes.io/controller-managed-attach-detach: "true"
+    node.alpha.kubernetes.io/ttl: '0'
+    volumes.kubernetes.io/controller-managed-attach-detach: 'true'
   creationTimestamp: 2018-01-24T15:59:45Z
   labels:
     beta.kubernetes.io/arch: amd64
@@ -32,9 +33,9 @@ metadata:
     failure-domain.beta.kubernetes.io/region: fsn1 # <-- location
     failure-domain.beta.kubernetes.io/zone: fsn1-dc8 # <-- datacenter
     kubernetes.io/hostname: master
-    node-role.kubernetes.io/master: ""
+    node-role.kubernetes.io/master: ''
   name: master
-  resourceVersion: "183932"
+  resourceVersion: '183932'
   selfLink: /api/v1/nodes/master
   uid: 98acdedc-011f-11e8-9ed3-9600000780bf
 spec:
@@ -43,10 +44,12 @@ spec:
   providerID: hcloud://123456 # <-- Server ID
 status:
   addresses:
-  - address: master
-    type: Hostname
-  - address: 78.46.208.178 # <-- public ipv4
-    type: ExternalIP
+    - address: master
+      type: Hostname
+    - address: 78.46.208.178 # <-- public ipv4
+      type: ExternalIP
+    - address: 10.0.1.42 # <-- private ipv4 (if attached to private network)
+      type: InternalIP
 ```
 
 ## Deployment
@@ -59,8 +62,8 @@ These deployment instructions are designed to guide with the installation of the
 Please refer to the [kubeadm cluster creation guide](https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/), which these instructions are meant to argument and the [kubeadm documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
 1. The cloud controller manager adds its labels when a node is added to the cluster. This means we have to add the `--cloud-provider=external` flag to the `kubelet` before initializing the cluster master with `kubeadm init`.
-To do accomplish this we add this systemd drop-in unit:
-`/etc/systemd/system/kubelet.service.d/20-hcloud.conf`
+   To do accomplish this we add this systemd drop-in unit:
+   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`
 
 ```
 [Service]
@@ -105,7 +108,6 @@ kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud
 kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/v1.3.0.yaml
 
 ```
-
 
 ## License
 
