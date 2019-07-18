@@ -1,11 +1,12 @@
 FROM golang:1.12 as builder
-WORKDIR /maschine-controller/src
-ADD . .
+ENV GO111MODULE=on
+WORKDIR $GOPATH/src/github.com/hetznercloud/hcloud-cloud-controller-manager
+ADD go.mod go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=0 go build -o hcloud-maschine-controller.bin  .
-
+ADD . .
+RUN CGO_ENABLED=0 go build -o /bin/hcloud-maschine-controller  .
 
 FROM alpine:3.9
 RUN apk add --no-cache ca-certificates bash
-COPY --from=builder /maschine-controller/src/hcloud-maschine-controller.bin /bin/hcloud-cloud-controller-manager
+COPY --from=builder /bin/hcloud-maschine-controller /bin/hcloud-cloud-controller-manager
 ENTRYPOINT ["/bin/hcloud-cloud-controller-manager"]

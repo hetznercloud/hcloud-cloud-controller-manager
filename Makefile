@@ -10,7 +10,7 @@ build: clean bin/hcloud-cloud-controller-manager
 bin/%:
 	@go build -o bin/$* .
 
-container: build
+container:
 	docker build -t $(DOCKER_REPO):$(VERSION) .
 
 release-container:
