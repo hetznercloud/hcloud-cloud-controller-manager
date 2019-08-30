@@ -29,15 +29,18 @@ import (
 const (
 	hcloudTokenENVVar    = "HCLOUD_TOKEN"
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
+	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hcloud"
-	providerVersion      = "v1.3.0"
+	providerVersion      = "v1.4.0"
 )
 
 type cloud struct {
 	client    *hcloud.Client
 	instances cloudprovider.Instances
 	zones     cloudprovider.Zones
+	routes    cloudprovider.Routes
+	network   string
 }
 
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
@@ -49,6 +52,8 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	if nodeName == "" {
 		return nil, fmt.Errorf("environment variable %q is required", nodeNameENVVar)
 	}
+
+	network := os.Getenv(hcloudNetworkENVVar)
 
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
@@ -63,6 +68,8 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		client:    client,
 		zones:     newZones(client, nodeName),
 		instances: newInstances(client),
+		routes:    nil,
+		network:   network,
 	}, nil
 }
 
@@ -85,7 +92,16 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 }
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
-	return nil, false
+	if len(c.network) > 0 {
+		r, err := newRoutes(c.client, c.network)
+		if err != nil {
+			fmt.Printf("%+v", err)
+			return nil, false
+		}
+		return r, true
+	}
+	return nil, false // If no network is configured, disable the routes part
+
 }
 
 func (c *cloud) ProviderName() string {

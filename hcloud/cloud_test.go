@@ -67,6 +67,8 @@ func TestNewCloud(t *testing.T) {
 }
 
 func TestCloud(t *testing.T) {
+	os.Setenv("HCLOUD_TOKEN", "test")
+	os.Setenv("NODE_NAME", "test")
 	var config bytes.Buffer
 	cloud, err := newCloud(&config)
 	if err != nil {
@@ -105,6 +107,16 @@ func TestCloud(t *testing.T) {
 		_, supported := cloud.Routes()
 		if supported {
 			t.Error("Routes interface should not be supported")
+		}
+	})
+
+	t.Run("RoutesWithNetworks", func(t *testing.T) {
+		os.Setenv("HCLOUD_NETWORK", "1")
+		os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1") // We need the mock server for testing this
+		c, _ := newCloud(&config)
+		_, supported := c.Routes()
+		if !supported {
+			t.Error("Routes interface should be supported")
 		}
 	})
 
