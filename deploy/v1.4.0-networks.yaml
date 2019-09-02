@@ -51,7 +51,7 @@ spec:
           effect: "NoSchedule"
       hostNetwork: true
       containers:
-        - image: hetznercloud/hcloud-cloud-controller-manager:dev
+        - image: hetznercloud/hcloud-cloud-controller-manager:v1.4.0
           name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"

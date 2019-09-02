@@ -1,4 +1,5 @@
 # NOTE: this release was tested against kubernetes v1.15.x
+
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -49,17 +50,14 @@ spec:
           effect: NoSchedule
         - key: "node.kubernetes.io/not-ready"
           effect: "NoSchedule"
-      hostNetwork: true
       containers:
-        - image: hetznercloud/hcloud-cloud-controller-manager:dev
+        - image: hetznercloud/hcloud-cloud-controller-manager:v1.4.0
           name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"
             - "--cloud-provider=hcloud"
             - "--leader-elect=false"
             - "--allow-untagged-cloud"
-            - "--allocate-node-cidrs=true"
-            - "--cluster-cidr=10.244.0.0/16"
           resources:
             requests:
               cpu: 100m
