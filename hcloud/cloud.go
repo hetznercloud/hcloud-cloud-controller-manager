@@ -95,7 +95,6 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 	if len(c.network) > 0 {
 		r, err := newRoutes(c.client, c.network)
 		if err != nil {
-			fmt.Printf("%+v", err)
 			return nil, false
 		}
 		return r, true

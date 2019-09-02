@@ -102,9 +102,11 @@ kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud
 7. Deploy the `hcloud-cloud-controller-manager`:
 
 ```
-kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/v1.3.0.yaml
+kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/v1.4.0.yaml
 
 ```
+
+If you want to use the Hetzner Cloud `Networks` Feature, head over to the [Deployment with Networks support documentation](./docs/deploy_with_networks.md).
 
 
 ## License

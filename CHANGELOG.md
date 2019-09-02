@@ -1,6 +1,10 @@
 Changelog
 =========
 
+v1.4.0
+------
+* Add Networks Support
+
 v1.3.0
 ------
 * Kubernetes 1.11 and 1.12 are now supported
