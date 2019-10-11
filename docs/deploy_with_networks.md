@@ -1,6 +1,6 @@
 # Deployment with Networks support
 
-The deployment of the Hetzner Cloud Cloud Controller Manager with Networks support is quite different to the normal one. If you would like to use the version without using our Networks feature, you can follow the Steps at "[Basic deployment](README.md#deployment)".
+The deployment of the Hetzner Cloud Cloud Controller Manager with Networks support is quite different to the normal one. If you would like to use the version without using our Networks feature, you can follow the Steps at "[Basic deployment](../README.md#deployment)".
 
 We assume, that you have knowledge about Kubernetes and the Hetzner Cloud.
 
