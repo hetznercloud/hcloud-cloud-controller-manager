@@ -1,4 +1,4 @@
-# NOTE: this release was tested against kubernetes v1.15.x
+# NOTE: this release was tested against kubernetes v1.16.x
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -19,7 +19,7 @@ subjects:
     name: cloud-controller-manager
     namespace: kube-system
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hcloud-cloud-controller-manager
@@ -27,6 +27,9 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: hcloud-cloud-controller-manager
   template:
     metadata:
       labels:
@@ -34,7 +37,7 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
-      serviceAccount: cloud-controller-manager
+      serviceAccountName: cloud-controller-manager
       dnsPolicy: Default
       tolerations:
         # this taint is set by all kubelets running `--cloud-provider=external`
