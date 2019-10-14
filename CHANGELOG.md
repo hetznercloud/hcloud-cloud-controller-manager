@@ -1,6 +1,10 @@
 Changelog
 =========
 
+v1.5.0
+------
+* Support for Kubernetes 1.16
+
 v1.4.0
 ------
 * Add Networks Support
