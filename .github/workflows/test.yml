@@ -1,0 +1,17 @@
+name: Run tests
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '1.12'
+    - uses: actions/checkout@master
+    - name: Run tests
+      run: |
+        docker pull lkdevelopment/hetzner-cloud-api-mock
+        docker run -d -p 127.0.0.1:4000:8080 lkdevelopment/hetzner-cloud-api-mock
+        docker ps -a
+        go vet ./...
+        go test ./...

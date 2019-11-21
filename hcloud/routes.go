@@ -3,11 +3,12 @@ package hcloud
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"net"
-	"time"
 )
 
 type routes struct {
