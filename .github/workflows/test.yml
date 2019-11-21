@@ -13,6 +13,5 @@ jobs:
         docker pull lkdevelopment/hetzner-cloud-api-mock
         docker run -d -p 127.0.0.1:4000:8080 lkdevelopment/hetzner-cloud-api-mock
         docker ps -a
-        diff -u <(echo -n) <(gofmt -d -s $(find . -type f -name '*.go' | grep -v ^./vendor))
         go vet ./...
         go test ./...
