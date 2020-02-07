@@ -17,6 +17,7 @@ limitations under the License.
 package hcloud
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -48,6 +49,9 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	if token == "" {
 		return nil, fmt.Errorf("environment variable %q is required", hcloudTokenENVVar)
 	}
+	if len(token) != 64 {
+		return nil, fmt.Errorf("entered token is invalid (must be exactly 64 characters long)")
+	}
 	nodeName := os.Getenv(nodeNameENVVar)
 	if nodeName == "" {
 		return nil, fmt.Errorf("environment variable %q is required", nodeNameENVVar)
@@ -63,6 +67,11 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		opts = append(opts, hcloud.WithEndpoint(endpoint))
 	}
 	client := hcloud.NewClient(opts...)
+
+	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	if err != nil {
+		return nil, err
+	}
 
 	return &cloud{
 		client:    client,

@@ -45,7 +45,7 @@ func newTestEnv() testEnv {
 	server := httptest.NewServer(mux)
 	client := hcloud.NewClient(
 		hcloud.WithEndpoint(server.URL),
-		hcloud.WithToken("token"),
+		hcloud.WithToken("jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75"),
 		hcloud.WithBackoffFunc(func(_ int) time.Duration { return 0 }),
 	)
 	return testEnv{
@@ -56,7 +56,8 @@ func newTestEnv() testEnv {
 }
 
 func TestNewCloud(t *testing.T) {
-	os.Setenv("HCLOUD_TOKEN", "test")
+	os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1")
+	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75")
 	os.Setenv("NODE_NAME", "test")
 
 	var config bytes.Buffer
@@ -66,8 +67,44 @@ func TestNewCloud(t *testing.T) {
 	}
 }
 
+func TestNewCloudWrongTokenSize(t *testing.T) {
+	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCe")
+	os.Setenv("NODE_NAME", "test")
+
+	var config bytes.Buffer
+	_, err := newCloud(&config)
+	if err == nil || err.Error() != "entered token is invalid (must be exactly 64 characters long)" {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func TestNewCloudConnectionNotPossible(t *testing.T) {
+	os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1")
+	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75")
+	os.Setenv("NODE_NAME", "test")
+
+	var config bytes.Buffer
+	_, err := newCloud(&config)
+	if err == nil || err.Error() != "Get http://127.0.0.1:4711/v1/servers?: dial tcp 127.0.0.1:4711: connect: connection refused" {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func TestNewCloudInvalidToken(t *testing.T) {
+	os.Setenv("HCLOUD_ENDPOINT", "https://api.hetzner.cloud/v1")
+	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq")
+	os.Setenv("NODE_NAME", "test")
+
+	var config bytes.Buffer
+	_, err := newCloud(&config)
+	if err == nil || err.Error() != "unable to authenticate (unauthorized)" {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
 func TestCloud(t *testing.T) {
-	os.Setenv("HCLOUD_TOKEN", "test")
+	os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1")
+	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75")
 	os.Setenv("NODE_NAME", "test")
 	var config bytes.Buffer
 	cloud, err := newCloud(&config)
@@ -112,7 +149,6 @@ func TestCloud(t *testing.T) {
 
 	t.Run("RoutesWithNetworks", func(t *testing.T) {
 		os.Setenv("HCLOUD_NETWORK", "1")
-		os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1") // We need the mock server for testing this
 		c, _ := newCloud(&config)
 		_, supported := c.Routes()
 		if !supported {

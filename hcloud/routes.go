@@ -28,7 +28,7 @@ func newRoutes(client *hcloud.Client, network string) (*routes, error) {
 }
 
 func (r *routes) reloadNetwork(ctx context.Context) error {
-	networkObj, _, err := r.client.Network.GetByID(context.Background(), r.network.ID)
+	networkObj, _, err := r.client.Network.GetByID(ctx, r.network.ID)
 	if err != nil {
 		return err
 	}
