@@ -1,7 +1,7 @@
 Changelog
 =========
 
-master
+v1.5.1
 ------
 * Add better error handling and validation for certain errors related to wrong API tokens
 
