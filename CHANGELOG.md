@@ -1,6 +1,10 @@
 Changelog
 =========
 
+master
+------
+* Add better error handling and validation for certain errors related to wrong API tokens
+
 v1.5.0
 ------
 * Support for Kubernetes 1.16
