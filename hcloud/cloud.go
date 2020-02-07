@@ -33,7 +33,7 @@ const (
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hcloud"
-	providerVersion      = "v1.5.0"
+	providerVersion      = "v1.5.1"
 )
 
 type cloud struct {
