@@ -1,6 +1,13 @@
 Changelog
 =========
 
+v1.6.0
+------
+
+* Add support for hcloud Load Balancer
+* Update kubernetes dependencies to v1.16.2
+* Update build to go 1.14
+
 v1.5.2
 ------
 
@@ -8,18 +15,22 @@ v1.5.2
 
 v1.5.1
 ------
+
 * Add better error handling and validation for certain errors related to wrong API tokens
 
 v1.5.0
 ------
+
 * Support for Kubernetes 1.16
 
 v1.4.0
 ------
+
 * Add Networks Support
 
 v1.3.0
 ------
+
 * Kubernetes 1.11 and 1.12 are now supported
 * update hcloud-go to 1.12.0
 

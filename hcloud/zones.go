@@ -18,10 +18,11 @@ package hcloud
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/cloudprovider"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 type zones struct {
@@ -33,41 +34,44 @@ func newZones(client *hcloud.Client, nodeName string) cloudprovider.Zones {
 	return zones{client, nodeName}
 }
 
-func (z zones) GetZone(ctx context.Context) (zone cloudprovider.Zone, err error) {
-	var server *hcloud.Server
-	server, err = getServerByName(ctx, z.client, z.nodeName)
+func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
+	const op = "hcloud/zones.GetZone"
+
+	server, err := getServerByName(ctx, z.client, z.nodeName)
 	if err != nil {
-		return
+		return cloudprovider.Zone{}, fmt.Errorf("%s: %w", op, err)
 	}
-	zone = zoneFromServer(server)
-	return
+	return zoneFromServer(server), nil
 }
 
-func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (zone cloudprovider.Zone, err error) {
-	var id int
-	if id, err = providerIDToServerID(providerID); err != nil {
-		return
-	}
-	var server *hcloud.Server
-	server, err = getServerByID(ctx, z.client, id)
+func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
+	const op = "hcloud/zones.GetZoneByProviderID"
+
+	id, err := providerIDToServerID(providerID)
 	if err != nil {
-		return
+		return cloudprovider.Zone{}, fmt.Errorf("%s: %w", op, err)
 	}
-	zone = zoneFromServer(server)
-	return
+
+	server, err := getServerByID(ctx, z.client, id)
+	if err != nil {
+		return cloudprovider.Zone{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return zoneFromServer(server), nil
 }
 
-func (z zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (zone cloudprovider.Zone, err error) {
-	var server *hcloud.Server
-	server, err = getServerByName(ctx, z.client, string(nodeName))
+func (z zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
+	const op = "hcloud/zones.GetZoneByNodeName"
+
+	server, err := getServerByName(ctx, z.client, string(nodeName))
 	if err != nil {
-		return
+		return cloudprovider.Zone{}, fmt.Errorf("%s: %w", op, err)
 	}
-	zone = zoneFromServer(server)
-	return
+
+	return zoneFromServer(server), nil
 }
 
-func zoneFromServer(server *hcloud.Server) (zone cloudprovider.Zone) {
+func zoneFromServer(server *hcloud.Server) cloudprovider.Zone {
 	return cloudprovider.Zone{
 		Region:        server.Datacenter.Location.Name,
 		FailureDomain: server.Datacenter.Name,

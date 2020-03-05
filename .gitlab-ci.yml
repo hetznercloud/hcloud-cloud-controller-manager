@@ -1,0 +1,48 @@
+---
+include:
+  - project: "hc/backend/deploy-tools"
+    file: "ci/release/image.yml"
+  - project: "hc/backend/deploy-tools"
+    file: "ci/build/image.yml"
+
+
+stages:
+  - test
+  - build
+  - release
+
+variables:
+  GOPROXY: goproxy.prodext.hcinfra.de
+  GONOSUMDB: hetzner.cloud
+
+test:lint:
+  stage: test
+  image: golangci/golangci-lint:v1.27.0
+  allow_failure: true
+  script:
+    - golangci-lint run -v
+  except:
+    - tags
+    - master
+  tags:
+    - hc-bladerunner
+
+test:unit:
+  stage: test
+  image: golang:1.14
+  services:
+    - name: lkdevelopment/hetzner-cloud-api-mock:latest
+      alias: api-mock
+  variables:
+    API_MOCK_PORT: 4000
+    API_MOCK_SOURCE: https://docs-internal.staging.hc-k8s.de/hc_public_internal.apib
+    HCLOUD_ENDPOINT: http://api-mock:4000/v1
+    HCLOUD_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    NODE_NAME: "test"
+  script:
+    - GO_PACKAGES=$(command go list ./... | tr "\n" ",")
+    - go test -race -covermode=atomic -coverprofile=.coverage.out ./... 2> /dev/null
+    - go tool cover -func=.coverage.out | tail -n1
+  coverage: '/total:[^\d]+(\d+\.\d+%)/'
+  tags:
+    - hc-bladerunner

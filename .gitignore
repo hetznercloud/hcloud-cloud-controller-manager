@@ -1,2 +1,3 @@
 /bin
 /vendor
+.coverage.out

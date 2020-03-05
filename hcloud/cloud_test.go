@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/stretchr/testify/assert"
 )
 
 type testEnv struct {
@@ -47,6 +48,7 @@ func newTestEnv() testEnv {
 		hcloud.WithEndpoint(server.URL),
 		hcloud.WithToken("jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75"),
 		hcloud.WithBackoffFunc(func(_ int) time.Duration { return 0 }),
+		hcloud.WithDebugWriter(os.Stdout),
 	)
 	return testEnv{
 		Server: server,
@@ -56,9 +58,7 @@ func newTestEnv() testEnv {
 }
 
 func TestNewCloud(t *testing.T) {
-	os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1")
-	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75")
-	os.Setenv("NODE_NAME", "test")
+	SkipEnv(t, "HCLOUD_ENDPOINT", "HCLOUD_TOKEN", "NODE_NAME")
 
 	var config bytes.Buffer
 	_, err := newCloud(&config)
@@ -68,8 +68,8 @@ func TestNewCloud(t *testing.T) {
 }
 
 func TestNewCloudWrongTokenSize(t *testing.T) {
-	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCe")
-	os.Setenv("NODE_NAME", "test")
+	resetEnv := Setenv(t, "HCLOUD_TOKEN", "0123456789abcdef")
+	defer resetEnv()
 
 	var config bytes.Buffer
 	_, err := newCloud(&config)
@@ -79,35 +79,38 @@ func TestNewCloudWrongTokenSize(t *testing.T) {
 }
 
 func TestNewCloudConnectionNotPossible(t *testing.T) {
-	os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1")
-	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75")
-	os.Setenv("NODE_NAME", "test")
+	SkipEnv(t, "HCLOUD_TOKEN", "NODE_NAME")
+	resetEnv := Setenv(t, "HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1")
+	defer resetEnv()
 
-	var config bytes.Buffer
-	_, err := newCloud(&config)
-	if err == nil || err.Error() != "Get http://127.0.0.1:4711/v1/servers?: dial tcp 127.0.0.1:4711: connect: connection refused" {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	_, err := newCloud(&bytes.Buffer{})
+	assert.EqualError(t, err,
+		`hcloud/newCloud: Get "http://127.0.0.1:4711/v1/servers?": dial tcp 127.0.0.1:4711: connect: connection refused`)
 }
 
 func TestNewCloudInvalidToken(t *testing.T) {
-	os.Setenv("HCLOUD_ENDPOINT", "https://api.hetzner.cloud/v1")
-	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq")
-	os.Setenv("NODE_NAME", "test")
+	resetEnv := Setenv(t,
+		"HCLOUD_ENDPOINT", "https://api.hetzner.cloud/v1",
+		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+		"NODE_NAME", "test",
+	)
+	defer resetEnv()
 
-	var config bytes.Buffer
-	_, err := newCloud(&config)
-	if err == nil || err.Error() != "unable to authenticate (unauthorized)" {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	_, err := newCloud(&bytes.Buffer{})
+	assert.EqualError(t, err, "hcloud/newCloud: unable to authenticate (unauthorized)")
 }
 
 func TestCloud(t *testing.T) {
-	os.Setenv("HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1")
-	os.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75")
-	os.Setenv("NODE_NAME", "test")
-	var config bytes.Buffer
-	cloud, err := newCloud(&config)
+	SkipEnv(t, "HCLOUD_ENDPOINT", "HCLOUD_TOKEN", "NODE_NAME")
+
+	resetEnv := Setenv(t,
+		"HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1",
+		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75",
+		"NODE_NAME", "test",
+	)
+	defer resetEnv()
+
+	cloud, err := newCloud(&bytes.Buffer{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -128,8 +131,8 @@ func TestCloud(t *testing.T) {
 
 	t.Run("LoadBalancer", func(t *testing.T) {
 		_, supported := cloud.LoadBalancer()
-		if supported {
-			t.Error("LoadBalancer interface should not be supported")
+		if !supported {
+			t.Error("LoadBalancer interface should be supported")
 		}
 	})
 
@@ -148,8 +151,10 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("RoutesWithNetworks", func(t *testing.T) {
-		os.Setenv("HCLOUD_NETWORK", "1")
-		c, _ := newCloud(&config)
+		resetEnv := Setenv(t, "HCLOUD_NETWORK", "1")
+		defer resetEnv()
+
+		c, _ := newCloud(&bytes.Buffer{})
 		_, supported := c.Routes()
 		if !supported {
 			t.Error("Routes interface should be supported")

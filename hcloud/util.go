@@ -23,46 +23,51 @@ import (
 	"strings"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"k8s.io/kubernetes/pkg/cloudprovider"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
-func getServerByName(ctx context.Context, c *hcloud.Client, name string) (server *hcloud.Server, err error) {
-	server, _, err = c.Server.GetByName(ctx, name)
+func getServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
+	const op = "hcloud/getServerByName"
+
+	server, _, err := c.Server.GetByName(ctx, name)
 	if err != nil {
-		return
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if server == nil {
-		err = cloudprovider.InstanceNotFound
-		return
+		return nil, cloudprovider.InstanceNotFound
 	}
-	return
+	return server, nil
 }
 
-func getServerByID(ctx context.Context, c *hcloud.Client, id int) (server *hcloud.Server, err error) {
-	server, _, err = c.Server.GetByID(ctx, id)
+func getServerByID(ctx context.Context, c *hcloud.Client, id int) (*hcloud.Server, error) {
+	const op = "hcloud/getServerByName"
+
+	server, _, err := c.Server.GetByID(ctx, id)
 	if err != nil {
-		return
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if server == nil {
-		err = cloudprovider.InstanceNotFound
-		return
+		return nil, cloudprovider.InstanceNotFound
 	}
-	return
+	return server, nil
 }
 
-func providerIDToServerID(providerID string) (id int, err error) {
+func providerIDToServerID(providerID string) (int, error) {
+	const op = "hcloud/providerIDToServerID"
+
 	providerPrefix := providerName + "://"
 	if !strings.HasPrefix(providerID, providerPrefix) {
-		err = fmt.Errorf("providerID should start with hcloud://: %s", providerID)
-		return
+		return 0, fmt.Errorf("%s: missing prefix hcloud://: %s", op, providerID)
 	}
 
 	idString := strings.ReplaceAll(providerID, providerPrefix, "")
 	if idString == "" {
-		err = fmt.Errorf("missing server id in providerID: %s", providerID)
-		return
+		return 0, fmt.Errorf("%s: missing serverID: %s", op, providerID)
 	}
 
-	id, err = strconv.Atoi(idString)
-	return
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		return 0, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
+	}
+	return id, nil
 }

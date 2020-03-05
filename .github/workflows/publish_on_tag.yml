@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v1
         with:
-          go-version: '1.12'
+          go-version: '1.14'
       - name: Set env
         run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
       - uses: actions/checkout@master

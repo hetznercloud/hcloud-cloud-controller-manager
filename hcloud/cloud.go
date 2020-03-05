@@ -22,29 +22,34 @@ import (
 	"io"
 	"os"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/controller"
+	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 )
 
 const (
 	hcloudTokenENVVar    = "HCLOUD_TOKEN"
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
+	hcloudDebugENVVar    = "HCLOUD_DEBUG"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hcloud"
-	providerVersion      = "v1.5.2"
+	providerVersion      = "v1.6.0"
 )
 
 type cloud struct {
-	client    *hcloud.Client
-	instances cloudprovider.Instances
-	zones     cloudprovider.Zones
-	routes    cloudprovider.Routes
-	network   string
+	client       *hcloud.Client
+	instances    cloudprovider.Instances
+	zones        cloudprovider.Zones
+	routes       cloudprovider.Routes
+	loadBalancer cloudprovider.LoadBalancer
+	networkID    int
 }
 
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
+	const op = "hcloud/newCloud"
+
 	token := os.Getenv(hcloudTokenENVVar)
 	if token == "" {
 		return nil, fmt.Errorf("environment variable %q is required", hcloudTokenENVVar)
@@ -57,32 +62,53 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("environment variable %q is required", nodeNameENVVar)
 	}
 
-	network := os.Getenv(hcloudNetworkENVVar)
-
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
 		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
+	}
+	if os.Getenv(hcloudDebugENVVar) == "true" {
+		opts = append(opts, hcloud.WithDebugWriter(os.Stderr))
 	}
 	if endpoint := os.Getenv(hcloudEndpointENVVar); endpoint != "" {
 		opts = append(opts, hcloud.WithEndpoint(endpoint))
 	}
 	client := hcloud.NewClient(opts...)
 
-	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})
-	if err != nil {
-		return nil, err
+	var networkID int
+	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
+		n, _, err := client.Network.Get(context.Background(), v)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		networkID = n.ID
+	}
+	if networkID == 0 {
+		klog.InfoS("%s: %s empty", op, hcloudNetworkENVVar)
 	}
 
+	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	fmt.Printf("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
+	lbOps := &hcops.LoadBalancerOps{
+		LBClient:      &client.LoadBalancer,
+		ActionClient:  &client.Action,
+		NetworkClient: &client.Network,
+		NetworkID:     networkID,
+	}
 	return &cloud{
-		client:    client,
-		zones:     newZones(client, nodeName),
-		instances: newInstances(client),
-		routes:    nil,
-		network:   network,
+		client:       client,
+		zones:        newZones(client, nodeName),
+		instances:    newInstances(client),
+		loadBalancer: newLoadBalancers(lbOps, &client.LoadBalancer, &client.Action),
+		routes:       nil,
+		networkID:    networkID,
 	}, nil
 }
 
-func (c *cloud) Initialize(clientBuilder controller.ControllerClientBuilder) {}
+func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+}
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 	return c.instances, true
@@ -93,7 +119,7 @@ func (c *cloud) Zones() (cloudprovider.Zones, bool) {
 }
 
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	return nil, false
+	return c.loadBalancer, true
 }
 
 func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
@@ -101,15 +127,15 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 }
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
-	if len(c.network) > 0 {
-		r, err := newRoutes(c.client, c.network)
+	if c.networkID > 0 {
+		r, err := newRoutes(c.client, c.networkID)
 		if err != nil {
+			klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
 			return nil, false
 		}
 		return r, true
 	}
 	return nil, false // If no network is configured, disable the routes part
-
 }
 
 func (c *cloud) ProviderName() string {
