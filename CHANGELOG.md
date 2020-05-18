@@ -1,6 +1,11 @@
 Changelog
 =========
 
+v1.5.2
+------
+
+* Fix nil pointer dereference if network does not exist anymore (#42).
+
 v1.5.1
 ------
 * Add better error handling and validation for certain errors related to wrong API tokens
