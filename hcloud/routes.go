@@ -23,6 +23,9 @@ func newRoutes(client *hcloud.Client, network string) (*routes, error) {
 	if err != nil {
 		return nil, err
 	}
+	if networkObj == nil {
+		return nil, fmt.Errorf("network not found: %s", network)
+	}
 
 	return &routes{client, networkObj, make(map[string]string), make(map[string]net.IP)}, nil
 }
@@ -31,6 +34,9 @@ func (r *routes) reloadNetwork(ctx context.Context) error {
 	networkObj, _, err := r.client.Network.GetByID(ctx, r.network.ID)
 	if err != nil {
 		return err
+	}
+	if networkObj == nil {
+		return fmt.Errorf("network not found: %s", r.network.Name)
 	}
 	r.network = networkObj
 	return nil
