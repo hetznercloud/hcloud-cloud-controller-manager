@@ -8,7 +8,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
-	"k8s.io/kubernetes/pkg/cloudprovider"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 func TestRoutes_CreateRoute(t *testing.T) {
@@ -67,7 +67,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, "1")
+	routes, err := newRoutes(env.Client, 1)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, "1")
+	routes, err := newRoutes(env.Client, 1)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, "1")
+	routes, err := newRoutes(env.Client, 1)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

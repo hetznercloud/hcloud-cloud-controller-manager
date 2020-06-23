@@ -18,14 +18,14 @@ package hcloud
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
-
-	"k8s.io/kubernetes/pkg/cloudprovider"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	cloudprovider "k8s.io/cloud-provider"
 )
 
 type instances struct {
@@ -37,55 +37,71 @@ func newInstances(client *hcloud.Client) *instances {
 }
 
 func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
+	const op = "hcloud/instances.NodeAddressesByProviderID"
+
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	server, err := getServerByID(ctx, i.client, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return i.nodeAddresses(ctx, server), nil
 }
 
 func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
+	const op = "hcloud/instances.NodeAddresses"
+
 	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return i.nodeAddresses(ctx, server), nil
 }
 
 func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	return i.InstanceID(ctx, nodeName)
+	const op = "hcloud/instances.ExternalID"
+
+	id, err := i.InstanceID(ctx, nodeName)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return id, nil
 }
 
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
+	const op = "hcloud/instances.InstanceID"
+
 	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return strconv.Itoa(server.ID), nil
 }
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
+	const op = "hcloud/instances.InstanceType"
+
 	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return server.ServerType.Name, nil
 }
 
 func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
+	const op = "hcloud/instances.InstanceTypeByProviderID"
+
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	server, err := getServerByID(ctx, i.client, id)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return server.ServerType.Name, nil
 }
@@ -98,36 +114,34 @@ func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types
 	return types.NodeName(hostname), nil
 }
 
-func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (exists bool, err error) {
-	var id int
-	id, err = providerIDToServerID(providerID)
+func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
+	const op = "hcloud/instances.InstanceExistsByProviderID"
+
+	id, err := providerIDToServerID(providerID)
 	if err != nil {
-		return
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var server *hcloud.Server
-	server, _, err = i.client.Server.GetByID(ctx, id)
+	server, _, err := i.client.Server.GetByID(ctx, id)
 	if err != nil {
-		return
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	exists = server != nil
-	return
+	return server != nil, nil
 }
 
-func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (isOff bool, err error) {
-	var id int
-	id, err = providerIDToServerID(providerID)
+func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
+	const op = "hcloud/instances.InstanceShutdownByProviderID"
+
+	id, err := providerIDToServerID(providerID)
 	if err != nil {
-		return
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var server *hcloud.Server
-	server, _, err = i.client.Server.GetByID(ctx, id)
+	server, _, err := i.client.Server.GetByID(ctx, id)
 	if err != nil {
-		return
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	isOff = server != nil && server.Status == hcloud.ServerStatusOff
-	return
+	return server != nil && server.Status == hcloud.ServerStatusOff, nil
 }
 
 func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []v1.NodeAddress {

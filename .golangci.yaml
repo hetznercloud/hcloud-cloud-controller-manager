@@ -1,0 +1,47 @@
+---
+linters-settings:
+  errcheck:
+    exclude: ./.errcheck_excludes.txt
+  gocyclo:
+    min-complexity: 15
+  misspell:
+    locale: "US"
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - errcheck
+    - gocritic
+    - gocyclo
+    - goimports
+    - golint
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - prealloc
+    - rowserrcheck
+    - scopelint
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+
+issues:
+  include:
+    - EXC0002 # disable excluding of issues about comments from golint
+
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+    - linters:
+        - gosec
+      text: "G204:"
