@@ -1,6 +1,11 @@
 Changelog
 =========
 
+master
+------
+
+* Add missing support Load Balancer sticky sessions
+
 v1.6.0
 ------
 

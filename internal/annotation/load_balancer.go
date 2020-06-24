@@ -86,6 +86,12 @@ const (
 	// LBSvcRedirectHTTP create a redirect from HTTP to HTTPS. HTTPS only.
 	LBSvcRedirectHTTP Name = "load-balancer.hetzner.cloud/http-redirect-http"
 
+	// LBSvcHTTPStickySessions enables the sticky sessions feature of Hetzner
+	// Cloud HTTP Load Balancers.
+	//
+	// Default: false
+	LBSvcHTTPStickySessions Name = "load-balancer.hetzner.cloud/http-sticky-sessions"
+
 	// LBSvcHealthCheckProtocol sets the protocol the health check should be
 	// performed over.
 	//

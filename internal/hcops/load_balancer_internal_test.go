@@ -60,6 +60,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHTTPCookieLifetime: time.Hour,
 				annotation.LBSvcHTTPCertificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 				annotation.LBSvcRedirectHTTP:       true,
+				annotation.LBSvcHTTPStickySessions: true,
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      hcloud.Int(82),
@@ -71,6 +72,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					CookieLifetime: hcloud.Duration(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   hcloud.Bool(true),
+					StickySessions: hcloud.Bool(true),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
@@ -82,10 +84,10 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					CookieLifetime: hcloud.Duration(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   hcloud.Bool(true),
+					StickySessions: hcloud.Bool(true),
 				},
 			},
 		},
-		// TODO invalid values for annotations above
 		{
 			name:        "add TCP health check",
 			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
@@ -122,7 +124,6 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				},
 			},
 		},
-		// TODO invalid values for annotations above
 		{
 			name:        "add HTTP health check",
 			servicePort: v1.ServicePort{Port: 84, NodePort: 8084},
