@@ -561,6 +561,19 @@ func (b *hclbServiceOptsBuilder) extract() {
 		return nil
 	})
 
+	b.do(func() error {
+		stickySessions, err := annotation.LBSvcHTTPStickySessions.BoolFromService(b.Service)
+		if errors.Is(err, annotation.ErrNotSet) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		b.httpOpts.StickySessions = &stickySessions
+		b.addHTTP = true
+		return nil
+	})
+
 	b.extractHealthCheck()
 }
 
@@ -700,6 +713,7 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 			CookieLifetime: b.httpOpts.CookieLifetime,
 			Certificates:   b.httpOpts.Certificates,
 			RedirectHTTP:   b.httpOpts.RedirectHTTP,
+			StickySessions: b.httpOpts.StickySessions,
 		}
 	}
 	if b.addHealthCheck {
@@ -743,6 +757,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 			CookieLifetime: b.httpOpts.CookieLifetime,
 			RedirectHTTP:   b.httpOpts.RedirectHTTP,
 			Certificates:   b.httpOpts.Certificates,
+			StickySessions: b.httpOpts.StickySessions,
 		}
 	}
 	if b.addHealthCheck {
