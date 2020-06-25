@@ -1,10 +1,11 @@
 Changelog
 =========
 
-master
+v1.6.1
 ------
 
 * Add missing support Load Balancer sticky sessions
+* Fix wrong parsing of health check timeout and interval
 
 v1.6.0
 ------
