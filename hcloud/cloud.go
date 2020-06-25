@@ -35,7 +35,7 @@ const (
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hcloud"
-	providerVersion      = "v1.6.0"
+	providerVersion      = "v1.6.1"
 )
 
 type cloud struct {
