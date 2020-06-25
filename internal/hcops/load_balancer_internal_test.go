@@ -93,10 +93,10 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHealthCheckProtocol: string(hcloud.LoadBalancerServiceProtocolTCP),
-				annotation.LBSvcHealthCheckPort:     "8084",
-				annotation.LBSvcHealthCheckInterval: "3600",
-				annotation.LBSvcHealthCheckTimeout:  "30",
-				annotation.LBSvcHealthCheckRetries:  "5",
+				annotation.LBSvcHealthCheckPort:     8084,
+				annotation.LBSvcHealthCheckInterval: time.Hour,
+				annotation.LBSvcHealthCheckTimeout:  30 * time.Second,
+				annotation.LBSvcHealthCheckRetries:  5,
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      hcloud.Int(83),
@@ -130,8 +130,8 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHealthCheckProtocol:                hcloud.LoadBalancerServiceProtocolHTTP,
 				annotation.LBSvcHealthCheckPort:                    8085,
-				annotation.LBSvcHealthCheckInterval:                3600,
-				annotation.LBSvcHealthCheckTimeout:                 30,
+				annotation.LBSvcHealthCheckInterval:                time.Hour,
+				annotation.LBSvcHealthCheckTimeout:                 30 * time.Second,
 				annotation.LBSvcHealthCheckRetries:                 5,
 				annotation.LBSvcHealthCheckHTTPDomain:              "example.com",
 				annotation.LBSvcHealthCheckHTTPPath:                "/internal/health",
