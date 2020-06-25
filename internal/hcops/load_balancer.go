@@ -607,27 +607,27 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 	})
 
 	b.do(func() error {
-		hcInterval, err := annotation.LBSvcHealthCheckInterval.IntFromService(b.Service)
+		hcInterval, err := annotation.LBSvcHealthCheckInterval.DurationFromService(b.Service)
 		if errors.Is(err, annotation.ErrNotSet) {
 			return nil
 		}
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Interval = time.Duration(hcInterval) * time.Second
+		b.healthCheckOpts.Interval = time.Duration(hcInterval)
 		b.addHealthCheck = true
 		return nil
 	})
 
 	b.do(func() error {
-		t, err := annotation.LBSvcHealthCheckTimeout.IntFromService(b.Service)
+		t, err := annotation.LBSvcHealthCheckTimeout.DurationFromService(b.Service)
 		if errors.Is(err, annotation.ErrNotSet) {
 			return nil
 		}
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Timeout = time.Duration(t) * time.Second
+		b.healthCheckOpts.Timeout = time.Duration(t)
 		b.addHealthCheck = true
 		return nil
 	})
