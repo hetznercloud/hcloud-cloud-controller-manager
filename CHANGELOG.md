@@ -1,6 +1,12 @@
 Changelog
 =========
 
+master
+------
+
+* Fix: nil pointer dereference when Network was not found
+* Update hcloud-go to 1.18.1
+
 v1.6.1
 ------
 

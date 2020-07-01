@@ -80,6 +80,9 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+		if n == nil {
+			return nil, fmt.Errorf("%s: Network %s not found", op, v)
+		}
 		networkID = n.ID
 	}
 	if networkID == 0 {
