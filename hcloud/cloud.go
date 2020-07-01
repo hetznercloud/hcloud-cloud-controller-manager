@@ -29,13 +29,14 @@ import (
 )
 
 const (
-	hcloudTokenENVVar    = "HCLOUD_TOKEN"
-	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
-	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
-	hcloudDebugENVVar    = "HCLOUD_DEBUG"
-	nodeNameENVVar       = "NODE_NAME"
-	providerName         = "hcloud"
-	providerVersion      = "v1.6.1"
+	hcloudTokenENVVar                = "HCLOUD_TOKEN"
+	hcloudEndpointENVVar             = "HCLOUD_ENDPOINT"
+	hcloudNetworkENVVar              = "HCLOUD_NETWORK"
+	hcloudDebugENVVar                = "HCLOUD_DEBUG"
+	hcloudLoadBalancersEnabledENVVar = "HCLOUD_LOAD_BALANCERS_ENABLED"
+	nodeNameENVVar                   = "NODE_NAME"
+	providerName                     = "hcloud"
+	providerVersion                  = "v1.6.1"
 )
 
 type cloud struct {
@@ -94,17 +95,23 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	fmt.Printf("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
+
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &client.LoadBalancer,
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
 		NetworkID:     networkID,
 	}
+
+	loadBalancers := newLoadBalancers(lbOps, &client.LoadBalancer, &client.Action)
+	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
+		loadBalancers = nil
+	}
 	return &cloud{
 		client:       client,
 		zones:        newZones(client, nodeName),
 		instances:    newInstances(client),
-		loadBalancer: newLoadBalancers(lbOps, &client.LoadBalancer, &client.Action),
+		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,
 	}, nil
@@ -122,6 +129,9 @@ func (c *cloud) Zones() (cloudprovider.Zones, bool) {
 }
 
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
+	if c.loadBalancer == nil {
+		return nil, false
+	}
 	return c.loadBalancer, true
 }
 
