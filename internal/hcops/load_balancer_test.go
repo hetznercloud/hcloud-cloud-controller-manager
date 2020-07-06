@@ -755,7 +755,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					Proxyprotocol:   hcloud.Bool(false),
 					ListenPort:      hcloud.Int(80),
 					DestinationPort: hcloud.Int(8080),
 				}
@@ -764,7 +763,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts = hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					Proxyprotocol:   hcloud.Bool(false),
 					ListenPort:      hcloud.Int(443),
 					DestinationPort: hcloud.Int(8443),
 				}
@@ -796,7 +794,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
-					Proxyprotocol:   hcloud.Bool(false),
 					ListenPort:      hcloud.Int(81),
 					DestinationPort: hcloud.Int(8081),
 				}
@@ -805,7 +802,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts = hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
-					Proxyprotocol:   hcloud.Bool(false),
 					ListenPort:      hcloud.Int(444),
 					DestinationPort: hcloud.Int(8444),
 				}
@@ -839,7 +835,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					Proxyprotocol:   hcloud.Bool(false),
 					DestinationPort: hcloud.Int(8081),
 				}
 				action := tt.fx.MockUpdateService(opts, tt.initialLB, 80, nil)
@@ -847,7 +842,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts = hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					Proxyprotocol:   hcloud.Bool(false),
 					DestinationPort: hcloud.Int(8444),
 				}
 				action = tt.fx.MockUpdateService(opts, tt.initialLB, 443, nil)
