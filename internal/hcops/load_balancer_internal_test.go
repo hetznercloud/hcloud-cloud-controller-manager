@@ -25,12 +25,10 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				ListenPort:      hcloud.Int(80),
 				DestinationPort: hcloud.Int(8080),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(false),
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8080),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(false),
 			},
 		},
 		{
@@ -66,7 +64,6 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				ListenPort:      hcloud.Int(82),
 				DestinationPort: hcloud.Int(8082),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
-				Proxyprotocol:   hcloud.Bool(false),
 				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 					CookieName:     hcloud.String("my-cookie"),
 					CookieLifetime: hcloud.Duration(time.Hour),
@@ -78,13 +75,37 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8082),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
-				Proxyprotocol:   hcloud.Bool(false),
 				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
 					CookieName:     hcloud.String("my-cookie"),
 					CookieLifetime: hcloud.Duration(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   hcloud.Bool(true),
 					StickySessions: hcloud.Bool(true),
+				},
+			},
+		},
+		{
+			name:        "add health check with default protocol",
+			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBSvcProtocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				annotation.LBSvcHealthCheckPort: 8084,
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Int(83),
+				DestinationPort: hcloud.Int(8083),
+				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8084),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Int(8083),
+				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8084),
 				},
 			},
 		},
@@ -102,7 +123,6 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				ListenPort:      hcloud.Int(83),
 				DestinationPort: hcloud.Int(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(false),
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
 					Port:     hcloud.Int(8084),
@@ -114,7 +134,6 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(false),
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
 					Port:     hcloud.Int(8084),
@@ -142,7 +161,6 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				ListenPort:      hcloud.Int(84),
 				DestinationPort: hcloud.Int(8084),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(false),
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
 					Port:     hcloud.Int(8085),
@@ -160,7 +178,6 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8084),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(false),
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
 					Port:     hcloud.Int(8085),

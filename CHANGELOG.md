@@ -6,7 +6,9 @@ master
 
 * Fix: nil pointer dereference when Network was not found
 * Update hcloud-go to 1.18.1
-* Add `HCLOUD_LOAD_BALANCERS_ENABLED` env variable to disable the Load Balancer feature, per default the Load Balancers are enabled
+* Add `HCLOUD_LOAD_BALANCERS_ENABLED` env variable to disable the Load
+  Balancer feature, per default the Load Balancers are enabled.
+* Use defaults if health check annotations are not set.
 
 v1.6.1
 ------

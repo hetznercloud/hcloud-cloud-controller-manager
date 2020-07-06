@@ -459,7 +459,7 @@ type hclbServiceOptsBuilder struct {
 
 	listenPort      int
 	destinationPort int
-	proxyProtocol   bool
+	proxyProtocol   *bool
 	protocol        hcloud.LoadBalancerServiceProtocol
 	httpOpts        struct {
 		CookieName     *string
@@ -471,10 +471,10 @@ type hclbServiceOptsBuilder struct {
 	addHTTP         bool
 	healthCheckOpts struct {
 		Protocol hcloud.LoadBalancerServiceProtocol
-		Port     int
-		Interval time.Duration
-		Timeout  time.Duration
-		Retries  int
+		Port     *int
+		Interval *time.Duration
+		Timeout  *time.Duration
+		Retries  *int
 		httpOpts struct {
 			Domain      *string
 			Path        *string
@@ -503,7 +503,7 @@ func (b *hclbServiceOptsBuilder) extract() {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.proxyProtocol = pp
+		b.proxyProtocol = hcloud.Bool(pp)
 		return nil
 	})
 
@@ -583,6 +583,11 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 	b.do(func() error {
 		p, err := annotation.LBSvcHealthCheckProtocol.LBSvcProtocolFromService(b.Service)
 		if errors.Is(err, annotation.ErrNotSet) {
+			// Set the service protocol but do not set the addHealthCheck flag.
+			// This way the health check is configured using the service
+			// protocol only if at least one health check annotation is
+			// present.
+			b.healthCheckOpts.Protocol = b.protocol
 			return nil
 		}
 		if err != nil {
@@ -601,7 +606,7 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Port = hcPort
+		b.healthCheckOpts.Port = hcloud.Int(hcPort)
 		b.addHealthCheck = true
 		return nil
 	})
@@ -614,7 +619,7 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Interval = time.Duration(hcInterval)
+		b.healthCheckOpts.Interval = hcloud.Duration(hcInterval)
 		b.addHealthCheck = true
 		return nil
 	})
@@ -627,7 +632,7 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Timeout = time.Duration(t)
+		b.healthCheckOpts.Timeout = hcloud.Duration(t)
 		b.addHealthCheck = true
 		return nil
 	})
@@ -640,7 +645,7 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Retries = v
+		b.healthCheckOpts.Retries = hcloud.Int(v)
 		b.addHealthCheck = true
 		return nil
 	})
@@ -705,7 +710,7 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 		ListenPort:      hcloud.Int(b.listenPort),
 		DestinationPort: hcloud.Int(b.destinationPort),
 		Protocol:        b.protocol,
-		Proxyprotocol:   hcloud.Bool(b.proxyProtocol),
+		Proxyprotocol:   b.proxyProtocol,
 	}
 	if b.addHTTP {
 		opts.HTTP = &hcloud.LoadBalancerAddServiceOptsHTTP{
@@ -719,10 +724,10 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 	if b.addHealthCheck {
 		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 			Protocol: b.healthCheckOpts.Protocol,
-			Interval: &b.healthCheckOpts.Interval,
-			Port:     &b.healthCheckOpts.Port,
-			Retries:  &b.healthCheckOpts.Retries,
-			Timeout:  &b.healthCheckOpts.Timeout,
+			Interval: b.healthCheckOpts.Interval,
+			Port:     b.healthCheckOpts.Port,
+			Retries:  b.healthCheckOpts.Retries,
+			Timeout:  b.healthCheckOpts.Timeout,
 		}
 		if b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTP ||
 			b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTPS {
@@ -749,7 +754,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	opts := hcloud.LoadBalancerUpdateServiceOpts{
 		DestinationPort: hcloud.Int(b.destinationPort),
 		Protocol:        b.protocol,
-		Proxyprotocol:   hcloud.Bool(b.proxyProtocol),
+		Proxyprotocol:   b.proxyProtocol,
 	}
 	if b.addHTTP {
 		opts.HTTP = &hcloud.LoadBalancerUpdateServiceOptsHTTP{
@@ -763,10 +768,10 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	if b.addHealthCheck {
 		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 			Protocol: b.healthCheckOpts.Protocol,
-			Interval: &b.healthCheckOpts.Interval,
-			Port:     &b.healthCheckOpts.Port,
-			Retries:  &b.healthCheckOpts.Retries,
-			Timeout:  &b.healthCheckOpts.Timeout,
+			Interval: b.healthCheckOpts.Interval,
+			Port:     b.healthCheckOpts.Port,
+			Retries:  b.healthCheckOpts.Retries,
+			Timeout:  b.healthCheckOpts.Timeout,
 		}
 		if b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTP ||
 			b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTPS {
