@@ -56,6 +56,13 @@ func (m *LoadBalancerClient) ChangeAlgorithm(
 	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
 }
 
+func (m *LoadBalancerClient) ChangeType(
+	ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeTypeOpts,
+) (*hcloud.Action, *hcloud.Response, error) {
+	args := m.Called(ctx, lb, opts)
+	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
+
 func (m *LoadBalancerClient) AddServerTarget(
 	ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServerTargetOpts,
 ) (*hcloud.Action, *hcloud.Response, error) {
