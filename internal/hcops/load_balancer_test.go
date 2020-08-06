@@ -456,6 +456,51 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
+			name: "update type",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBType: "lb21",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 1,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					Name: "lb11",
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				opts := hcloud.LoadBalancerChangeTypeOpts{
+					LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
+				}
+
+				action := &hcloud.Action{ID: 4711}
+				tt.fx.LBClient.
+					On("ChangeType", tt.fx.Ctx, tt.initialLB, opts).
+					Return(action, nil, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "don't update unchanged type",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBType: "lb21",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 1,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					Name: "lb21",
+				},
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
+		{
 			name: "detach Load Balancer from network",
 			initialLB: &hcloud.LoadBalancer{
 				ID: 4,

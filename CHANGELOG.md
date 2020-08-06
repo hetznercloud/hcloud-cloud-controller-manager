@@ -9,6 +9,7 @@ master
 * Add `HCLOUD_LOAD_BALANCERS_ENABLED` env variable to disable the Load
   Balancer feature, per default the Load Balancers are enabled.
 * Use defaults if health check annotations are not set.
+* Add support for changing the Load Balancer type
 
 v1.6.1
 ------

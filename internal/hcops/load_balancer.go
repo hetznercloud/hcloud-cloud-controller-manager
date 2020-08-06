@@ -35,6 +35,7 @@ type HCloudLoadBalancerClient interface {
 	) (*hcloud.Action, *hcloud.Response, error)
 
 	ChangeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeAlgorithmOpts) (*hcloud.Action, *hcloud.Response, error)
+	ChangeType(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeTypeOpts) (*hcloud.Action, *hcloud.Response, error)
 
 	AddServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServerTargetOpts) (*hcloud.Action, *hcloud.Response, error)
 	RemoveServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, server *hcloud.Server) (*hcloud.Action, *hcloud.Response, error)
@@ -173,6 +174,12 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 	}
 	changed = changed || algorithmChanged
 
+	typeChanged, err := l.changeType(ctx, lb, svc)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
+	changed = changed || typeChanged
+
 	networkDetached, err := l.detachFromNetwork(ctx, lb)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
@@ -204,6 +211,29 @@ func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBa
 
 	opts := hcloud.LoadBalancerChangeAlgorithmOpts{Type: at}
 	action, _, err := l.LBClient.ChangeAlgorithm(ctx, lb, opts)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	err = WatchAction(ctx, l.ActionClient, action)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return true, nil
+}
+
+func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
+	const op = "hcops/LoadBalancerOps.changeType"
+
+	lt, ok := annotation.LBType.StringFromService(svc)
+	if !ok {
+		return false, nil
+	}
+	if lt == lb.LoadBalancerType.Name {
+		return false, nil
+	}
+
+	opts := hcloud.LoadBalancerChangeTypeOpts{LoadBalancerType: &hcloud.LoadBalancerType{Name: lt}}
+	action, _, err := l.LBClient.ChangeType(ctx, lb, opts)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
