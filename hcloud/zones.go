@@ -30,8 +30,8 @@ type zones struct {
 	nodeName string // name of the node the programm is running on
 }
 
-func newZones(client *hcloud.Client, nodeName string) cloudprovider.Zones {
-	return zones{client, nodeName}
+func newZones(client *hcloud.Client, nodeName string) *zones {
+	return &zones{client, nodeName}
 }
 
 func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {

@@ -41,10 +41,10 @@ const (
 
 type cloud struct {
 	client       *hcloud.Client
-	instances    cloudprovider.Instances
-	zones        cloudprovider.Zones
-	routes       cloudprovider.Routes
-	loadBalancer cloudprovider.LoadBalancer
+	instances    *instances
+	zones        *zones
+	routes       *routes
+	loadBalancer *loadBalancers
 	networkID    int
 }
 
@@ -87,7 +87,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		networkID = n.ID
 	}
 	if networkID == 0 {
-		klog.InfoS("%s: %s empty", op, hcloudNetworkENVVar)
+		klog.Infof("%s: %s empty", op, hcloudNetworkENVVar)
 	}
 
 	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})

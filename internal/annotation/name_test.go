@@ -339,7 +339,7 @@ func TestName_DurationFromService(t *testing.T) {
 			svcAnnotations: map[annotation.Name]interface{}{
 				ann: "invalid",
 			},
-			err: errors.New("annotation/Name.DurationFromService: time: invalid duration invalid"),
+			err: errors.New("annotation/Name.DurationFromService: time: invalid duration \"invalid\""),
 		},
 	}
 
