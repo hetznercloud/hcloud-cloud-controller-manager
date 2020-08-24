@@ -29,15 +29,8 @@ test:lint:
 
 test:unit:
   stage: test
-  image: golang:1.14
-  services:
-    - name: lkdevelopment/hetzner-cloud-api-mock:latest
-      alias: api-mock
+  image: golang:1.15
   variables:
-    API_MOCK_PORT: 4000
-    API_MOCK_SOURCE: https://docs-internal.staging.hc-k8s.de/hc_public_internal.apib
-    HCLOUD_ENDPOINT: http://api-mock:4000/v1
-    HCLOUD_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     NODE_NAME: "test"
   script:
     - GO_PACKAGES=$(command go list ./... | tr "\n" ",")

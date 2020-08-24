@@ -18,6 +18,7 @@ package hcloud
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"time"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,8 +60,22 @@ func newTestEnv() testEnv {
 }
 
 func TestNewCloud(t *testing.T) {
-	SkipEnv(t, "HCLOUD_ENDPOINT", "HCLOUD_TOKEN", "NODE_NAME")
+	env := newTestEnv()
+	defer env.Teardown()
 
+	resetEnv := Setenv(t,
+		"HCLOUD_ENDPOINT", env.Server.URL,
+		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+		"NODE_NAME", "test",
+	)
+	defer resetEnv()
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(
+			schema.ServerListResponse{
+				Servers: []schema.Server{},
+			},
+		)
+	})
 	var config bytes.Buffer
 	_, err := newCloud(&config)
 	if err != nil {
@@ -79,8 +95,11 @@ func TestNewCloudWrongTokenSize(t *testing.T) {
 }
 
 func TestNewCloudConnectionNotPossible(t *testing.T) {
-	SkipEnv(t, "HCLOUD_TOKEN", "NODE_NAME")
-	resetEnv := Setenv(t, "HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1")
+	resetEnv := Setenv(t,
+		"HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1",
+		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+		"NODE_NAME", "test",
+	)
 	defer resetEnv()
 
 	_, err := newCloud(&bytes.Buffer{})
@@ -89,26 +108,88 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 }
 
 func TestNewCloudInvalidToken(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+
 	resetEnv := Setenv(t,
-		"HCLOUD_ENDPOINT", "https://api.hetzner.cloud/v1",
+		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"NODE_NAME", "test",
 	)
 	defer resetEnv()
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(
+			schema.ErrorResponse{
+				Error: schema.Error{
+					Code:    "unauthorized",
+					Message: "unable to authenticate",
+				},
+			},
+		)
+	})
 
 	_, err := newCloud(&bytes.Buffer{})
 	assert.EqualError(t, err, "hcloud/newCloud: unable to authenticate (unauthorized)")
 }
 
 func TestCloud(t *testing.T) {
-	SkipEnv(t, "HCLOUD_ENDPOINT", "HCLOUD_TOKEN", "NODE_NAME")
+	env := newTestEnv()
+	defer env.Teardown()
 
 	resetEnv := Setenv(t,
-		"HCLOUD_ENDPOINT", "http://127.0.0.1:4000/v1",
-		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75",
+		"HCLOUD_ENDPOINT", env.Server.URL,
+		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"NODE_NAME", "test",
 	)
 	defer resetEnv()
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(
+			schema.ServerListResponse{
+				Servers: []schema.Server{
+					schema.Server{
+						ID:              1,
+						Name:            "test",
+						Status:          "running",
+						Created:         time.Time{},
+						PublicNet:       schema.ServerPublicNet{},
+						PrivateNet:      nil,
+						ServerType:      schema.ServerType{},
+						IncludedTraffic: 0,
+						OutgoingTraffic: nil,
+						IngoingTraffic:  nil,
+						BackupWindow:    nil,
+						RescueEnabled:   false,
+						ISO:             nil,
+						Locked:          false,
+						Datacenter:      schema.Datacenter{},
+						Image:           nil,
+						Protection:      schema.ServerProtection{},
+						Labels:          nil,
+						Volumes:         nil,
+					},
+				},
+			},
+		)
+	})
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(
+			schema.NetworkGetResponse{
+				Network: schema.Network{
+					ID:         1,
+					Name:       "test",
+					Created:    time.Time{},
+					IPRange:    "10.0.0.8",
+					Subnets:    nil,
+					Routes:     nil,
+					Servers:    nil,
+					Protection: schema.NetworkProtection{},
+					Labels:     nil,
+				},
+			},
+		)
+	})
 
 	cloud, err := newCloud(&bytes.Buffer{})
 	if err != nil {

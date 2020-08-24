@@ -5,19 +5,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v2
         with:
-          go-version: '1.14'
+          go-version: '1.15'
       - uses: actions/checkout@master
       - name: Run tests
         run: |
-          docker pull lkdevelopment/hetzner-cloud-api-mock
-          docker run -d -p 127.0.0.1:4000:8080 lkdevelopment/hetzner-cloud-api-mock
-          docker ps -a
           go vet ./...
           go test ./...
-        env:
-          API_MOCK_PORT: 4000
-          API_MOCK_SOURCE: https://docs-internal.staging.hc-k8s.de/hc_public_internal.apib
-          HCLOUD_ENDPOINT: http://127.0.0.1:4000/v1
-          HCLOUD_TOKEN: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
