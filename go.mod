@@ -6,7 +6,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/golang/groupcache v0.0.0-20171101203131-84a468cf14b4 // indirect
-	github.com/hetznercloud/hcloud-go v1.21.1
+	github.com/hetznercloud/hcloud-go v1.22.0
 	github.com/stretchr/testify v1.6.1
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.0 // indirect
