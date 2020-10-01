@@ -232,6 +232,75 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 	}
 }
 
+func TestLoadBalancers_EnsureLoadBalancerDeletedWithProtectection(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "name=afoobar" {
+			t.Fatal("missing name query")
+		}
+		json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
+			LoadBalancers: []schema.LoadBalancer{
+				{
+					ID:   1,
+					Name: "afoobar",
+					PublicNet: schema.LoadBalancerPublicNet{
+						Enabled: true,
+						IPv4: schema.LoadBalancerPublicNetIPv4{
+							IP: "127.0.0.1",
+						},
+						// IPv6: schema.LoadBalancerPublicNetIPv6{
+						// 	IP: "::1",
+						// },
+					},
+					Protection: schema.LoadBalancerProtection{Delete: true},
+				},
+			},
+		})
+	})
+	env.Mux.HandleFunc("/load_balancers/1", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Fatalf("wrong http method: %s", r.Method)
+		}
+		json.NewEncoder(w).Encode(schema.LoadBalancerDeleteServiceResponse{
+			Action: schema.Action{
+				ID:       1,
+				Progress: 0,
+				Status:   string(hcloud.ActionStatusRunning),
+			},
+		})
+	})
+
+	lbOps := &hcops.LoadBalancerOps{
+		LBClient:     &env.Client.LoadBalancer,
+		ActionClient: &env.Client.Action,
+	}
+	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
+	err := loadBalancers.EnsureLoadBalancerDeleted(context.Background(), "my-cluster", &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:         "foobar",
+			Annotations: map[string]string{},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{
+				{
+					Protocol: "TCP",
+					Port:     int32(80),
+					NodePort: int32(8080),
+				},
+				{
+					Protocol: "TCP",
+					Port:     int32(443),
+					NodePort: int32(8080),
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
 func TestLoadBalancers_EnsureLoadBalancerCreate(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()

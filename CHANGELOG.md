@@ -7,6 +7,7 @@ master
 * Update hcloud-go to 1.22.0
 * Update build to go 1.15
 * Fix: update default health check (#87)
+* Fix: Ignore protected Load Balancers on deletion instead of raising an error
 
 v1.7.0
 ------

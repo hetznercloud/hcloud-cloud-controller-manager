@@ -204,6 +204,11 @@ func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, clusterNa
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	if loadBalancer.Protection.Delete {
+		klog.InfoS("ignored: load balancer deletion protected", "op", op, "loadBalancerID", loadBalancer.ID)
+		return nil
+	}
+
 	klog.InfoS("delete Load Balancer", "op", op, "loadBalancerID", loadBalancer.ID)
 	_, err = l.lbs.Delete(ctx, loadBalancer)
 	if err != nil {
