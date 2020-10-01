@@ -769,6 +769,11 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 				TLS:         b.healthCheckOpts.httpOpts.TLS,
 			}
 		}
+	} else {
+		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+			Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+			Port:     hcloud.Int(b.destinationPort),
+		}
 	}
 
 	return opts, nil
@@ -812,6 +817,11 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 				StatusCodes: b.healthCheckOpts.httpOpts.StatusCodes,
 				TLS:         b.healthCheckOpts.httpOpts.TLS,
 			}
+		}
+	} else {
+		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+			Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+			Port:     hcloud.Int(b.destinationPort),
 		}
 	}
 

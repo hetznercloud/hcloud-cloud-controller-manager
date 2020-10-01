@@ -25,10 +25,18 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				ListenPort:      hcloud.Int(80),
 				DestinationPort: hcloud.Int(8080),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8080),
+				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8080),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8080),
+				},
 			},
 		},
 		{
@@ -42,11 +50,19 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				DestinationPort: hcloud.Int(8081),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				Proxyprotocol:   hcloud.Bool(true),
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8081),
+				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8081),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				Proxyprotocol:   hcloud.Bool(true),
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8081),
+				},
 			},
 		},
 		{
@@ -71,6 +87,10 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					RedirectHTTP:   hcloud.Bool(true),
 					StickySessions: hcloud.Bool(true),
 				},
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8082),
+				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
 				DestinationPort: hcloud.Int(8082),
@@ -81,6 +101,10 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   hcloud.Bool(true),
 					StickySessions: hcloud.Bool(true),
+				},
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Int(8082),
 				},
 			},
 		},
