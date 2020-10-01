@@ -1,7 +1,7 @@
 Changelog
 =========
 
-master
+v1.8.0
 ------
 * Fix: nil pointer dereference when Load Balancers were disabled
 * Update hcloud-go to 1.22.0
