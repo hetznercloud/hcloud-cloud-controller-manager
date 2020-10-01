@@ -802,6 +802,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					ListenPort:      hcloud.Int(80),
 					DestinationPort: hcloud.Int(8080),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8080),
+					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -810,6 +814,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					ListenPort:      hcloud.Int(443),
 					DestinationPort: hcloud.Int(8443),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8443),
+					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -841,6 +849,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 					ListenPort:      hcloud.Int(81),
 					DestinationPort: hcloud.Int(8081),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8081),
+					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -849,6 +861,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 					ListenPort:      hcloud.Int(444),
 					DestinationPort: hcloud.Int(8444),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8444),
+					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -881,6 +897,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				opts := hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					DestinationPort: hcloud.Int(8081),
+					HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8081),
+					},
 				}
 				action := tt.fx.MockUpdateService(opts, tt.initialLB, 80, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -888,6 +908,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				opts = hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					DestinationPort: hcloud.Int(8444),
+					HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8444),
+					},
 				}
 				action = tt.fx.MockUpdateService(opts, tt.initialLB, 443, nil)
 				tt.fx.MockWatchProgress(action, nil)
