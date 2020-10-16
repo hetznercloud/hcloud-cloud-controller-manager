@@ -135,7 +135,7 @@ export TEST_DEBUG_MODE=yes # With this env you can toggle the output of the prov
 ```bash
 go test $(go list ./... | grep e2etests) -v -timeout 60m
 ```
-The tests will now run and cleanup itself afterwards. Sometimes it might happen that you need to clean up the project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or the [hcloud-cli](https://github.com/hetznercloud/cli) .
+The tests will now run and cleanup themselves afterwards. Sometimes it might happen that you need to clean up the project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or the [hcloud-cli](https://github.com/hetznercloud/cli) .
 
 For easier debugging on the server we always configure the latest version of the [hcloud-cli](https://github.com/hetznercloud/cli) with the given `HCLOUD_TOKEN` and a few bash aliases on the host:
 

@@ -5,9 +5,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s: [ 1.17.12, 1.18.9, 1.19.3]
+        k8s: [ 1.17.13, 1.18.10, 1.19.3]
         networks: [yes, no]
-    name: ${{ matrix.k8s }}- networks - ${{ $matrix.networks }}
+    name: ${{ matrix.k8s }}- networks - ${{ matrix.networks }}
     steps:
     - uses: actions/setup-go@v2
       with:
@@ -17,9 +17,9 @@ jobs:
       env:
         K8S_VERSION: ${{ matrix.k8s }}
         TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-        USE_NETWORKS: ${{ $matrix.networks }}
+        USE_NETWORKS: ${{ matrix.networks }}
       run: |
-        export HCLOUD_TOKEN=$(./script/get-token.sh)
+        export HCLOUD_TOKEN=$(./scripts/get-token.sh)
         cat resp.json
         go test $(go list ./... | grep e2etests) -v -timeout 60m
-        ./script/delete-token.sh $HCLOUD_TOKEN
+        ./scripts/delete-token.sh $HCLOUD_TOKEN
