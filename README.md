@@ -110,6 +110,42 @@ kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-co
 If you want to use the Hetzner Cloud `Networks` Feature, head over to the [Deployment with Networks support documentation](./docs/deploy_with_networks.md).
 
 
+## E2E Tests
+
+The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will create Load Balancers that will be billed. 
+
+**Test Server Setup:** 
+1x CPX21 (Ubuntu 18.04)
+
+**Requirements: Docker and Go 1.15**
+
+1. Configure your environment correctly
+
+```bash
+export HCLOUD_TOKEN=<specifiy a project token>
+export K8S_VERSION=1.19.3 # The specific (latest) version is needed here
+export USE_SSH_KEYS=key1,key2 # Name or IDs of your SSH Keys within the Hetzner Cloud, the servers will be accessable with that keys
+export USE_NETWORKS=yes # if `yes` this identidicates that the tests should provision the server with cilium as CNI and also enable the Network related tests
+## Optional configuration env vars:
+export TEST_DEBUG_MODE=yes # With this env you can toggle the output of the provision and test commands. With `yes` it will log the whole output to stdout
+```
+
+2. Run the tests
+
+```bash
+go test $(go list ./... | grep e2etests) -v -timeout 60m
+```
+The tests will now run and cleanup themselves afterwards. Sometimes it might happen that you need to clean up the project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or the [hcloud-cli](https://github.com/hetznercloud/cli) .
+
+For easier debugging on the server we always configure the latest version of the [hcloud-cli](https://github.com/hetznercloud/cli) with the given `HCLOUD_TOKEN` and a few bash aliases on the host:
+
+```bash
+alias k="kubectl"
+alias ksy="kubectl -n kube-system"
+alias kgp="kubectl get pods"
+alias kgs="kubectl get services"
+```
+
 ## License
 
 Apache License, Version 2.0

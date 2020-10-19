@@ -8,6 +8,7 @@ include:
 
 stages:
   - test
+  - E2E
   - build
   - release
 
@@ -33,9 +34,51 @@ test:unit:
   variables:
     NODE_NAME: "test"
   script:
-    - GO_PACKAGES=$(command go list ./... | tr "\n" ",")
-    - go test -race -covermode=atomic -coverprofile=.coverage.out ./... 2> /dev/null
-    - go tool cover -func=.coverage.out | tail -n1
-  coverage: '/total:[^\d]+(\d+\.\d+%)/'
+    - go test $(go list ./... | grep -v e2etests) -v
   tags:
     - hc-bladerunner
+
+.e2e:k8s: &testk8se2e
+  stage: E2E
+  image: docker:git
+  variables:
+    K8S_VERSION: 1.17.12
+  before_script:
+    - apk add --no-cache git make musl-dev go openssh-client
+  script:
+    - go test $(go list ./... | grep e2etests) -v -timeout 60m
+  tags:
+    - hc-bladerunner-build
+
+k8s-1.17:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: 1.17.12
+
+k8s-1.17 networks:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: 1.17.12
+    USE_NETWORKS: "yes"
+
+k8s-1.18:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: 1.18.9
+
+k8s-1.18 networks:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: 1.18.9
+    USE_NETWORKS: "yes"
+
+k8s-1.19:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: 1.19.3
+
+k8s-1.19 networks:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: 1.19.3
+    USE_NETWORKS: "yes"
