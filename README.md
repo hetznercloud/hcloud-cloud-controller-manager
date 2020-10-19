@@ -30,8 +30,8 @@ metadata:
     beta.kubernetes.io/arch: amd64
     beta.kubernetes.io/instance-type: cx11 # <-- server type
     beta.kubernetes.io/os: linux
-    failure-domain.beta.kubernetes.io/region: fsn1 # <-- location
-    failure-domain.beta.kubernetes.io/zone: fsn1-dc8 # <-- datacenter
+    topology.kubernetes.io/region: fsn1 # <-- location
+    topology.kubernetes.io/zone: fsn1-dc8 # <-- datacenter
     kubernetes.io/hostname: master
     node-role.kubernetes.io/master: ""
   name: master

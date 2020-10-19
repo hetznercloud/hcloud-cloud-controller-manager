@@ -9,6 +9,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/stretchr/testify/assert"
+	typesv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -56,7 +57,7 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 	})
 }
 
-func TestCloudControllerManagerSetCorrectNodeLabels(t *testing.T) {
+func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.setup.server.Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 
@@ -65,10 +66,34 @@ func TestCloudControllerManagerSetCorrectNodeLabels(t *testing.T) {
 		"node.kubernetes.io/instance-type": testCluster.setup.server.ServerType.Name,
 		"topology.kubernetes.io/region":    testCluster.setup.server.Datacenter.Location.Name,
 		"topology.kubernetes.io/zone":      testCluster.setup.server.Datacenter.Name,
+		"kubernetes.io/hostname":           testCluster.setup.server.Name,
+		"kubernetes.io/os":                 "linux",
+		"kubernetes.io/arch":               "amd64",
 	}
 	for expectedLabel, expectedValue := range expectedLabels {
 		if labelValue, ok := labels[expectedLabel]; !ok || labelValue != expectedValue {
 			t.Errorf("node have a not expected label %s, ok: %v, given value %s, expected value %s", expectedLabel, ok, labelValue, expectedValue)
+		}
+	}
+
+	for _, address := range node.Status.Addresses {
+		switch address.Type {
+		case typesv1.NodeExternalIP:
+			expectedIP := testCluster.setup.server.PublicNet.IPv4.IP.String()
+			if expectedIP != address.Address {
+				t.Errorf("Got %s as NodeExternalIP but expected %s", address.Address, expectedIP)
+			}
+		}
+	}
+	if testCluster.useNetworks {
+		for _, address := range node.Status.Addresses {
+			switch address.Type {
+			case typesv1.NodeInternalIP:
+				expectedIP := testCluster.setup.server.PrivateNet[0].IP.String()
+				if expectedIP != address.Address {
+					t.Errorf("Got %s as NodeInternalIP but expected %s", address.Address, expectedIP)
+				}
+			}
 		}
 	}
 }
