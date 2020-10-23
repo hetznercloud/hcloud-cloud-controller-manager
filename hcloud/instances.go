@@ -19,13 +19,11 @@ package hcloud
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
-
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
+	"os"
 )
 
 type instances struct {
@@ -78,7 +76,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return strconv.Itoa(server.ID), nil
+	return fmt.Sprintf("%s://%d", providerName, server.ID), nil
 }
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
