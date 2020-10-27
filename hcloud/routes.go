@@ -16,8 +16,7 @@ import (
 type routes struct {
 	client      *hcloud.Client
 	network     *hcloud.Network
-	serverNames map[string]string
-	serverIPs   map[string]net.IP
+	serverCache *hcops.AllServersCache
 }
 
 func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
@@ -31,7 +30,11 @@ func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
 		return nil, fmt.Errorf("network not found: %d", networkID)
 	}
 
-	return &routes{client, networkObj, make(map[string]string), make(map[string]net.IP)}, nil
+	return &routes{
+		client:      client,
+		network:     networkObj,
+		serverCache: &hcops.AllServersCache{LoadFunc: client.Server.All},
+	}, nil
 }
 
 func (r *routes) reloadNetwork(ctx context.Context) error {
@@ -48,45 +51,21 @@ func (r *routes) reloadNetwork(ctx context.Context) error {
 	return nil
 }
 
-func (r *routes) loadServers(ctx context.Context) error {
-	const op = "hcloud/loadServers"
-
-	serversRaw, err := r.client.Server.All(ctx)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	for _, server := range serversRaw {
-		for _, privateNet := range server.PrivateNet {
-			if privateNet.Network.ID == r.network.ID {
-				r.serverNames[privateNet.IP.String()] = server.Name
-				r.serverIPs[server.Name] = privateNet.IP
-				break
-			}
-		}
-	}
-	return nil
-}
-
 // ListRoutes lists all managed routes that belong to the specified clusterName
 func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudprovider.Route, error) {
 	const op = "hcloud/ListRoutes"
-	var routes []*cloudprovider.Route
 
 	if err := r.reloadNetwork(ctx); err != nil {
-		return routes, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := r.loadServers(ctx); err != nil {
-		return routes, fmt.Errorf("%s: %w", op, err)
-	}
-
-	for _, route := range r.network.Routes {
+	routes := make([]*cloudprovider.Route, len(r.network.Routes))
+	for i, route := range r.network.Routes {
 		r, err := r.hcloudRouteToRoute(route)
 		if err != nil {
 			return routes, fmt.Errorf("%s: %w", op, err)
 		}
-		routes = append(routes, r)
+		routes[i] = r
 	}
 	return routes, nil
 }
@@ -97,14 +76,16 @@ func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudpr
 func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint string, route *cloudprovider.Route) error {
 	const op = "hcloud/CreateRoute"
 
-	if err := r.loadServers(ctx); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+	srv, err := r.serverCache.ByName(string(route.TargetNode))
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
 	}
 
-	ip, ok := r.serverIPs[string(route.TargetNode)]
+	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
 	if !ok {
-		return fmt.Errorf("%s: server %v: not found", op, route.TargetNode)
+		return fmt.Errorf("%s: server %v: no network with id: %d", op, route.TargetNode, r.network.ID)
 	}
+	ip := privNet.IP
 
 	_, cidr, err := net.ParseCIDR(route.DestinationCIDR)
 	if err != nil {
@@ -148,14 +129,15 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *cloudprovider.Route) error {
 	const op = "hcloud/DeleteRoute"
 
-	if err := r.loadServers(ctx); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+	srv, err := r.serverCache.ByName(string(route.TargetNode))
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
 	}
-
-	ip, ok := r.serverIPs[string(route.TargetNode)]
+	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
 	if !ok {
-		return fmt.Errorf("%s: server %v: not found", op, route.TargetNode)
+		return fmt.Errorf("%s: server %v: no network with id: %d", op, route.TargetNode, r.network.ID)
 	}
+	ip := privNet.IP
 
 	_, cidr, err := net.ParseCIDR(route.DestinationCIDR)
 	if err != nil {
@@ -189,10 +171,11 @@ func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *clo
 func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.Route, error) {
 	const op = "hcloud/hcloudRouteToRoute"
 
-	nodeName, ok := r.serverNames[route.Gateway.String()]
-	if !ok {
-		return nil, fmt.Errorf("%s: server with IP %v: not found", op, route.Gateway)
+	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %v", op, err)
 	}
+	nodeName := srv.Name
 
 	return &cloudprovider.Route{
 		DestinationCIDR: route.Destination.String(),
@@ -210,10 +193,15 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 
 	for _, _route := range r.network.Routes {
 		if _route.Destination.String() == route.DestinationCIDR {
-			ip, ok := r.serverIPs[string(route.TargetNode)]
-			if !ok {
-				return false, fmt.Errorf("%s: server %v: not found", op, string(route.TargetNode))
+			srv, err := r.serverCache.ByName(string(route.TargetNode))
+			if err != nil {
+				return false, fmt.Errorf("%s: %v", op, err)
 			}
+			privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
+			if !ok {
+				return false, fmt.Errorf("%s: server %v: no network with id: %d", op, route.TargetNode, r.network.ID)
+			}
+			ip := privNet.IP
 
 			if !_route.Gateway.Equal(ip) {
 				action, _, err := r.client.Network.DeleteRoute(context.Background(), r.network, hcloud.NetworkDeleteRouteOpts{
@@ -232,4 +220,13 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 		}
 	}
 	return false, nil
+}
+
+func findServerPrivateNetByID(srv *hcloud.Server, id int) (hcloud.ServerPrivateNet, bool) {
+	for _, n := range srv.PrivateNet {
+		if n.Network.ID == id {
+			return n, true
+		}
+	}
+	return hcloud.ServerPrivateNet{}, false
 }

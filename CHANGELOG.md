@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Fix: excessive calls to `/v1/servers` endpoint.
+
 v1.8.0
 ------
 * Fix: nil pointer dereference when Load Balancers were disabled
