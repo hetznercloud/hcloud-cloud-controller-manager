@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 
 	rc := m.Run()
 
-	if err := testCluster.Stop(); err != nil {
+	if err := testCluster.Stop(rc > 0); err != nil {
 		fmt.Printf("%v\n", err)
 		os.Exit(1)
 	}

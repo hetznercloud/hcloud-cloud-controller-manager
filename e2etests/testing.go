@@ -67,9 +67,10 @@ func (tc *TestCluster) initialize() error {
 		}
 		token := os.Getenv("HCLOUD_TOKEN")
 		if len(token) != 64 {
-			tc.err = fmt.Errorf("%s: No valid HCLOUD_TOKEN found\n", op)
+			tc.err = fmt.Errorf("%s: No valid HCLOUD_TOKEN found", op)
 			return
 		}
+		keepOnFailure := os.Getenv("KEEP_SERVER_ON_FAILURE") == "yes"
 
 		var additionalSSHKeys []*hcloud.SSHKey
 
@@ -78,18 +79,17 @@ func (tc *TestCluster) initialize() error {
 			hcloud.WithApplication("hcloud-ccm-testsuite", "1.0"),
 		}
 		hcloudClient := hcloud.NewClient(opts...)
-		additionalSSHKeysIdOrName := os.Getenv("USE_SSH_KEYS")
-		if additionalSSHKeysIdOrName != "" {
-			idsOrNames := strings.Split(additionalSSHKeysIdOrName, ",")
+		additionalSSHKeysIDOrName := os.Getenv("USE_SSH_KEYS")
+		if additionalSSHKeysIDOrName != "" {
+			idsOrNames := strings.Split(additionalSSHKeysIDOrName, ",")
 			for _, idOrName := range idsOrNames {
 				additionalSSHKey, _, err := hcloudClient.SSHKey.Get(context.Background(), idOrName)
 				if err != nil {
-					tc.err = fmt.Errorf("%s:%s\n", op, err)
+					tc.err = fmt.Errorf("%s: %s", op, err)
 					return
 				}
 				additionalSSHKeys = append(additionalSSHKeys, additionalSSHKey)
 			}
-
 		}
 
 		fmt.Printf("Test against k8s %s\n", k8sVersion)
@@ -99,7 +99,7 @@ func (tc *TestCluster) initialize() error {
 		cmd.Stdout = os.Stdout
 		err := cmd.Run()
 		if err != nil {
-			tc.err = fmt.Errorf("%s:%s\n", op, err)
+			tc.err = fmt.Errorf("%s: %s", op, err)
 			return
 		}
 
@@ -108,22 +108,28 @@ func (tc *TestCluster) initialize() error {
 		cmd.Stdout = os.Stdout
 		err = cmd.Run()
 		if err != nil {
-			tc.err = fmt.Errorf("%s:%s\n", op, err)
+			tc.err = fmt.Errorf("%s: %s", op, err)
 			return
 		}
 
-		tc.setup = &hcloudK8sSetup{Hcloud: hcloudClient, K8sVersion: k8sVersion, TestIdentifier: testIdentifier, HcloudToken: token}
+		tc.setup = &hcloudK8sSetup{
+			Hcloud:         hcloudClient,
+			K8sVersion:     k8sVersion,
+			TestIdentifier: testIdentifier,
+			HcloudToken:    token,
+			KeepOnFailure:  keepOnFailure,
+		}
 		fmt.Println("Setting up test env")
 
 		err = tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
 		if err != nil {
-			tc.err = fmt.Errorf("%s:%s\n", op, err)
+			tc.err = fmt.Errorf("%s: %s", op, err)
 			return
 		}
 
 		kubeconfigPath, err := tc.setup.PrepareK8s(tc.useNetworks)
 		if err != nil {
-			tc.err = fmt.Errorf("%s:%s\n", op, err)
+			tc.err = fmt.Errorf("%s: %s", op, err)
 			return
 		}
 
@@ -152,7 +158,7 @@ func (tc *TestCluster) Start() error {
 	return nil
 }
 
-func (tc *TestCluster) Stop() error {
+func (tc *TestCluster) Stop(testFailed bool) error {
 	const op = "TestCluster/Stop"
 	if tc.err != nil {
 		return fmt.Errorf("%s: %s", op, tc.err)
@@ -160,7 +166,7 @@ func (tc *TestCluster) Stop() error {
 	if !tc.started {
 		return nil
 	}
-	err := tc.setup.TearDown(context.Background())
+	err := tc.setup.TearDown(testFailed)
 	if err != nil {
 		fmt.Printf("%s: Tear Down: %s", op, err)
 	}
@@ -179,6 +185,18 @@ func (tc *TestCluster) ensureNodesAreReady() error {
 			for _, cond := range node.Status.Conditions {
 				if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
 					available = true
+				}
+			}
+		}
+
+		pods, err := tc.k8sClient.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return false, err
+		}
+		for _, pod := range pods.Items {
+			for _, cond := range pod.Status.Conditions {
+				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+					available = available && true
 				}
 			}
 		}
