@@ -36,7 +36,7 @@ const (
 	hcloudLoadBalancersEnabledENVVar = "HCLOUD_LOAD_BALANCERS_ENABLED"
 	nodeNameENVVar                   = "NODE_NAME"
 	providerName                     = "hcloud"
-	providerVersion                  = "v1.8.0"
+	providerVersion                  = "v1.8.1"
 )
 
 type cloud struct {
