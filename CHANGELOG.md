@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Unreleased
+v1.8.1
 ----------
 
 * Fix: excessive calls to `/v1/servers` endpoint.
