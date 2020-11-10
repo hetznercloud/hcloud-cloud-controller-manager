@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,6 +14,12 @@ import (
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
+)
+
+const (
+	hcloudLoadBalancersDefaultLocationENVVar     = "HCLOUD_LOAD_BALANCERS_DEFAULT_LOCATION"
+	hcloudLoadBalancersDefaultNetworkZoneENVVar  = "HCLOUD_LOAD_BALANCERS_DEFAULT_NETWORK_ZONE"
+	hcloudLoadBalancersDefaultUsePrivateIPENVVar = "HCLOUD_LOAD_BALANCERS_DEFAULT_USE_PRIVATE_IP"
 )
 
 // HCloudLoadBalancerClient defines the hcloud-go functions required by the
@@ -110,8 +117,12 @@ func (l *LoadBalancerOps) Create(
 	}
 	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
 		opts.Location = &hcloud.Location{Name: v}
+	} else if v, ok := os.LookupEnv(hcloudLoadBalancersDefaultLocationENVVar); ok {
+		opts.Location = &hcloud.Location{Name: v}
 	}
 	if v, ok := annotation.LBNetworkZone.StringFromService(svc); ok {
+		opts.NetworkZone = hcloud.NetworkZone(v)
+	} else if v, ok := os.LookupEnv(hcloudLoadBalancersDefaultNetworkZoneENVVar); ok {
 		opts.NetworkZone = hcloud.NetworkZone(v)
 	}
 	if opts.Location == nil && opts.NetworkZone == "" {
@@ -334,7 +345,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-		return changed, fmt.Errorf("%s: %w", op, err)
+		if usePrivateIPDefault, ok := os.LookupEnv(hcloudLoadBalancersDefaultUsePrivateIPENVVar); ok {
+			if usePrivateIP, err = strconv.ParseBool(usePrivateIPDefault); err == nil {
+				return changed, fmt.Errorf("%s: %w", op, err)
+			}
+		} else {
+			return changed, fmt.Errorf("%s: %w", op, err)
+		}
 	}
 	if usePrivateIP && l.NetworkID == 0 {
 		return changed, fmt.Errorf("%s: use private ip: missing network id", op)
