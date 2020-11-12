@@ -346,15 +346,10 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
 	if err != nil {
 		if errors.Is(err, annotation.ErrNotSet) {
-			klog.Info("Not set")
 			if usePrivateIPDefault, ok := os.LookupEnv(hcloudLoadBalancersDefaultUsePrivateIPENVVar); ok {
 				if usePrivateIP, err = strconv.ParseBool(usePrivateIPDefault); err != nil {
-					klog.Info("to bool failed")
 					return changed, fmt.Errorf("%s: %w", op, err)
 				}
-				klog.Info("ok")
-			} else {
-				klog.Info("no default")
 			}
 		} else {
 			return changed, fmt.Errorf("%s: %w", op, err)
