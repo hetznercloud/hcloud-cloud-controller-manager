@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
@@ -160,6 +161,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		name               string
 		serviceAnnotations map[annotation.Name]interface{}
 		createOpts         hcloud.LoadBalancerCreateOpts
+		env                map[string]string
 		mock               func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture)
 		lb                 *hcloud.LoadBalancer
 		err                error
@@ -180,6 +182,21 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			lb: &hcloud.LoadBalancer{ID: 1},
 		},
 		{
+			name:               "create with with location name only via defaults",
+			serviceAnnotations: map[annotation.Name]interface{}{},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "some-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location: &hcloud.Location{
+					Name: "fsn1",
+				},
+			},
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_LOCATION": "fsn1",
+			},
+			lb: &hcloud.LoadBalancer{ID: 1},
+		},
+		{
 			name: "create with network zone name only",
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBNetworkZone: "eu-central",
@@ -192,7 +209,20 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			lb: &hcloud.LoadBalancer{ID: 2},
 		},
 		{
-			name:               "fails if location and network zone missing",
+			name:               "create with network zone name only via defaults",
+			serviceAnnotations: map[annotation.Name]interface{}{},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "another-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				NetworkZone:      hcloud.NetworkZoneEUCentral,
+			},
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_NETWORK_ZONE": "eu-central",
+			},
+			lb: &hcloud.LoadBalancer{ID: 2},
+		},
+		{
+			name:               "fails if location and network zone missing and no defaults",
 			serviceAnnotations: map[annotation.Name]interface{}{},
 			err: fmt.Errorf("hcops/LoadBalancerOps.Create: neither %s nor %s set",
 				annotation.LBLocation, annotation.LBNetworkZone),
@@ -207,6 +237,20 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
+			},
+			lb: &hcloud.LoadBalancer{ID: 2},
+		},
+		{
+			name:               "gives preference to location name via defaults",
+			serviceAnnotations: map[annotation.Name]interface{}{},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "another-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1"},
+			},
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_LOCATION":     "nbg1",
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_NETWORK_ZONE": "eu-central",
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
 		},
@@ -326,6 +370,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
 
+			for k, v := range tt.env {
+				os.Setenv(k, v)
+			}
+
 			if tt.mock == nil {
 				tt.mock = func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
 					if tt.createOpts.Name == "" {
@@ -353,6 +401,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			}
 			assert.Equal(t, tt.lb, lb)
 			fx.AssertExpectations()
+
+			for k, _ := range tt.env {
+				os.Unsetenv(k)
+			}
 		})
 	}
 }
@@ -363,6 +415,7 @@ type LBReconcilementTestCase struct {
 	servicePorts       []v1.ServicePort
 	k8sNodes           []*v1.Node
 	initialLB          *hcloud.LoadBalancer
+	env                map[string]string
 	mock               func(t *testing.T, tt *LBReconcilementTestCase)
 	perform            func(t *testing.T, tt *LBReconcilementTestCase)
 
@@ -373,6 +426,10 @@ type LBReconcilementTestCase struct {
 
 func (tt *LBReconcilementTestCase) run(t *testing.T) {
 	t.Helper()
+
+	for k, v := range tt.env {
+		os.Setenv(k, v)
+	}
 
 	tt.fx = hcops.NewLoadBalancerOpsFixture(t)
 	if tt.service == nil {
@@ -390,6 +447,10 @@ func (tt *LBReconcilementTestCase) run(t *testing.T) {
 	}
 	tt.perform(t, tt)
 	tt.fx.AssertExpectations()
+
+	for k, _ := range tt.env {
+		os.Unsetenv(k)
+	}
 }
 
 func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
@@ -744,6 +805,36 @@ func TestLoadBalancerOps_ReconcileHCLBTargtets(t *testing.T) {
 			},
 		},
 		{
+			name: "enable use of private network via defaults",
+			k8sNodes: []*v1.Node{
+				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 3,
+			},
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_USE_PRIVATE_IP": "true",
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				tt.fx.LBOps.NetworkID = 4711
+
+				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Bool(true)}
+				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Bool(true)}
+				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
 			name: "disable use of private network",
 			k8sNodes: []*v1.Node{
 				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
@@ -760,6 +851,42 @@ func TestLoadBalancerOps_ReconcileHCLBTargtets(t *testing.T) {
 						UsePrivateIP: true,
 					},
 				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 1}, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				opts := hcloud.LoadBalancerAddServerTargetOpts{
+					Server:       &hcloud.Server{ID: 1},
+					UsePrivateIP: hcloud.Bool(false),
+				}
+				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "disable use of private network via default",
+			k8sNodes: []*v1.Node{
+				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				Targets: []hcloud.LoadBalancerTarget{
+					{
+						Type:         hcloud.LoadBalancerTargetTypeServer,
+						Server:       &hcloud.LoadBalancerTargetServer{Server: &hcloud.Server{ID: 1}},
+						UsePrivateIP: true,
+					},
+				},
+			},
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_USE_PRIVATE_IP": "false",
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 1}, nil)
