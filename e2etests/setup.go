@@ -27,6 +27,7 @@ type hcloudK8sSetup struct {
 	HcloudToken    string
 	K8sVersion     string
 	TestIdentifier string
+	KeepOnFailure  bool
 	privKey        string
 	server         *hcloud.Server
 	sshKey         *hcloud.SSHKey
@@ -283,8 +284,17 @@ func (s *hcloudK8sSetup) waitForCloudInit() error {
 // TearDown deletes all created resources within the Hetzner Cloud
 // there is no need to "shutdown" the k8s cluster before
 // so we just delete all created resources
-func (s *hcloudK8sSetup) TearDown(ctx context.Context) error {
+func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 	const op = "hcloudK8sSetup/TearDown"
+
+	if s.KeepOnFailure && testFailed {
+		fmt.Println("Skipping tear-down for further analysis.")
+		fmt.Println("Please clean-up afterwards ;-)")
+		return nil
+	}
+
+	ctx := context.Background()
+
 	_, err := s.Hcloud.Server.Delete(ctx, s.server)
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.Server.Delete: %s", op, err)

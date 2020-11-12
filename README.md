@@ -112,9 +112,9 @@ If you want to use the Hetzner Cloud `Networks` Feature, head over to the [Deplo
 
 ## E2E Tests
 
-The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will create Load Balancers that will be billed. 
+The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will create Load Balancers that will be billed.
 
-**Test Server Setup:** 
+**Test Server Setup:**
 1x CPX21 (Ubuntu 18.04)
 
 **Requirements: Docker and Go 1.15**
@@ -128,6 +128,7 @@ export USE_SSH_KEYS=key1,key2 # Name or IDs of your SSH Keys within the Hetzner 
 export USE_NETWORKS=yes # if `yes` this identidicates that the tests should provision the server with cilium as CNI and also enable the Network related tests
 ## Optional configuration env vars:
 export TEST_DEBUG_MODE=yes # With this env you can toggle the output of the provision and test commands. With `yes` it will log the whole output to stdout
+export KEEP_SERVER_ON_FAILURE=yes # Keep the test server after a test failure.
 ```
 
 2. Run the tests
