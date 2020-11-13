@@ -62,6 +62,11 @@ func TestName_AddToService(t *testing.T) {
 			expected: map[string]string{string(ann): "1,2"},
 		},
 		{
+			name:     "set []*hcloud.Certificate by name",
+			value:    []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
+			expected: map[string]string{string(ann): "cert-1,cert-2"},
+		},
+		{
 			name:  "set unsupported value",
 			value: struct{}{},
 			err:   fmt.Errorf("annotation/Spec.AddToService: %v: unsupported type: %T", ann, struct{}{}),
@@ -152,8 +157,8 @@ func (tt *typedAccessorTest) run(t *testing.T, call func(svc *v1.Service) (inter
 	t.Helper()
 
 	for k, v := range tt.svcAnnotations {
-		if err := k.AnnotateService(&svc, v); err != nil {
-			t.Error(err)
+		if err := k.AnnotateService(&svc, v); !assert.NoError(t, err) {
+			return
 		}
 	}
 
@@ -425,22 +430,22 @@ func TestName_NetworkZoneFromService(t *testing.T) {
 func TestName_CertificatesFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
-			name: "values set",
+			name: "ids set",
 			svcAnnotations: map[annotation.Name]interface{}{
 				ann: []*hcloud.Certificate{{ID: 3}, {ID: 5}},
 			},
 			expected: []*hcloud.Certificate{{ID: 3}, {ID: 5}},
 		},
 		{
-			name: "value not set",
-			err:  annotation.ErrNotSet,
+			name: "names set",
+			svcAnnotations: map[annotation.Name]interface{}{
+				ann: []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
+			},
+			expected: []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
 		},
 		{
-			name: "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: "invalid",
-			},
-			err: errors.New("annotation/Name.CertificatesFromService: strconv.Atoi: parsing \"invalid\": invalid syntax"),
+			name: "value not set",
+			err:  annotation.ErrNotSet,
 		},
 	}
 

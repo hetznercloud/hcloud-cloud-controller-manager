@@ -113,7 +113,31 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 	}
 
 	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	lbTest.WaitForHttpAvailable(ingressIP)
+	WaitForHTTPAvailable(t, ingressIP, false)
+
+	lbTest.TearDown()
+}
+
+func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
+	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
+	// TODO ensure cert gets deleted after test
+	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-https", port: 443}
+
+	pod := lbTest.DeployTestPod()
+
+	lbSvc := lbTest.ServiceDefinition(pod, map[string]string{
+		string(annotation.LBLocation):            "nbg1",
+		string(annotation.LBSvcHTTPCertificates): cert.Name,
+		string(annotation.LBSvcProtocol):         "https",
+	})
+
+	lbSvc, err := lbTest.CreateService(lbSvc)
+	if err != nil {
+		t.Fatalf("deploying test svc: %s", err)
+	}
+
+	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
+	WaitForHTTPAvailable(t, ingressIP, true)
 
 	lbTest.TearDown()
 }
@@ -138,7 +162,7 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 	}
 
 	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	lbTest.WaitForHttpAvailable(ingressIP)
+	WaitForHTTPAvailable(t, ingressIP, false)
 
 	lbTest.TearDown()
 }
@@ -152,7 +176,7 @@ func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 
 	pod := nwTest.DeployTestPod()
 
-	nwTest.WaitForHttpAvailable(pod.Status.PodIP)
+	WaitForHTTPAvailable(t, pod.Status.PodIP, false)
 
 	nwTest.TearDown()
 }

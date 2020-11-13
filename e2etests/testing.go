@@ -2,6 +2,7 @@ package e2etests
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -14,10 +15,12 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 )
@@ -209,8 +212,36 @@ func (tc *TestCluster) ensureNodesAreReady() error {
 	return nil
 }
 
+// CreateTLSCertificate creates a TLS certificate used for testing and posts it
+// to the Hetzner Cloud backend.
+//
+// The baseName of the certificate gets a random number suffix attached.
+// baseName and suffix are separated by a single "-" character.
+func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hcloud.Certificate {
+	const op = "e2etests/TestCluster.CreateTLSCertificate"
+
+	rndInt := rng.Int()
+	name := fmt.Sprintf("%s-%d", baseName, rndInt)
+
+	p := testsupport.NewTLSPair(t, fmt.Sprintf("www.example%d.com", rndInt))
+	opts := hcloud.CertificateCreateOpts{
+		Name:        name,
+		Certificate: p.Cert,
+		PrivateKey:  p.Key,
+	}
+	cert, _, err := tc.setup.Hcloud.Certificate.Create(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("%s: %s: %v", op, name, err)
+	}
+	if cert == nil {
+		t.Fatalf("%s: no certificate created", op)
+	}
+	return cert
+}
+
 type lbTestHelper struct {
 	podName   string
+	port      int
 	K8sClient *kubernetes.Clientset
 	t         *testing.T
 }
@@ -219,6 +250,7 @@ type lbTestHelper struct {
 // and waits until it is "ready"
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	const op = "lbTestHelper/DeployTestPod"
+
 	podName := fmt.Sprintf("pod-%s", l.podName)
 	testPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -268,6 +300,11 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 
 // ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service)
 func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string]string) *corev1.Service {
+	port := l.port
+	if port == 0 {
+		port = 80
+	}
+
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        fmt.Sprintf("svc-%s", l.podName),
@@ -280,8 +317,9 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 			Type: corev1.ServiceTypeLoadBalancer,
 			Ports: []corev1.ServicePort{
 				{
-					Port: 80,
-					Name: "http",
+					Port:       int32(port),
+					TargetPort: intstr.FromInt(80),
+					Name:       "http",
 				},
 			},
 			ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeLocal,
@@ -359,30 +397,6 @@ func (l *lbTestHelper) TearDown() {
 	}
 }
 
-// WaitForHttpAvailable tries to connect to the given IP via http
-// It tries it for 2 minutes, if after two minutes the connection
-// wasn't successful and it wasn't a HTTP 200 response it will fail
-func (l *lbTestHelper) WaitForHttpAvailable(ingressIP string) {
-	const op = "lbTestHelper/WaitForHttpAvailable"
-	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-		resp, err := client.Get(fmt.Sprintf("http://%s", ingressIP))
-		if err != nil {
-			return false, nil
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return false, fmt.Errorf("%s: got HTTP Code %d instead of 200", op, resp.StatusCode)
-		}
-		return true, nil
-	})
-	if err != nil {
-		l.t.Errorf("%s: not available via client.Get: %s", op, err)
-	}
-}
-
 type nwTestHelper struct {
 	podName    string
 	K8sClient  *kubernetes.Clientset
@@ -446,23 +460,6 @@ func (n *nwTestHelper) DeployTestPod() *corev1.Pod {
 	return pod
 }
 
-// WaitForHttpAvailable tries to connect to the given IP via curl
-// It tries it for 2 minutes, if after two minutes the connection
-// wasn't successful and it wasn't a HTTP 200 response it will fail
-func (n *nwTestHelper) WaitForHttpAvailable(podIp string) {
-	const op = "nwTestHelper/WaitForHttpAvailable"
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-		err := RunCommandOnServer(n.privateKey, n.server, fmt.Sprintf("curl http://%s", podIp))
-		if err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		n.t.Errorf("%s: not available via curl: %s", op, err)
-	}
-}
-
 // TearDown deletes the created pod
 func (n *nwTestHelper) TearDown() {
 	const op = "nwTestHelper/TearDown"
@@ -483,5 +480,41 @@ func (n *nwTestHelper) TearDown() {
 	})
 	if err != nil {
 		n.t.Errorf("%s: test pod not removed after 1 minute: %s", op, err)
+	}
+}
+
+// WaitForHTTPAvailable tries to connect to the given IP via http
+// It tries it for 2 minutes, if after two minutes the connection
+// wasn't successful and it wasn't a HTTP 200 response it will fail
+func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
+	const op = "e2etests/WaitForHTTPAvailable"
+
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // nolint
+			},
+		},
+	}
+	proto := "http"
+	if useHTTPS {
+		proto = "https"
+
+	}
+
+	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+		resp, err := client.Get(fmt.Sprintf("%s://%s", proto, ingressIP))
+		if err != nil {
+			return false, nil
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return false, fmt.Errorf("%s: got HTTP Code %d instead of 200", op, resp.StatusCode)
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Errorf("%s: not available via client.Get: %s", op, err)
 	}
 }

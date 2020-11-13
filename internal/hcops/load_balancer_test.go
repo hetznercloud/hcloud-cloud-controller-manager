@@ -10,6 +10,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -648,7 +649,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 	}
 }
 
-func TestLoadBalancerOps_ReconcileHCLBTargtets(t *testing.T) {
+func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 	tests := []LBReconcilementTestCase{
 		{
 			name: "add k8s nodes as hc Load Balancer targets",
@@ -820,6 +821,79 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "reference TLS certificate by id",
+			servicePorts: []v1.ServicePort{
+				{Port: 443, NodePort: 8443},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 10,
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBSvcHTTPCertificates: []string{"1"},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				opts := hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      hcloud.Int(443),
+					DestinationPort: hcloud.Int(8443),
+					HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
+						Certificates: []*hcloud.Certificate{
+							{ID: 1},
+						},
+					},
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8443),
+					},
+				}
+				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "reference TLS certificate by name",
+			servicePorts: []v1.ServicePort{
+				{Port: 443, NodePort: 8443},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 10,
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBSvcHTTPCertificates: []string{"some-cert"},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				cert := &hcloud.Certificate{ID: 1}
+
+				opts := hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      hcloud.Int(443),
+					DestinationPort: hcloud.Int(8443),
+					HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
+						Certificates: []*hcloud.Certificate{cert},
+					},
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8443),
+					},
+				}
+				tt.fx.CertClient.
+					On("Get", mock.Anything, "some-cert").
+					Return(cert, nil, nil)
+				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {

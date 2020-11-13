@@ -49,6 +49,7 @@ type LoadBalancerOps struct {
 	LBClient      HCloudLoadBalancerClient
 	ActionClient  HCloudActionClient
 	NetworkClient HCloudNetworkClient
+	CertClient    HCloudCertificateClient
 	RetryDelay    time.Duration
 	NetworkID     int
 }
@@ -434,7 +435,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		portExists := hclbListenPorts[portNo]
 		delete(hclbListenPorts, portNo)
 
-		b := &hclbServiceOptsBuilder{Port: port, Service: svc}
+		b := &hclbServiceOptsBuilder{Port: port, Service: svc, CertClient: l.CertClient}
 		if portExists {
 			klog.InfoS("update service", "op", op, "port", portNo, "loadBalancerID", lb.ID)
 
@@ -453,7 +454,6 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 			if err != nil {
 				return changed, fmt.Errorf("%s: %w", op, err)
 			}
-
 			action, _, err = l.LBClient.AddService(ctx, lb, addOpts)
 			if err != nil {
 				return changed, fmt.Errorf("%s: %w", op, err)
@@ -484,8 +484,9 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 }
 
 type hclbServiceOptsBuilder struct {
-	Port    v1.ServicePort
-	Service *v1.Service
+	Port       v1.ServicePort
+	Service    *v1.Service
+	CertClient HCloudCertificateClient
 
 	listenPort      int
 	destinationPort int
@@ -573,6 +574,17 @@ func (b *hclbServiceOptsBuilder) extract() {
 		if errors.Is(err, annotation.ErrNotSet) {
 			return nil
 		}
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		certs, err = b.resolveCertNames(ctx, certs)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
 		b.httpOpts.Certificates = certs
 		b.addHTTP = true
 		return nil
@@ -605,6 +617,25 @@ func (b *hclbServiceOptsBuilder) extract() {
 	})
 
 	b.extractHealthCheck()
+}
+
+func (b *hclbServiceOptsBuilder) resolveCertNames(ctx context.Context, cs []*hcloud.Certificate) ([]*hcloud.Certificate, error) {
+	const op = "hcops/hclbServiceOptsBuilder.resolveCertNames"
+
+	resolved := make([]*hcloud.Certificate, len(cs))
+	for i, c := range cs {
+		if c.ID != 0 {
+			resolved[i] = c
+			continue
+		}
+
+		c, _, err := b.CertClient.Get(ctx, c.Name)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		resolved[i] = &hcloud.Certificate{ID: c.ID}
+	}
+	return resolved, nil
 }
 
 func (b *hclbServiceOptsBuilder) extractHealthCheck() {

@@ -52,3 +52,11 @@ func getErrChan(args mock.Arguments, i int) chan error {
 	}
 	return v.(chan error)
 }
+
+func getCertificatePtr(args mock.Arguments, i int) *hcloud.Certificate {
+	v := args.Get(i)
+	if v == nil {
+		return nil
+	}
+	return v.(*hcloud.Certificate)
+}

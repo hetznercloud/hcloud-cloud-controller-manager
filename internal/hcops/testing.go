@@ -13,6 +13,7 @@ type LoadBalancerOpsFixture struct {
 	Name          string
 	Ctx           context.Context
 	LBClient      *mocks.LoadBalancerClient
+	CertClient    *mocks.CertificateClient
 	ActionClient  *mocks.ActionClient
 	NetworkClient *mocks.NetworkClient
 
@@ -26,19 +27,23 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 		Ctx:           context.Background(),
 		ActionClient:  &mocks.ActionClient{},
 		LBClient:      &mocks.LoadBalancerClient{},
+		CertClient:    &mocks.CertificateClient{},
 		NetworkClient: &mocks.NetworkClient{},
 		T:             t,
 	}
 
 	fx.ActionClient.Test(t)
 	fx.LBClient.Test(t)
+	fx.CertClient.Test(t)
 	fx.NetworkClient.Test(t)
 
 	fx.LBOps = &LoadBalancerOps{
 		LBClient:      fx.LBClient,
+		CertClient:    fx.CertClient,
 		ActionClient:  fx.ActionClient,
 		NetworkClient: fx.NetworkClient,
 	}
+
 	return fx
 }
 
@@ -100,5 +105,6 @@ func (fx *LoadBalancerOpsFixture) MockWatchProgress(a *hcloud.Action, err error)
 func (fx *LoadBalancerOpsFixture) AssertExpectations() {
 	fx.ActionClient.AssertExpectations(fx.T)
 	fx.LBClient.AssertExpectations(fx.T)
+	fx.CertClient.AssertExpectations(fx.T)
 	fx.NetworkClient.AssertExpectations(fx.T)
 }

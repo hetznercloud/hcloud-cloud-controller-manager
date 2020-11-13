@@ -38,11 +38,15 @@ func (s Name) AnnotateService(svc *v1.Service, v interface{}) error {
 	case []string:
 		svc.ObjectMeta.Annotations[k] = strings.Join(vt, ",")
 	case []*hcloud.Certificate:
-		ids := make([]string, len(vt))
+		idsOrNames := make([]string, len(vt))
 		for i, c := range vt {
-			ids[i] = strconv.Itoa(c.ID)
+			if c.ID == 0 && c.Name != "" {
+				idsOrNames[i] = c.Name
+				continue
+			}
+			idsOrNames[i] = strconv.Itoa(c.ID)
 		}
-		svc.ObjectMeta.Annotations[k] = strings.Join(ids, ",")
+		svc.ObjectMeta.Annotations[k] = strings.Join(idsOrNames, ",")
 	case hcloud.NetworkZone:
 		svc.ObjectMeta.Annotations[k] = string(vt)
 	case hcloud.LoadBalancerAlgorithmType:
@@ -258,13 +262,16 @@ func (s Name) CertificatesFromService(svc *v1.Service) ([]*hcloud.Certificate, e
 	var cs []*hcloud.Certificate
 
 	err := s.applyToValue(op, svc, func(v string) error {
-		ids := strings.Split(v, ",")
-		cs = make([]*hcloud.Certificate, len(ids))
+		ss := strings.Split(v, ",")
+		cs = make([]*hcloud.Certificate, len(ss))
 
-		for i, idStr := range ids {
-			id, err := strconv.Atoi(idStr)
+		for i, s := range ss {
+			id, err := strconv.Atoi(s)
 			if err != nil {
-				return err
+				// If we could not parse the string as an integer we assume it
+				// is a name not an id.
+				cs[i] = &hcloud.Certificate{Name: s}
+				continue
 			}
 			cs[i] = &hcloud.Certificate{ID: id}
 		}
