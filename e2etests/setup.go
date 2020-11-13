@@ -148,21 +148,40 @@ func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
 	}
 
 	fmt.Printf("%s: Apply ccm deployment\n", op)
-	err = RunCommandOnServer(s.privKey, s.server, fmt.Sprintf("KUBECONFIG=/root/.kube/config kubectl apply -f ccm.yml"))
+	err = RunCommandOnServer(s.privKey, s.server, "KUBECONFIG=/root/.kube/config kubectl apply -f ccm.yml")
 	if err != nil {
 		return "", fmt.Errorf("%s Deploy ccm: %s", op, err)
 	}
 	fmt.Printf("%s: Download kubeconfig\n", op)
 
-	cmd := exec.Command("/usr/bin/scp", "-i", "ssh_key", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no", fmt.Sprintf("root@%s:/root/.kube/config", s.server.PublicNet.IPv4.IP.String()), "kubeconfig")
-	if ok := os.Getenv("TEST_DEBUG_MODE"); ok != "" {
-		cmd.Stdout = os.Stdout
-	}
-	err = cmd.Run()
+	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.server.PublicNet.IPv4.IP.String()), "kubeconfig")
 	if err != nil {
 		return "", fmt.Errorf("%s download kubeconfig: %s", op, err)
 	}
 	return "kubeconfig", nil
+}
+
+func scp(identityFile, src, dest string) error {
+	const op = "e2etests/scp"
+
+	cmd := exec.Command(
+		"/usr/bin/scp",
+		"-F", "/dev/null", // ignore $HOME/.ssh/config
+		"-i", identityFile,
+		"-o", "IdentitiesOnly=yes", // only use the identities passed on the command line
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "StrictHostKeyChecking=no",
+		src,
+		dest,
+	)
+	if ok := os.Getenv("TEST_DEBUG_MODE"); ok != "" {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+	return nil
 }
 
 // prepareCCMDeploymentFile patches the Cloud Controller Deployment file
