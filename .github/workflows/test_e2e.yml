@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s: [ 1.17.13, 1.18.10, 1.19.3]
+        k8s: [ 1.17.14, 1.18.12, 1.19.4 ]
         networks: [yes, no]
     name: ${{ matrix.k8s }}- networks - ${{ matrix.networks }}
     steps:
