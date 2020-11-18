@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
@@ -11,6 +13,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
+)
+
+const (
+	hcloudLoadBalancersDefaultDisablePrivateIngressENVVar = "HCLOUD_LOAD_BALANCERS_DEFAULT_DISABLE_PRIVATE_INGRESS"
 )
 
 // LoadBalancerOps defines the Load Balancer related operations required by
@@ -151,8 +157,16 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 
 	disablePrivIngress, err := annotation.LBDisablePrivateIngress.BoolFromService(service)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-		return nil, fmt.Errorf("%s: %w", op, err)
+	if err != nil {
+		if errors.Is(err, annotation.ErrNotSet) {
+			if disablePrivIngressDefault, ok := os.LookupEnv(hcloudLoadBalancersDefaultDisablePrivateIngressENVVar); ok {
+				if disablePrivIngress, err = strconv.ParseBool(disablePrivIngressDefault); err != nil {
+					return nil, fmt.Errorf("%s: %w", op, err)
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
 	}
 	if !disablePrivIngress {
 		for _, nw := range loadBalancer.PrivateNet {

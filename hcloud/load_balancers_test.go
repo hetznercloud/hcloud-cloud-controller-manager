@@ -822,6 +822,65 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
+			Name:      "disable private ingress via defaults",
+			NetworkID: 4711,
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName: "with-priv-net-no-priv-ingress",
+			},
+			LB: &hcloud.LoadBalancer{
+				ID:               1,
+				Name:             "with-priv-net-no-priv-ingress",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+				},
+				PrivateNet: []hcloud.LoadBalancerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   4711,
+							Name: "priv-net",
+						},
+						IP: net.ParseIP("10.10.10.2"),
+					},
+				},
+			},
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DEFAULT_DISABLE_PRIVATE_INGRESS": "true",
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByName", tt.Ctx, mock.AnythingOfType("string")).
+					Return(nil, hcops.ErrNotFound)
+				tt.LBOps.
+					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
+					Return(tt.LB, nil)
+				tt.LBOps.
+					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
+					Return(false, nil)
+				tt.LBOps.
+					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
+					Return(false, nil)
+				tt.LBOps.
+					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
+					Return(false, nil)
+
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				expected := &v1.LoadBalancerStatus{
+					Ingress: []v1.LoadBalancerIngress{
+						{IP: tt.LB.PublicNet.IPv4.IP.String()},
+						// {IP: tt.LB.PublicNet.IPv6.IP.String()},
+					},
+				}
+				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
+				assert.NoError(t, err)
+				assert.Equal(t, expected, lbStat)
+			},
+		},
+		{
 			Name:      "attach Load Balancer to private network only",
 			NetworkID: 4711,
 			ServiceAnnotations: map[annotation.Name]interface{}{

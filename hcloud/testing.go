@@ -73,6 +73,7 @@ type LoadBalancerTestCase struct {
 	Nodes              []*v1.Node
 	LB                 *hcloud.LoadBalancer
 	LBCreateResult     *hcloud.LoadBalancerCreateResult
+	env                map[string]string
 	Mock               func(t *testing.T, tt *LoadBalancerTestCase)
 
 	// Defines the actual test
@@ -90,6 +91,10 @@ type LoadBalancerTestCase struct {
 
 func (tt *LoadBalancerTestCase) run(t *testing.T) {
 	t.Helper()
+
+	for k, v := range tt.env {
+		os.Setenv(k, v)
+	}
 
 	tt.LBOps = &hcops.MockLoadBalancerOps{}
 	tt.LBOps.Test(t)
@@ -121,6 +126,10 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 	tt.LBOps.AssertExpectations(t)
 	tt.LBClient.AssertExpectations(t)
 	tt.ActionClient.AssertExpectations(t)
+
+	for k, _ := range tt.env {
+		os.Unsetenv(k)
+	}
 }
 
 func RunLoadBalancerTests(t *testing.T, tests []LoadBalancerTestCase) {
