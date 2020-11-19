@@ -1,5 +1,5 @@
 name: Run e2e tests
-on: [push]
+on: [ push ]
 jobs:
   test:
     runs-on: ubuntu-latest
