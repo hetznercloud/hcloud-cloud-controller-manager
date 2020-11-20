@@ -120,7 +120,6 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 
 func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
-	// TODO ensure cert gets deleted after test
 	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-https", port: 443}
 
 	pod := lbTest.DeployTestPod()
