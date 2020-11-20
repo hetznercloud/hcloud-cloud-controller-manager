@@ -32,145 +32,156 @@ func init() {
 }
 
 type TestCluster struct {
-	once        sync.Once
-	useNetworks bool
-	setup       *hcloudK8sSetup
-	k8sClient   *kubernetes.Clientset
-	started     bool
-	err         error
+	useNetworks  bool
+	setup        *hcloudK8sSetup
+	k8sClient    *kubernetes.Clientset
+	started      bool
+	certificates []*hcloud.Certificate
+
+	mu sync.Mutex
 }
 
 func (tc *TestCluster) initialize() error {
-	const op = "TestCluster/initialize"
-	tc.once.Do(func() {
-		fmt.Printf("%s: Starting CCM Testsuite\n", op)
-		networksSupport := os.Getenv("USE_NETWORKS")
-		if networksSupport == "yes" {
-			tc.useNetworks = true
-		}
-		isUsingGithubActions := os.Getenv("GITHUB_ACTIONS")
-		isUsingGitlabCI := os.Getenv("CI_JOB_ID")
-		testIdentifier := ""
-		if isUsingGithubActions == "true" {
-			testIdentifier = fmt.Sprintf("gh-%s-%d", os.Getenv("GITHUB_RUN_ID"), rng.Int())
-			fmt.Printf("%s: Running in Github Action\n", op)
-		}
-		if isUsingGitlabCI != "" {
-			testIdentifier = fmt.Sprintf("gl-%s", isUsingGitlabCI)
-			fmt.Printf("%s: Running in Gitlab CI\n", op)
-		}
-		if testIdentifier == "" {
-			testIdentifier = fmt.Sprintf("local-%d", rng.Int())
-			fmt.Printf("%s: Running local\n", op)
-		}
+	const op = "e2tests/TestCluster.initialize"
 
-		k8sVersion := os.Getenv("K8S_VERSION")
-		if k8sVersion == "" {
-			k8sVersion = "1.18.9"
-		}
-		token := os.Getenv("HCLOUD_TOKEN")
-		if len(token) != 64 {
-			tc.err = fmt.Errorf("%s: No valid HCLOUD_TOKEN found", op)
-			return
-		}
-		keepOnFailure := os.Getenv("KEEP_SERVER_ON_FAILURE") == "yes"
+	if tc.started {
+		return nil
+	}
 
-		var additionalSSHKeys []*hcloud.SSHKey
+	fmt.Printf("%s: Starting CCM Testsuite\n", op)
 
-		opts := []hcloud.ClientOption{
-			hcloud.WithToken(token),
-			hcloud.WithApplication("hcloud-ccm-testsuite", "1.0"),
-		}
-		hcloudClient := hcloud.NewClient(opts...)
-		additionalSSHKeysIDOrName := os.Getenv("USE_SSH_KEYS")
-		if additionalSSHKeysIDOrName != "" {
-			idsOrNames := strings.Split(additionalSSHKeysIDOrName, ",")
-			for _, idOrName := range idsOrNames {
-				additionalSSHKey, _, err := hcloudClient.SSHKey.Get(context.Background(), idOrName)
-				if err != nil {
-					tc.err = fmt.Errorf("%s: %s", op, err)
-					return
-				}
-				additionalSSHKeys = append(additionalSSHKeys, additionalSSHKey)
+	networksSupport := os.Getenv("USE_NETWORKS")
+	if networksSupport == "yes" {
+		tc.useNetworks = true
+	}
+	isUsingGithubActions := os.Getenv("GITHUB_ACTIONS")
+	isUsingGitlabCI := os.Getenv("CI_JOB_ID")
+	testIdentifier := ""
+	if isUsingGithubActions == "true" {
+		testIdentifier = fmt.Sprintf("gh-%s-%d", os.Getenv("GITHUB_RUN_ID"), rng.Int())
+		fmt.Printf("%s: Running in Github Action\n", op)
+	}
+	if isUsingGitlabCI != "" {
+		testIdentifier = fmt.Sprintf("gl-%s", isUsingGitlabCI)
+		fmt.Printf("%s: Running in Gitlab CI\n", op)
+	}
+	if testIdentifier == "" {
+		testIdentifier = fmt.Sprintf("local-%d", rng.Int())
+		fmt.Printf("%s: Running local\n", op)
+	}
+
+	k8sVersion := os.Getenv("K8S_VERSION")
+	if k8sVersion == "" {
+		k8sVersion = "1.18.9"
+	}
+	token := os.Getenv("HCLOUD_TOKEN")
+	if len(token) != 64 {
+		return fmt.Errorf("%s: No valid HCLOUD_TOKEN found", op)
+	}
+	keepOnFailure := os.Getenv("KEEP_SERVER_ON_FAILURE") == "yes"
+
+	var additionalSSHKeys []*hcloud.SSHKey
+
+	opts := []hcloud.ClientOption{
+		hcloud.WithToken(token),
+		hcloud.WithApplication("hcloud-ccm-testsuite", "1.0"),
+	}
+	hcloudClient := hcloud.NewClient(opts...)
+	additionalSSHKeysIDOrName := os.Getenv("USE_SSH_KEYS")
+	if additionalSSHKeysIDOrName != "" {
+		idsOrNames := strings.Split(additionalSSHKeysIDOrName, ",")
+		for _, idOrName := range idsOrNames {
+			additionalSSHKey, _, err := hcloudClient.SSHKey.Get(context.Background(), idOrName)
+			if err != nil {
+				return fmt.Errorf("%s: %s", op, err)
 			}
+			additionalSSHKeys = append(additionalSSHKeys, additionalSSHKey)
 		}
+	}
 
-		fmt.Printf("Test against k8s %s\n", k8sVersion)
+	fmt.Printf("Test against k8s %s\n", k8sVersion)
 
-		fmt.Println("Building ccm image")
-		cmd := exec.Command("docker", "build", "-t", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier), "../")
-		cmd.Stdout = os.Stdout
-		err := cmd.Run()
-		if err != nil {
-			tc.err = fmt.Errorf("%s: %s", op, err)
-			return
-		}
+	fmt.Println("Building ccm image")
+	cmd := exec.Command("docker", "build", "-t", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier), "../")
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
 
-		fmt.Println("Saving ccm image to disk")
-		cmd = exec.Command("docker", "save", "--output", "ci-hcloud-ccm.tar", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier))
-		cmd.Stdout = os.Stdout
-		err = cmd.Run()
-		if err != nil {
-			tc.err = fmt.Errorf("%s: %s", op, err)
-			return
-		}
+	fmt.Println("Saving ccm image to disk")
+	cmd = exec.Command("docker", "save", "--output", "ci-hcloud-ccm.tar", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier))
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
 
-		tc.setup = &hcloudK8sSetup{
-			Hcloud:         hcloudClient,
-			K8sVersion:     k8sVersion,
-			TestIdentifier: testIdentifier,
-			HcloudToken:    token,
-			KeepOnFailure:  keepOnFailure,
-		}
-		fmt.Println("Setting up test env")
+	tc.setup = &hcloudK8sSetup{
+		Hcloud:         hcloudClient,
+		K8sVersion:     k8sVersion,
+		TestIdentifier: testIdentifier,
+		HcloudToken:    token,
+		KeepOnFailure:  keepOnFailure,
+	}
+	fmt.Println("Setting up test env")
 
-		err = tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
-		if err != nil {
-			tc.err = fmt.Errorf("%s: %s", op, err)
-			return
-		}
+	err = tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
 
-		kubeconfigPath, err := tc.setup.PrepareK8s(tc.useNetworks)
-		if err != nil {
-			tc.err = fmt.Errorf("%s: %s", op, err)
-			return
-		}
+	kubeconfigPath, err := tc.setup.PrepareK8s(tc.useNetworks)
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
 
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-		if err != nil {
-			fmt.Printf("%s: clientcmd.BuildConfigFromFlags: %s", op, err)
-		}
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("%s: clientcmd.BuildConfigFromFlags: %s", op, err)
+	}
 
-		tc.k8sClient, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			fmt.Printf("%s: kubernetes.NewForConfig: %s", op, err)
-		}
+	tc.k8sClient, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("%s: kubernetes.NewForConfig: %s", op, err)
+	}
 
-		tc.started = true
-	})
-	return tc.err
+	tc.started = true
+	return nil
 }
 
 func (tc *TestCluster) Start() error {
+	const op = "e2etests/TestCluster.Start"
+
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+
 	if err := tc.initialize(); err != nil {
-		return fmt.Errorf("start test cluster: %v", err)
+		return fmt.Errorf("%s: %v", op, err)
 	}
 	if err := tc.ensureNodesAreReady(); err != nil {
-		return fmt.Errorf("start test cluster: %v", err)
+		return fmt.Errorf("%s: %v", op, err)
 	}
 	return nil
 }
 
 func (tc *TestCluster) Stop(testFailed bool) error {
-	const op = "TestCluster/Stop"
-	if tc.err != nil {
-		return fmt.Errorf("%s: %s", op, tc.err)
-	}
+	const op = "e2etests/TestCluster.Stop"
+
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+
 	if !tc.started {
 		return nil
 	}
-	err := tc.setup.TearDown(testFailed)
-	if err != nil {
+
+	for _, c := range tc.certificates {
+		if _, err := tc.setup.Hcloud.Certificate.Delete(context.Background(), c); err != nil {
+			fmt.Printf("%s: delete certificate %d: %v", op, c.ID, err)
+		}
+	}
+
+	if err := tc.setup.TearDown(testFailed); err != nil {
 		fmt.Printf("%s: Tear Down: %s", op, err)
 	}
 	return nil
@@ -178,6 +189,7 @@ func (tc *TestCluster) Stop(testFailed bool) error {
 
 func (tc *TestCluster) ensureNodesAreReady() error {
 	const op = "ensureNodesAreReady"
+
 	err := wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
 		nodes, err := tc.k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		if err != nil {
@@ -236,6 +248,11 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 	if cert == nil {
 		t.Fatalf("%s: no certificate created", op)
 	}
+
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	tc.certificates = append(tc.certificates, cert)
+
 	return cert
 }
 
