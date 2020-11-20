@@ -477,6 +477,24 @@ func (n *nwTestHelper) DeployTestPod() *corev1.Pod {
 	return pod
 }
 
+// WaitForHTTPOnServer tries to connect to the given IP using curl.
+//
+// It tries it for 2 minutes, if after two minutes the connection wasn't
+// successful or it was not a HTTP 200 response it will fail
+func (n *nwTestHelper) WaitForHTTPOnServer(podIp string) {
+	const op = "nwTestHelper/WaitForHTTPAvailable"
+	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+		err := RunCommandOnServer(n.privateKey, n.server, fmt.Sprintf("curl http://%s", podIp))
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		n.t.Errorf("%s: not available via curl: %s", op, err)
+	}
+}
+
 // TearDown deletes the created pod
 func (n *nwTestHelper) TearDown() {
 	const op = "nwTestHelper/TearDown"

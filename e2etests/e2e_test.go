@@ -175,7 +175,7 @@ func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 
 	pod := nwTest.DeployTestPod()
 
-	WaitForHTTPAvailable(t, pod.Status.PodIP, false)
+	nwTest.WaitForHTTPOnServer(pod.Status.PodIP)
 
 	nwTest.TearDown()
 }
