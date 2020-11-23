@@ -1,8 +1,13 @@
 Changelog
 =========
 
-v1.8.1
+Unreleased
 ----------
+
+* Fix: allow referencing certificates by name (GH-116)
+
+v1.8.1
+------
 
 * Fix: excessive calls to `/v1/servers` endpoint.
 
