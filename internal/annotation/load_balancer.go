@@ -59,11 +59,26 @@ const (
 	LBType Name = "load-balancer.hetzner.cloud/type"
 
 	// LBLocation specifies the location where the Load Balancer will be
-	// created in. Mutually exclusive with LBNetworkZone.
+	// created in.
+	//
+	// Changing the location to a different value after the load balancer was
+	// created has no effect. In order to move a load balancer to a different
+	// location it is necessary to delete and re-create it. Note, that this
+	// will lead to the load balancer getting new public IPs assigned.
+	//
+	// Mutually exclusive with LBNetworkZone.
 	LBLocation Name = "load-balancer.hetzner.cloud/location"
 
 	// LBNetworkZone specifies the network zone where the Load Balancer will be
-	// created in. Mutually exclusive with LBLocation.
+	// created in.
+	//
+	// Changing the network zone to a different value after the load balancer
+	// was created has no effect.  In order to move a load balancer to a
+	// different network zone it is necessary to delete and re-create it. Note,
+	// that this will lead to the load balancer getting new public IPs
+	// assigned.
+	//
+	// Mutually exclusive with LBLocation.
 	LBNetworkZone Name = "load-balancer.hetzner.cloud/network-zone"
 
 	// LBSvcProxyProtocol specifies if the Load Balancer services should
