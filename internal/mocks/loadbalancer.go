@@ -95,3 +95,17 @@ func (m *LoadBalancerClient) DetachFromNetwork(
 	args := m.Called(ctx, lb, opts)
 	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
 }
+
+func (m *LoadBalancerClient) EnablePublicInterface(
+	ctx context.Context, lb *hcloud.LoadBalancer,
+) (*hcloud.Action, *hcloud.Response, error) {
+	args := m.Called(ctx, lb)
+	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
+
+func (m *LoadBalancerClient) DisablePublicInterface(
+	ctx context.Context, lb *hcloud.LoadBalancer,
+) (*hcloud.Action, *hcloud.Response, error) {
+	args := m.Called(ctx, lb)
+	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
