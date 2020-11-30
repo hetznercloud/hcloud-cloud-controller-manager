@@ -34,6 +34,11 @@ type hcloudK8sSetup struct {
 	network        *hcloud.Network
 }
 
+type k8sInfo struct {
+	KubeConfigPath string
+	RequiredPods   []string
+}
+
 type cloudInitTmpl struct {
 	K8sVersion    string
 	HcloudToken   string
@@ -127,38 +132,52 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 
 // PrepareK8s patches an existing kubernetes cluster with a CNI and the correct
 // Cloud Controller Manager version from this test run
-func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
+func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (k8sInfo, error) {
 	const op = "hcloudK8sSetup/PrepareK8s"
+	pods := []string{
+		"coredns",
+		"etcd-srv",
+		"kube-apiserver-srv",
+		"kube-controller-manager-srv",
+		"kube",
+		"kube-scheduler-srv",
+	}
 
 	if withNetworks {
 		err := s.deployCilium()
 		if err != nil {
-			return "", fmt.Errorf("%s: %s", op, err)
+			return k8sInfo{}, fmt.Errorf("%s: %s", op, err)
 		}
+		pods = append(pods, "cilium-operator")
 	} else {
 		err := s.deployFlannel()
 		if err != nil {
-			return "", fmt.Errorf("%s: %s", op, err)
+			return k8sInfo{}, fmt.Errorf("%s: %s", op, err)
 		}
+		pods = append(pods, "kube-flannel")
 	}
 
 	err := s.prepareCCMDeploymentFile(withNetworks)
 	if err != nil {
-		return "", fmt.Errorf("%s: %s", op, err)
+		return k8sInfo{}, fmt.Errorf("%s: %s", op, err)
 	}
 
 	fmt.Printf("%s: Apply ccm deployment\n", op)
 	err = RunCommandOnServer(s.privKey, s.server, "KUBECONFIG=/root/.kube/config kubectl apply -f ccm.yml")
 	if err != nil {
-		return "", fmt.Errorf("%s Deploy ccm: %s", op, err)
+		return k8sInfo{}, fmt.Errorf("%s Deploy ccm: %s", op, err)
 	}
 	fmt.Printf("%s: Download kubeconfig\n", op)
+	pods = append(pods, "hcloud-cloud-controller-manager")
 
 	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.server.PublicNet.IPv4.IP.String()), "kubeconfig")
 	if err != nil {
-		return "", fmt.Errorf("%s download kubeconfig: %s", op, err)
+		return k8sInfo{}, fmt.Errorf("%s download kubeconfig: %s", op, err)
 	}
-	return "kubeconfig", nil
+	return k8sInfo{
+		KubeConfigPath: "kubeconfig",
+		RequiredPods:   pods,
+	}, nil
 }
 
 func scp(identityFile, src, dest string) error {
