@@ -641,6 +641,88 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				assert.False(t, changed)
 			},
 		},
+		{
+			name: "disable enabled public network",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBDisablePublicNetwork: true,
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 6,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				action := &hcloud.Action{ID: rand.Int()}
+				tt.fx.LBClient.
+					On("DisablePublicInterface", tt.fx.Ctx, tt.initialLB).
+					Return(action, nil, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "keep disabled public interface",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBDisablePublicNetwork: true,
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 7,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: false,
+				},
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
+		{
+			name: "enable disabled public interface",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBDisablePublicNetwork: false,
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 8,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: false,
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				action := &hcloud.Action{ID: rand.Int()}
+				tt.fx.LBClient.
+					On("EnablePublicInterface", tt.fx.Ctx, tt.initialLB).
+					Return(action, nil, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "keep enabled public interface",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBDisablePublicNetwork: false,
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 9,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -42,6 +42,13 @@ type HCloudLoadBalancerClient interface {
 
 	AttachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAttachToNetworkOpts) (*hcloud.Action, *hcloud.Response, error)
 	DetachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerDetachFromNetworkOpts) (*hcloud.Action, *hcloud.Response, error)
+
+	EnablePublicInterface(
+		ctx context.Context, loadBalancer *hcloud.LoadBalancer,
+	) (*hcloud.Action, *hcloud.Response, error)
+	DisablePublicInterface(
+		ctx context.Context, loadBalancer *hcloud.LoadBalancer,
+	) (*hcloud.Action, *hcloud.Response, error)
 }
 
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
@@ -193,6 +200,12 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 	}
 	changed = changed || networkAttached
 
+	pubIfaceToggled, err := l.togglePublicInterface(ctx, lb, svc)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
+	changed = changed || pubIfaceToggled
+
 	return changed, nil
 }
 
@@ -309,6 +322,37 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
+	return true, nil
+}
+
+func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
+	const op = "hcops/LoadBalancerOps.togglePublicInterface"
+	var a *hcloud.Action
+
+	disable, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
+	if errors.Is(err, annotation.ErrNotSet) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if disable == !lb.PublicNet.Enabled {
+		return false, nil
+	}
+
+	if disable {
+		a, _, err = l.LBClient.DisablePublicInterface(ctx, lb)
+	} else {
+		a, _, err = l.LBClient.EnablePublicInterface(ctx, lb)
+	}
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
 	return true, nil
 }
 
