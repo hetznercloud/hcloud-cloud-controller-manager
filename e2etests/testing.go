@@ -230,15 +230,18 @@ func (tc *TestCluster) ensurePodsReady() error {
 		if err != nil {
 			return false, err
 		}
+		fmt.Print("Found pods: ")
 		for _, pod := range pods.Items {
 			name := extractPodName(pod.GetName())
+			fmt.Printf("%s (%s), ", name, pod.GetName())
+
 			for _, cond := range pod.Status.Conditions {
 				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
 					delete(requiredPods, name)
 				}
 			}
 		}
-		fmt.Print("Still waiting for: ")
+		fmt.Print("\nStill waiting for: ")
 		for name := range requiredPods {
 			fmt.Printf("%s ", name)
 		}

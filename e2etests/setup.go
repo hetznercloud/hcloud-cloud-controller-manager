@@ -98,6 +98,7 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.Server.GetByID: %s", op, err)
 	}
+	fmt.Printf("\n\n\n***Server ID: %d ***\n", res.Server.ID)
 
 	fmt.Printf("%s Waiting for server to be sshable:", op)
 	for {
