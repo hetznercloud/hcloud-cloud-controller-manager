@@ -17,6 +17,7 @@ jobs:
       env:
         K8S_VERSION: ${{ matrix.k8s }}
         TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
+        USE_SSH_KEYS: ${{ secrets.USE_SSH_KEYS }}
         USE_NETWORKS: ${{ matrix.networks }}
       run: |
         export HCLOUD_TOKEN=$(./scripts/get-token.sh)
