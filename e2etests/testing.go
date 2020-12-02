@@ -159,7 +159,10 @@ func (tc *TestCluster) Start() error {
 	if err := tc.initialize(); err != nil {
 		return fmt.Errorf("%s: %v", op, err)
 	}
-	if err := tc.ensureNodesAreReady(); err != nil {
+	if err := tc.ensureNodesReady(); err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+	if err := tc.ensurePodsReady(); err != nil {
 		return fmt.Errorf("%s: %v", op, err)
 	}
 	return nil
@@ -187,15 +190,16 @@ func (tc *TestCluster) Stop(testFailed bool) error {
 	return nil
 }
 
-func (tc *TestCluster) ensureNodesAreReady() error {
-	const op = "ensureNodesAreReady"
+func (tc *TestCluster) ensureNodesReady() error {
+	const op = "e2etests/ensureNodesReady"
 
 	err := wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
+		var available bool
+
 		nodes, err := tc.k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
-		available := false
 		for _, node := range nodes.Items {
 			for _, cond := range node.Status.Conditions {
 				if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
@@ -203,25 +207,48 @@ func (tc *TestCluster) ensureNodesAreReady() error {
 				}
 			}
 		}
+		return available, nil
+	})
 
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
+	return nil
+}
+
+func (tc *TestCluster) ensurePodsReady() error {
+	const op = "e2etests/ensurePodsReady"
+
+	err := wait.Poll(1*time.Second, 10*time.Minute, func() (bool, error) {
 		pods, err := tc.k8sClient.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
+		totalPods := len(pods.Items)
+
+		var readyPods int
 		for _, pod := range pods.Items {
 			for _, cond := range pod.Status.Conditions {
 				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-					available = available && true
+					readyPods++
 				}
 			}
 		}
-		return available, nil
-	})
-	if err != nil {
-		return fmt.Errorf("%s: Nodes did not be ready after at least 5 minutes: %s", op, err)
-	}
 
+		pendingPods := totalPods - readyPods
+		fmt.Printf("Waiting for %d/%d pods\n", pendingPods, totalPods)
+		return pendingPods == 0, err
+	})
+
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
 	return nil
+}
+
+func extractPodName(k8sName string) string {
+	parts := strings.Split(k8sName, "-")
+	return strings.Join(parts[0:len(parts)-2], "-")
 }
 
 // CreateTLSCertificate creates a TLS certificate used for testing and posts it
