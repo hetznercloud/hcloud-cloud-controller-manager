@@ -104,7 +104,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		NetworkID:     networkID,
 	}
 
-	loadBalancers := newLoadBalancers(lbOps, &client.LoadBalancer, &client.Action)
+	loadBalancers := newLoadBalancers(lbOps, &client.Action)
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}

@@ -30,6 +30,11 @@ func (m *MockLoadBalancerOps) Create(
 	return mocks.GetLoadBalancerPtr(args, 0), args.Error(1)
 }
 
+func (m *MockLoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) error {
+	args := m.Called(ctx, lb)
+	return args.Error(0)
+}
+
 func (m *MockLoadBalancerOps) ReconcileHCLB(
 	ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service,
 ) (bool, error) {
@@ -49,4 +54,9 @@ func (m *MockLoadBalancerOps) ReconcileHCLBServices(
 ) (bool, error) {
 	args := m.Called(ctx, lb, svc)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockLoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *v1.Service) (*hcloud.LoadBalancer, error) {
+	args := m.Called(ctx, svc)
+	return mocks.GetLoadBalancerPtr(args, 0), args.Error(1)
 }

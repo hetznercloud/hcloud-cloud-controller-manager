@@ -1,668 +1,118 @@
 package hcloud
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"net"
-	"net/http"
 	"testing"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
-	env := newTestEnv()
-	defer env.Teardown()
-	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawQuery != "name=afoobar" {
-			t.Fatal("missing name query")
-		}
-		json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
-			LoadBalancers: []schema.LoadBalancer{
-				{
-					ID:   1,
-					Name: "afoobar",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-				},
-			},
-		})
-	})
-
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:     &env.Client.LoadBalancer,
-		ActionClient: &env.Client.Action,
-	}
-	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
-	status, exists, err := loadBalancers.GetLoadBalancer(context.Background(), "my-cluster", &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:         "foobar",
-			Annotations: map[string]string{},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Protocol: "TCP",
-					Port:     int32(80),
-					NodePort: int32(8080),
-				},
-				{
-					Protocol: "TCP",
-					Port:     int32(443),
-					NodePort: int32(8080),
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if !exists {
-		t.Fatalf("Unexpected exists: %v", exists)
-	}
-	if status == nil {
-		t.Fatalf("Unexpected status: %v", status)
-	}
-
-	if len(status.Ingress) != 1 {
-		t.Fatalf("Unexpected status.Ingress len: %v", len(status.Ingress))
-	}
-	if status.Ingress[0].IP != "127.0.0.1" {
-		t.Fatalf("Unexpected status.Ingress[0].IP: %v", status.Ingress[0].IP)
-	}
-	// if status.Ingress[1].IP != "::1" {
-	// 	t.Fatalf("Unexpected status.Ingress[1].IP: %v", status.Ingress[1].IP)
-	// }
-}
-
-func TestLoadBalancers_GetLoadBalancerHostnameAnnotation(t *testing.T) {
-	env := newTestEnv()
-	defer env.Teardown()
-	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawQuery != "name=afoobar" {
-			t.Fatal("missing name query")
-		}
-		json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
-			LoadBalancers: []schema.LoadBalancer{
-				{
-					ID:   1,
-					Name: "afoobar",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-				},
-			},
-		})
-	})
-
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:     &env.Client.LoadBalancer,
-		ActionClient: &env.Client.Action,
-	}
-	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
-	status, exists, err := loadBalancers.GetLoadBalancer(context.Background(), "my-cluster", &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			UID: "foobar",
-			Annotations: map[string]string{
-				string(annotation.LBHostname): "example.org",
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Protocol: "TCP",
-					Port:     int32(80),
-					NodePort: int32(8080),
-				},
-				{
-					Protocol: "TCP",
-					Port:     int32(443),
-					NodePort: int32(8080),
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if !exists {
-		t.Fatalf("Unexpected exists: %v", exists)
-	}
-	if status == nil {
-		t.Fatalf("Unexpected status: %v", status)
-	}
-
-	if len(status.Ingress) != 1 {
-		t.Fatalf("Unexpected status.Ingress len: %v", len(status.Ingress))
-	}
-	if status.Ingress[0].Hostname != "example.org" {
-		t.Fatalf("Unexpected status.Ingress[0].Hostname: %v", status.Ingress[0].Hostname)
-	}
-	if status.Ingress[0].IP != "" {
-		t.Fatalf("Unexpected status.Ingress[0].IP: %v", status.Ingress[0].IP)
-	}
-}
-
-func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
-	env := newTestEnv()
-	defer env.Teardown()
-	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawQuery != "name=afoobar" {
-			t.Fatal("missing name query")
-		}
-		json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
-			LoadBalancers: []schema.LoadBalancer{
-				{
-					ID:   1,
-					Name: "afoobar",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-				},
-			},
-		})
-	})
-	env.Mux.HandleFunc("/load_balancers/1", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "DELETE" {
-			t.Fatalf("wrong http method: %s", r.Method)
-		}
-		json.NewEncoder(w).Encode(schema.LoadBalancerDeleteServiceResponse{
-			Action: schema.Action{
-				ID:       1,
-				Progress: 0,
-				Status:   string(hcloud.ActionStatusRunning),
-			},
-		})
-	})
-
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:     &env.Client.LoadBalancer,
-		ActionClient: &env.Client.Action,
-	}
-	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
-	err := loadBalancers.EnsureLoadBalancerDeleted(context.Background(), "my-cluster", &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:         "foobar",
-			Annotations: map[string]string{},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Protocol: "TCP",
-					Port:     int32(80),
-					NodePort: int32(8080),
-				},
-				{
-					Protocol: "TCP",
-					Port:     int32(443),
-					NodePort: int32(8080),
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-}
-
-func TestLoadBalancers_EnsureLoadBalancerDeletedWithProtectection(t *testing.T) {
-	env := newTestEnv()
-	defer env.Teardown()
-	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawQuery != "name=afoobar" {
-			t.Fatal("missing name query")
-		}
-		json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
-			LoadBalancers: []schema.LoadBalancer{
-				{
-					ID:   1,
-					Name: "afoobar",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-					Protection: schema.LoadBalancerProtection{Delete: true},
-				},
-			},
-		})
-	})
-	env.Mux.HandleFunc("/load_balancers/1", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "DELETE" {
-			t.Fatalf("wrong http method: %s", r.Method)
-		}
-		json.NewEncoder(w).Encode(schema.LoadBalancerDeleteServiceResponse{
-			Action: schema.Action{
-				ID:       1,
-				Progress: 0,
-				Status:   string(hcloud.ActionStatusRunning),
-			},
-		})
-	})
-
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:     &env.Client.LoadBalancer,
-		ActionClient: &env.Client.Action,
-	}
-	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
-	err := loadBalancers.EnsureLoadBalancerDeleted(context.Background(), "my-cluster", &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:         "foobar",
-			Annotations: map[string]string{},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Protocol: "TCP",
-					Port:     int32(80),
-					NodePort: int32(8080),
-				},
-				{
-					Protocol: "TCP",
-					Port:     int32(443),
-					NodePort: int32(8080),
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-}
-
-func TestLoadBalancers_EnsureLoadBalancerCreate(t *testing.T) {
-	env := newTestEnv()
-	defer env.Teardown()
-	var services []schema.LoadBalancerService
-	env.Mux.HandleFunc("/actions/13", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "GET" {
-			json.NewEncoder(w).Encode(schema.ActionGetResponse{
-				Action: schema.Action{
-					ID:       13,
-					Status:   "success",
-					Command:  "create_load_balancer",
-					Progress: 100,
-				},
-			})
-		}
-	})
-	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "GET" {
-			if r.URL.RawQuery != "name=afoobar" {
-				t.Fatal("missing name query")
-			}
-			json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
-				LoadBalancers: []schema.LoadBalancer{},
-			})
-		} else if r.Method == "POST" {
-			json.NewEncoder(w).Encode(schema.LoadBalancerCreateResponse{
-				LoadBalancer: schema.LoadBalancer{
-					ID:   5,
-					Name: "afoobar",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-					LoadBalancerType: schema.LoadBalancerType{Name: "lb11"},
-					Location:         schema.Location{Name: "nbg"},
-					Services:         services,
-				},
-				Action: schema.Action{
-					ID:       13,
-					Status:   "success",
-					Command:  "create_load_balancer",
-					Progress: 100,
-				},
-			})
-		}
-	})
-	env.Mux.HandleFunc("/load_balancers/5", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "GET" {
-			json.NewEncoder(w).Encode(schema.LoadBalancerGetResponse{
-				LoadBalancer: schema.LoadBalancer{
-					ID:   5,
-					Name: "afoobar",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-					LoadBalancerType: schema.LoadBalancerType{Name: "lb11"},
-					Location:         schema.Location{Name: "nbg"},
-					Services:         services,
-				},
-			})
-		}
-	})
-
-	env.Mux.HandleFunc("/load_balancers/5/actions/add_service", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "POST" {
-			services = append(services, schema.LoadBalancerService{
-				Protocol:        "tcp",
-				ListenPort:      80,
-				DestinationPort: 8080,
-				Proxyprotocol:   false,
-				HTTP: &schema.LoadBalancerServiceHTTP{
-					CookieName:     "",
-					CookieLifetime: 0,
-					Certificates:   nil,
-					RedirectHTTP:   false,
-				},
-				HealthCheck: &schema.LoadBalancerServiceHealthCheck{
-					Protocol: "tcp",
-					Port:     8080,
-					Interval: 15,
-					Timeout:  10,
-					Retries:  3,
-				},
-			})
-			json.NewEncoder(w).Encode(schema.LoadBalancerActionAddServiceResponse{
-				Action: schema.Action{
-					ID:       13,
-					Status:   "success",
-					Command:  "add_service",
-					Progress: 100,
-				},
-			})
-		}
-	})
-
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:     &env.Client.LoadBalancer,
-		ActionClient: &env.Client.Action,
-	}
-	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
-	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			UID: "foobar",
-			Annotations: map[string]string{
-				string(annotation.LBLocation): "nbg1",
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Protocol: "TCP",
-					Port:     int32(80),
-					NodePort: int32(8080),
-				},
-			},
-		},
-	}
-	status, err := loadBalancers.EnsureLoadBalancer(context.Background(), "my-cluster", service, []*v1.Node{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if status == nil {
-		t.Fatalf("Unexpected status: %v", status)
-	}
-
-	if len(status.Ingress) != 1 {
-		t.Fatalf("Unexpected status.Ingress len: %v", len(status.Ingress))
-	}
-	if status.Ingress[0].IP != "127.0.0.1" {
-		t.Fatalf("Unexpected status.Ingress[0].IP: %v", status.Ingress[0].IP)
-	}
-	// if status.Ingress[1].IP != "::1" {
-	// 	t.Fatalf("Unexpected status.Ingress[1].IP: %v", status.Ingress[1].IP)
-	// }
-
-	annotation.AssertServiceAnnotated(t, service, map[annotation.Name]interface{}{
-		annotation.LBID:       5,
-		annotation.LBName:     "afoobar",
-		annotation.LBType:     "lb11",
-		annotation.LBLocation: "nbg",
-	})
-}
-
-func TestLoadBalancers_EnsureLoadBalancerUpdate(t *testing.T) {
-	env := newTestEnv()
-	defer env.Teardown()
-	services := []schema.LoadBalancerService{
+	tests := []LoadBalancerTestCase{
 		{
-			Protocol:        "tcp",
-			ListenPort:      80,
-			DestinationPort: 8080,
-			Proxyprotocol:   false,
-			HTTP: &schema.LoadBalancerServiceHTTP{
-				CookieName:     "",
-				CookieLifetime: 0,
-				Certificates:   nil,
-				RedirectHTTP:   false,
+			Name:       "get load balancer without host name",
+			ServiceUID: "1",
+			LB: &hcloud.LoadBalancer{
+				ID:   1,
+				Name: "no-host-name",
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					IPv4: hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+				},
 			},
-			HealthCheck: &schema.LoadBalancerServiceHealthCheck{
-				Protocol: "tcp",
-				Port:     8080,
-				Interval: 15,
-				Timeout:  10,
-				Retries:  3,
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				if !assert.Len(t, status.Ingress, 1) {
+					return
+				}
+				assert.Equal(t, tt.LB.PublicNet.IPv4.IP.String(), status.Ingress[0].IP)
+			},
+		},
+		{
+			Name:       "get load balancer with host name",
+			ServiceUID: "2",
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+			},
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBHostname: "hostname",
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				if !assert.Len(t, status.Ingress, 1) {
+					return
+				}
+				assert.Equal(t, "hostname", status.Ingress[0].Hostname)
+			},
+		},
+		{
+			Name:       "load balancer not found",
+			ServiceUID: "3",
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				_, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.False(t, exists)
+			},
+		},
+		{
+			Name:       "lookup failed",
+			ServiceUID: "4",
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, errors.New("some error"))
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				_, _, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.EqualError(t, err, "hcloud/loadBalancers.GetLoadBalancer: some error")
 			},
 		},
 	}
-	var loadBalancer *schema.LoadBalancer
-	env.Mux.HandleFunc("/actions/13", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "GET" {
-			json.NewEncoder(w).Encode(schema.ActionGetResponse{
-				Action: schema.Action{
-					ID:       13,
-					Status:   "success",
-					Command:  "create_load_balancer",
-					Progress: 100,
-				},
-			})
-		}
-	})
-	env.Mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "GET" {
-			if r.URL.RawQuery != "name=my-loadbalancer" {
-				t.Fatal("missing name query")
-			}
-			var loadBalancers []schema.LoadBalancer
-			if loadBalancer != nil {
-				loadBalancers = append(loadBalancers, *loadBalancer)
-			}
-			json.NewEncoder(w).Encode(schema.LoadBalancerListResponse{
-				LoadBalancers: loadBalancers,
-			})
-		} else if r.Method == "POST" {
-			loadBalancer = &schema.LoadBalancer{
-				ID:   5,
-				Name: "my-loadbalancer",
-				PublicNet: schema.LoadBalancerPublicNet{
-					Enabled: true,
-					IPv4: schema.LoadBalancerPublicNetIPv4{
-						IP: "127.0.0.1",
-					},
-					// IPv6: schema.LoadBalancerPublicNetIPv6{
-					// 	IP: "::1",
-					// },
-				},
-				LoadBalancerType: schema.LoadBalancerType{Name: "lb11"},
-				Location:         schema.Location{Name: "nbg"},
-				Services:         services,
-			}
-			json.NewEncoder(w).Encode(schema.LoadBalancerCreateResponse{
-				LoadBalancer: *loadBalancer,
-				Action: schema.Action{
-					ID:       13,
-					Status:   "success",
-					Command:  "create_load_balancer",
-					Progress: 100,
-				},
-			})
-		}
-	})
-	env.Mux.HandleFunc("/load_balancers/5", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "GET" {
-			json.NewEncoder(w).Encode(schema.LoadBalancerGetResponse{
-				LoadBalancer: schema.LoadBalancer{
-					ID:   5,
-					Name: "my-loadbalancer",
-					PublicNet: schema.LoadBalancerPublicNet{
-						Enabled: true,
-						IPv4: schema.LoadBalancerPublicNetIPv4{
-							IP: "127.0.0.1",
-						},
-						// IPv6: schema.LoadBalancerPublicNetIPv6{
-						// 	IP: "::1",
-						// },
-					},
-					LoadBalancerType: schema.LoadBalancerType{Name: "lb11"},
-					Location:         schema.Location{Name: "nbg"},
-					Services:         services,
-				},
-			})
-		}
-	})
-	env.Mux.HandleFunc("/load_balancers/5/actions/update_service", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if r.Method == "POST" {
-			services = append(services, schema.LoadBalancerService{
-				Protocol:        "tcp",
-				ListenPort:      80,
-				DestinationPort: 123,
-				Proxyprotocol:   false,
-				HTTP: &schema.LoadBalancerServiceHTTP{
-					CookieName:     "",
-					CookieLifetime: 0,
-					Certificates:   nil,
-					RedirectHTTP:   false,
-				},
-				HealthCheck: &schema.LoadBalancerServiceHealthCheck{
-					Protocol: "tcp",
-					Port:     8080,
-					Interval: 15,
-					Timeout:  10,
-					Retries:  3,
-				},
-			})
-			json.NewEncoder(w).Encode(schema.LoadBalancerActionAddServiceResponse{
-				Action: schema.Action{
-					ID:       13,
-					Status:   "success",
-					Command:  "add_service",
-					Progress: 100,
-				},
-			})
-		}
-	})
 
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:     &env.Client.LoadBalancer,
-		ActionClient: &env.Client.Action,
-	}
-	loadBalancers := newLoadBalancers(lbOps, &env.Client.LoadBalancer, &env.Client.Action)
-	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			UID: "foobar",
-			Annotations: map[string]string{
-				string(annotation.LBLocation): "nbg1",
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Protocol: "TCP",
-					Port:     int32(80),
-					NodePort: int32(8080),
-				},
-			},
-		},
-	}
-	annotation.LBName.AnnotateService(service, "my-loadbalancer")
-
-	status, err := loadBalancers.EnsureLoadBalancer(context.Background(), "my-cluster", service, []*v1.Node{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if status == nil {
-		t.Fatalf("Unexpected status: %v", status)
-	}
-
-	if len(status.Ingress) != 1 {
-		t.Fatalf("Unexpected status.Ingress len: %v", len(status.Ingress))
-	}
-	if status.Ingress[0].IP != "127.0.0.1" {
-		t.Fatalf("Unexpected status.Ingress[0].IP: %v", status.Ingress[0].IP)
-	}
-	// if status.Ingress[1].IP != "::1" {
-	// 	t.Fatalf("Unexpected status.Ingress[1].IP: %v", status.Ingress[1].IP)
-	// }
-
-	annotation.AssertServiceAnnotated(t, service, map[annotation.Name]interface{}{
-		annotation.LBID:       5,
-		annotation.LBName:     "my-loadbalancer",
-		annotation.LBType:     "lb11",
-		annotation.LBLocation: "nbg",
-	})
+	RunLoadBalancerTests(t, tests)
 }
 
 func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
-	testErr := errors.New("test error")
 	tests := []LoadBalancerTestCase{
 		{
-			Name: "check for existing Load Balancer fails",
+			Name:       "check for existing Load Balancer fails",
+			ServiceUID: "1",
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
-					On("GetByName", tt.Ctx, mock.AnythingOfType("string")).
-					Return(nil, testErr)
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, errors.New("test error"))
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				_, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
-				if !errors.Is(err, testErr) {
-					t.Errorf("expected error %v; got %v", testErr, err)
-				}
+				assert.EqualError(t, err, "hcloud/loadBalancers.EnsureLoadBalancer: test error")
 			},
 		},
 		{
-			Name: "public network only",
+			Name:       "public network only",
+			ServiceUID: "2",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "pub-net-only",
 			},
@@ -679,7 +129,10 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
-					On("GetByName", tt.Ctx, mock.AnythingOfType("string")).
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+				tt.LBOps.
+					On("GetByName", tt.Ctx, "pub-net-only").
 					Return(nil, hcops.ErrNotFound)
 				tt.LBOps.
 					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
@@ -693,7 +146,6 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				tt.LBOps.
 					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
 					Return(false, nil)
-
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -708,8 +160,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name:      "attach Load Balancer to public and private network",
-			NetworkID: 4711,
+			Name:       "attach Load Balancer to public and private network",
+			NetworkID:  4711,
+			ServiceUID: "3",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "with-priv-net",
 			},
@@ -735,7 +188,10 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
-					On("GetByName", tt.Ctx, mock.AnythingOfType("string")).
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+				tt.LBOps.
+					On("GetByName", tt.Ctx, "with-priv-net").
 					Return(nil, hcops.ErrNotFound)
 				tt.LBOps.
 					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
@@ -749,7 +205,6 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				tt.LBOps.
 					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
 					Return(false, nil)
-
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -765,8 +220,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name:      "disable private ingress",
-			NetworkID: 4711,
+			Name:       "disable private ingress",
+			NetworkID:  4711,
+			ServiceUID: "5",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName:                  "with-priv-net-no-priv-ingress",
 				annotation.LBDisablePrivateIngress: "true",
@@ -793,7 +249,10 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
-					On("GetByName", tt.Ctx, mock.AnythingOfType("string")).
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+				tt.LBOps.
+					On("GetByName", tt.Ctx, "with-priv-net-no-priv-ingress").
 					Return(nil, hcops.ErrNotFound)
 				tt.LBOps.
 					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
@@ -807,7 +266,6 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				tt.LBOps.
 					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
 					Return(false, nil)
-
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -822,8 +280,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name:      "attach Load Balancer to private network only",
-			NetworkID: 4711,
+			Name:       "attach Load Balancer to private network only",
+			NetworkID:  4711,
+			ServiceUID: "6",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName:                 "priv-net-only",
 				annotation.LBDisablePublicNetwork: true,
@@ -845,7 +304,10 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
-					On("GetByName", tt.Ctx, mock.AnythingOfType("string")).
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+				tt.LBOps.
+					On("GetByName", tt.Ctx, "priv-net-only").
 					Return(nil, hcops.ErrNotFound)
 				tt.LBOps.
 					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
@@ -879,7 +341,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 	tests := []LoadBalancerTestCase{
 		{
-			Name: "Load balancer unchanged",
+			Name:       "Load balancer unchanged",
+			ServiceUID: "1",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
@@ -889,7 +352,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(tt.LB, nil)
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
@@ -900,7 +363,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name: "Load balancer changed",
+			Name:       "Load balancer changed",
+			ServiceUID: "2",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
@@ -910,7 +374,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(tt.LB, nil)
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
@@ -922,7 +386,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name: "Load balancer targets changed",
+			Name:       "Load balancer targets changed",
+			ServiceUID: "3",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
@@ -932,7 +397,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(tt.LB, nil)
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(true, nil)
 				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
@@ -944,7 +409,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name: "Load balancer services changed",
+			Name:       "Load balancer services changed",
+			ServiceUID: "4",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
@@ -954,7 +420,32 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(tt.LB, nil)
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
+				tt.LBOps.On("GetByID", tt.Ctx, tt.LB.ID).Times(1).Return(tt.LB, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				_, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			Name:       "fall back to load balancer name",
+			ServiceUID: "5",
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName: "pre-existing-lb",
+			},
+			LB: &hcloud.LoadBalancer{
+				ID:               5,
+				Name:             "pre-existing-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
+				tt.LBOps.On("GetByName", tt.Ctx, "pre-existing-lb").Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
@@ -967,20 +458,19 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.Name, tt.run)
-	}
+	RunLoadBalancerTests(t, tests)
 }
 
 func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 	tests := []LoadBalancerTestCase{
 		{
-			Name: "Load Balancer not found",
+			Name:       "Load Balancer not found",
+			ServiceUID: "1",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
 				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(nil, hcops.ErrNotFound)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -989,7 +479,8 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name: "calls all reconcilement ops",
+			Name:       "calls all reconcilement ops",
+			ServiceUID: "2",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
@@ -999,7 +490,30 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(tt.LB, nil)
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.UpdateLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			Name:       "fall back to load balancer name",
+			ServiceUID: "3",
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName: "previously-created-lb",
+			},
+			LB: &hcloud.LoadBalancer{
+				ID:               3,
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
+				tt.LBOps.On("GetByName", tt.Ctx, "previously-created-lb").Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
@@ -1011,8 +525,116 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.Name, tt.run)
+	RunLoadBalancerTests(t, tests)
+}
+
+func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
+	tests := []LoadBalancerTestCase{
+		{
+			Name:       "delete load balancer",
+			ServiceUID: "1",
+			LB: &hcloud.LoadBalancer{
+				ID:   1,
+				Name: "delete me",
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+				tt.LBOps.
+					On("Delete", tt.Ctx, tt.LB).
+					Return(nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.EnsureLoadBalancerDeleted(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			Name:       "delete missing load balancer",
+			ServiceUID: "2",
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.EnsureLoadBalancerDeleted(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			Name:       "load balancer concurrently deleted",
+			ServiceUID: "3",
+			LB: &hcloud.LoadBalancer{
+				ID:   3,
+				Name: "someone else deleted me",
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+				tt.LBOps.
+					On("Delete", tt.Ctx, tt.LB).
+					Return(hcops.ErrNotFound)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.EnsureLoadBalancerDeleted(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			Name:       "delete protected load balancer",
+			ServiceUID: "4",
+			LB: &hcloud.LoadBalancer{
+				ID:         4,
+				Name:       "deletion protection enabled",
+				Protection: hcloud.LoadBalancerProtection{Delete: true},
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.EnsureLoadBalancerDeleted(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			Name:       "load balancer lookup fails",
+			ServiceUID: "5",
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, errors.New("lookup error"))
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.EnsureLoadBalancerDeleted(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.EqualError(t, err, "hcloud/loadBalancers.EnsureLoadBalancerDeleted: lookup error")
+			},
+		},
+		{
+			Name:       "load balancer deletion fails",
+			ServiceUID: "6",
+			LB: &hcloud.LoadBalancer{
+				ID:   6,
+				Name: "can't be deleted",
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+				tt.LBOps.
+					On("Delete", tt.Ctx, tt.LB).
+					Return(errors.New("deletion error"))
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				err := tt.LoadBalancers.EnsureLoadBalancerDeleted(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.EqualError(t, err, "hcloud/loadBalancers.EnsureLoadBalancerDeleted: deletion error")
+			},
+		},
 	}
+
+	RunLoadBalancerTests(t, tests)
 }

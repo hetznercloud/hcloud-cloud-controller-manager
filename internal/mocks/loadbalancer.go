@@ -30,6 +30,13 @@ func (m *LoadBalancerClient) Create(
 	return args.Get(0).(hcloud.LoadBalancerCreateResult), getResponsePtr(args, 1), args.Error(2)
 }
 
+func (m *LoadBalancerClient) Update(
+	ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerUpdateOpts,
+) (*hcloud.LoadBalancer, *hcloud.Response, error) {
+	args := m.Called(ctx, lb, opts)
+	return GetLoadBalancerPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
+
 func (m *LoadBalancerClient) Delete(ctx context.Context, lb *hcloud.LoadBalancer) (*hcloud.Response, error) {
 	args := m.Called(ctx, lb)
 	return getResponsePtr(args, 0), args.Error(1)
@@ -108,4 +115,11 @@ func (m *LoadBalancerClient) DisablePublicInterface(
 ) (*hcloud.Action, *hcloud.Response, error) {
 	args := m.Called(ctx, lb)
 	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
+
+func (m *LoadBalancerClient) AllWithOpts(
+	ctx context.Context, opts hcloud.LoadBalancerListOpts,
+) ([]*hcloud.LoadBalancer, error) {
+	args := m.Called(ctx, opts)
+	return getLoadBalancerPtrS(args, 0), args.Error(1)
 }

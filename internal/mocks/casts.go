@@ -29,6 +29,14 @@ func GetLoadBalancerPtr(args mock.Arguments, i int) *hcloud.LoadBalancer {
 	return v.(*hcloud.LoadBalancer)
 }
 
+func getLoadBalancerPtrS(args mock.Arguments, i int) []*hcloud.LoadBalancer {
+	v := args.Get(i)
+	if v == nil {
+		return nil
+	}
+	return v.([]*hcloud.LoadBalancer)
+}
+
 func getNetworkPtr(args mock.Arguments, i int) *hcloud.Network {
 	v := args.Get(i)
 	if v == nil {
