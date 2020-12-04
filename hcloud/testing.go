@@ -10,6 +10,8 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // Setenv prepares the environment for testing the
@@ -69,6 +71,7 @@ type LoadBalancerTestCase struct {
 	// Defined in test case as needed
 	ClusterName        string
 	NetworkID          int
+	ServiceUID         string
 	ServiceAnnotations map[annotation.Name]interface{}
 	Nodes              []*v1.Node
 	LB                 *hcloud.LoadBalancer
@@ -103,9 +106,13 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 	if tt.ClusterName == "" {
 		tt.ClusterName = "test-cluster"
 	}
-	tt.Service = &v1.Service{}
+	tt.Service = &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{UID: types.UID(tt.ServiceUID)},
+	}
 	for k, v := range tt.ServiceAnnotations {
-		k.AnnotateService(tt.Service, v)
+		if err := k.AnnotateService(tt.Service, v); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if tt.Ctx == nil {
 		tt.Ctx = context.Background()
@@ -115,7 +122,7 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.LBClient, tt.ActionClient)
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.ActionClient)
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)

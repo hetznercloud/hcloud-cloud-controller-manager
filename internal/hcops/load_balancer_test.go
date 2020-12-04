@@ -1,6 +1,7 @@
 package hcops_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -12,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var errTestLbClient = errors.New("lb client failed")
@@ -156,6 +159,85 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 	}
 }
 
+func TestGetByK8SServiceUID(t *testing.T) {
+	tests := []struct {
+		name      string
+		uid       string
+		lbs       []*hcloud.LoadBalancer
+		err       error
+		clientErr error
+	}{
+		{
+			name: "load balancer found",
+			uid:  "some-svc-uid",
+			lbs: []*hcloud.LoadBalancer{
+				{ID: 1, Name: "some-lb"},
+			},
+		},
+		{
+			name: "no load balancer found",
+			uid:  "missing-svc-uid",
+			err:  hcops.ErrNotFound,
+		},
+		{
+			name: "more than one load balancer found",
+			uid:  "non-unique",
+			lbs: []*hcloud.LoadBalancer{
+				{ID: 1, Name: "first-lb"},
+				{ID: 2, Name: "second-lb"},
+			},
+			err: hcops.ErrNonUniqueResult,
+		},
+		{
+			name:      "error when calling backend API",
+			uid:       "another-svc-uid",
+			clientErr: errors.New("some error"),
+			err:       errors.New("hcops/LoadBalancerOps.GetByK8SServiceUID: api error: some error"),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			fx := hcops.NewLoadBalancerOpsFixture(t)
+
+			opts := hcloud.LoadBalancerListOpts{
+				ListOpts: hcloud.ListOpts{
+					LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, tt.uid),
+				},
+			}
+			fx.LBClient.
+				On("AllWithOpts", mock.Anything, opts).
+				Return(tt.lbs, tt.clientErr)
+
+			svc := &v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: types.UID(tt.uid),
+				},
+			}
+
+			lb, err := fx.LBOps.GetByK8SServiceUID(context.Background(), svc)
+			if tt.err != nil {
+				if tt.clientErr != nil {
+					assert.EqualError(t, err, tt.err.Error())
+				}
+				if tt.clientErr == nil && !errors.Is(err, tt.err) {
+					t.Errorf("Expected error: '%v'; got '%v'", tt.err, err)
+				}
+				return
+			}
+			if tt.err == nil && err != nil {
+				t.Fatalf("Unexpected error: '%v'", err)
+			}
+
+			// We expect only one load balancer to be returned if everything
+			// is ok. If tt.lb contains an error this should have been handled
+			// by one of the error assertions above.
+			assert.Equal(t, tt.lbs[0], lb)
+		})
+	}
+}
+
 func TestLoadBalancerOps_Create(t *testing.T) {
 	type testCase struct {
 		name               string
@@ -177,6 +259,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location: &hcloud.Location{
 					Name: "fsn1",
 				},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "some-lb-uid",
+				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 1},
 		},
@@ -189,6 +274,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "another-lb-uid",
+				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
 		},
@@ -208,6 +296,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "another-lb-uid",
+				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
 		},
@@ -221,6 +312,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
 				Location:         &hcloud.Location{Name: "nbg1"},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "another-lb-uid",
+				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 3},
 		},
@@ -235,6 +329,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
 				Algorithm:        &hcloud.LoadBalancerAlgorithm{Type: hcloud.LoadBalancerAlgorithmTypeLeastConnections},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "another-lb-uid",
+				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 4},
 		},
@@ -258,6 +355,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Network: &hcloud.Network{
 					ID:   4711,
 					Name: "some-network",
+				},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "lb-with-priv-uid",
 				},
 			},
 			mock: func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
@@ -308,6 +408,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					ID:   4711,
 					Name: "some-network",
 				},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "lb-with-priv-uid",
+				},
 			},
 			mock: func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBOps.NetworkID = tt.createOpts.Network.ID
@@ -339,7 +442,11 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			}
 			tt.mock(t, &tt, fx)
 
-			service := &v1.Service{}
+			service := &v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: types.UID(tt.createOpts.Labels[hcops.LabelServiceUID]),
+				},
+			}
 			for k, v := range tt.serviceAnnotations {
 				if err := k.AnnotateService(service, v); err != nil {
 					t.Error(err)
@@ -358,8 +465,48 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 	}
 }
 
+func TestLoadBalancerOps_Delete(t *testing.T) {
+	tests := []struct {
+		name      string
+		clientErr error
+		err       error
+	}{
+		{
+			name: "deletion successful",
+		},
+		{
+			name:      "load balancer not found",
+			clientErr: hcloud.Error{Code: hcloud.ErrorCodeNotFound},
+		},
+		{
+			name:      "deletion fails",
+			clientErr: errors.New("deletion failed"),
+			err:       errors.New("hcops/LoadBalancerOps.Delete: deletion failed"),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			fx := hcops.NewLoadBalancerOpsFixture(t)
+			ctx := context.Background()
+			lb := &hcloud.LoadBalancer{ID: 1}
+
+			fx.LBClient.On("Delete", ctx, lb).Return(nil, tt.clientErr)
+
+			err := fx.LBOps.Delete(ctx, lb)
+			if tt.err == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.EqualError(t, err, tt.err.Error())
+		})
+	}
+}
+
 type LBReconcilementTestCase struct {
 	name               string
+	serviceUID         string
 	serviceAnnotations map[annotation.Name]interface{}
 	servicePorts       []v1.ServicePort
 	k8sNodes           []*v1.Node
@@ -378,7 +525,8 @@ func (tt *LBReconcilementTestCase) run(t *testing.T) {
 	tt.fx = hcops.NewLoadBalancerOpsFixture(t)
 	if tt.service == nil {
 		tt.service = &v1.Service{
-			Spec: v1.ServiceSpec{Ports: tt.servicePorts},
+			Spec:       v1.ServiceSpec{Ports: tt.servicePorts},
+			ObjectMeta: metav1.ObjectMeta{UID: types.UID(tt.serviceUID)},
 		}
 	}
 	for k, v := range tt.serviceAnnotations {
@@ -721,6 +869,67 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
 				assert.NoError(t, err)
 				assert.False(t, changed)
+			},
+		},
+		{
+			name:       "add missing service UID label",
+			serviceUID: "10",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 10,
+				Labels: map[string]string{
+					"some-label": "some-value",
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				updated := *tt.initialLB
+				updated.Labels = map[string]string{
+					hcops.LabelServiceUID: tt.serviceUID,
+					"some-label":          "some-value",
+				}
+				opts := hcloud.LoadBalancerUpdateOpts{
+					Labels: map[string]string{
+						hcops.LabelServiceUID: tt.serviceUID,
+						"some-label":          "some-value",
+					},
+				}
+				tt.fx.LBClient.
+					On("Update", tt.fx.Ctx, tt.initialLB, opts).
+					Return(&updated, nil, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+				assert.Equal(t, tt.serviceUID, tt.initialLB.Labels[hcops.LabelServiceUID])
+				assert.Equal(t, "some-value", tt.initialLB.Labels["some-label"])
+			},
+		},
+		{
+			name:       "rename load balancer",
+			serviceUID: "11",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName: "new-name",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID:   11,
+				Name: "old-name",
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "11",
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				updated := *tt.initialLB
+				updated.Name = "new-name"
+				opts := hcloud.LoadBalancerUpdateOpts{Name: "new-name"}
+				tt.fx.LBClient.
+					On("Update", tt.fx.Ctx, tt.initialLB, opts).
+					Return(&updated, nil, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+				assert.Equal(t, "new-name", tt.initialLB.Name)
 			},
 		},
 	}

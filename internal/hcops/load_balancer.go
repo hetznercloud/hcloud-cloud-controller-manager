@@ -15,6 +15,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// LabelServiceUID is a label added to the Hetzner Cloud backend to uniquely
+// identify a load balancer managed by Hetzner Cloud Cloud Controller Manager.
+const LabelServiceUID = "hcloud-ccm/service-uid"
+
 // HCloudLoadBalancerClient defines the hcloud-go functions required by the
 // Load Balancer operations type.
 type HCloudLoadBalancerClient interface {
@@ -22,6 +26,9 @@ type HCloudLoadBalancerClient interface {
 	GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, *hcloud.Response, error)
 
 	Create(ctx context.Context, opts hcloud.LoadBalancerCreateOpts) (hcloud.LoadBalancerCreateResult, *hcloud.Response, error)
+	Update(
+		ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerUpdateOpts,
+	) (*hcloud.LoadBalancer, *hcloud.Response, error)
 	Delete(ctx context.Context, lb *hcloud.LoadBalancer) (*hcloud.Response, error)
 
 	AddService(
@@ -49,6 +56,8 @@ type HCloudLoadBalancerClient interface {
 	DisablePublicInterface(
 		ctx context.Context, loadBalancer *hcloud.LoadBalancer,
 	) (*hcloud.Action, *hcloud.Response, error)
+
+	AllWithOpts(ctx context.Context, opts hcloud.LoadBalancerListOpts) ([]*hcloud.LoadBalancer, error)
 }
 
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
@@ -59,6 +68,34 @@ type LoadBalancerOps struct {
 	CertClient    HCloudCertificateClient
 	RetryDelay    time.Duration
 	NetworkID     int
+}
+
+// GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service
+// UID.
+//
+// If no Load Balancer could be found ErrNotFound is returned. Likewise,
+// ErrNonUniqueResult is returned if more than one matching Load Balancer is
+// found.
+func (l *LoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *v1.Service) (*hcloud.LoadBalancer, error) {
+	const op = "hcops/LoadBalancerOps.GetByK8SServiceUID"
+
+	opts := hcloud.LoadBalancerListOpts{
+		ListOpts: hcloud.ListOpts{
+			LabelSelector: fmt.Sprintf("%s=%s", LabelServiceUID, svc.ObjectMeta.UID),
+		},
+	}
+	lbs, err := l.LBClient.AllWithOpts(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("%s: api error: %v", op, err)
+	}
+	if len(lbs) == 0 {
+		return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
+	}
+	if len(lbs) > 1 {
+		return nil, fmt.Errorf("%s: %w", op, ErrNonUniqueResult)
+	}
+
+	return lbs[0], nil
 }
 
 // GetByName retrieves a Hetzner Cloud Load Balancer by name.
@@ -112,6 +149,9 @@ func (l *LoadBalancerOps) Create(
 	opts := hcloud.LoadBalancerCreateOpts{
 		Name:             lbName,
 		LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+		Labels: map[string]string{
+			LabelServiceUID: string(svc.ObjectMeta.UID),
+		},
 	}
 	if v, ok := annotation.LBType.StringFromService(svc); ok {
 		opts.LoadBalancerType.Name = v
@@ -170,11 +210,31 @@ func (l *LoadBalancerOps) Create(
 	return lb, nil
 }
 
+// Delete removes a Hetzner Cloud load balancer from the backend.
+func (l *LoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) error {
+	const op = "hcops/LoadBalancerOps.Delete"
+
+	_, err := l.LBClient.Delete(ctx, lb)
+	if hcloud.IsError(err, hcloud.ErrorCodeNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+	return nil
+}
+
 // ReconcileHCLB configures the Hetzner Cloud Load Balancer to match what is
 // defined for the K8S Load Balancer svc.
 func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLB"
 	var changed bool
+
+	labelSet, err := l.changeHCLBInfo(ctx, lb, svc)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
+	changed = changed || labelSet
 
 	algorithmChanged, err := l.changeAlgorithm(ctx, lb, svc)
 	if err != nil {
@@ -207,6 +267,50 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 	changed = changed || pubIfaceToggled
 
 	return changed, nil
+}
+
+// changeHCLBInfo changes a Load Balancers name and sets the service UID label
+// if necessary.
+//
+// This is implemented in one method as both changes need to be made using
+// hcloud.LoadBalancerUpdateOpts. Using one method reduces the number of API
+// requests should more than one change be necessary.
+func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
+	const op = "hcops/LoadBalancerOps.changeHCLBInfo"
+	var (
+		update bool
+		opts   hcloud.LoadBalancerUpdateOpts
+	)
+
+	if lb.Labels[LabelServiceUID] != string(svc.ObjectMeta.UID) {
+		// Make a defensive copy of labels. This way we do not modify lb unless
+		// updating is really successful.
+		labels := make(map[string]string, len(lb.Labels)+1)
+		labels[LabelServiceUID] = string(svc.ObjectMeta.UID)
+		for k, v := range lb.Labels {
+			labels[k] = v
+		}
+		opts.Labels = labels
+		update = true
+	}
+
+	if lbName, ok := annotation.LBName.StringFromService(svc); ok && lbName != lb.Name {
+		opts.Name = lbName
+		update = true
+	}
+
+	if !update {
+		return false, nil
+	}
+
+	updated, _, err := l.LBClient.Update(ctx, lb, opts)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	lb.Name = updated.Name
+	lb.Labels = updated.Labels
+
+	return true, nil
 }
 
 func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
