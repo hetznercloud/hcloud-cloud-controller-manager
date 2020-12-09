@@ -123,7 +123,7 @@ The Hetzner Cloud cloud controller manager was tested against all supported Kube
 
 ```bash
 export HCLOUD_TOKEN=<specifiy a project token>
-export K8S_VERSION=1.19.3 # The specific (latest) version is needed here
+export K8S_VERSION=1.20.0 # The specific (latest) version is needed here
 export USE_SSH_KEYS=key1,key2 # Name or IDs of your SSH Keys within the Hetzner Cloud, the servers will be accessable with that keys
 export USE_NETWORKS=yes # if `yes` this identidicates that the tests should provision the server with cilium as CNI and also enable the Network related tests
 ## Optional configuration env vars:
