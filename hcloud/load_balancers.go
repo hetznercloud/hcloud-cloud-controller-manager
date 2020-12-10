@@ -58,9 +58,9 @@ func (l *loadBalancers) GetLoadBalancer(
 		{
 			IP: lb.PublicNet.IPv4.IP.String(),
 		},
-		// {
-		// 	IP: loadBalancer.PublicNet.IPv6.IP.String(),
-		// },
+		{
+			IP: lb.PublicNet.IPv6.IP.String(),
+		},
 	}}, true, nil
 }
 
@@ -165,9 +165,9 @@ func (l *loadBalancers) EnsureLoadBalancer(
 			v1.LoadBalancerIngress{
 				IP: lb.PublicNet.IPv4.IP.String(),
 			},
-		// v1.LoadBalancerIngress{
-		// 	IP: loadBalancer.PublicNet.IPv6.IP.String(),
-		// }
+			v1.LoadBalancerIngress{
+				IP: lb.PublicNet.IPv6.IP.String(),
+			},
 		)
 	}
 

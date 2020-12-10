@@ -28,8 +28,9 @@ type hcloudK8sSetup struct {
 	K8sVersion     string
 	TestIdentifier string
 	KeepOnFailure  bool
+	ClusterNode    *hcloud.Server
+	ExtServer      *hcloud.Server
 	privKey        string
-	server         *hcloud.Server
 	sshKey         *hcloud.SSHKey
 	network        *hcloud.Network
 }
@@ -56,47 +57,22 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 	if err != nil {
 		return fmt.Errorf("%s getNetwork: %s", op, err)
 	}
-	userData, err := s.getCloudInitConfig()
-	if err != nil {
-		return fmt.Errorf("%s getCloudInitConfig: %s", op, err)
-	}
-	sshKeys := []*hcloud.SSHKey{s.sshKey}
-	for _, additionalSSHKey := range additionalSSHKeys {
-		sshKeys = append(sshKeys, additionalSSHKey)
-	}
 
-	res, _, err := s.Hcloud.Server.Create(ctx, hcloud.ServerCreateOpts{
-		Name:       fmt.Sprintf("srv-%s", s.TestIdentifier),
-		ServerType: &hcloud.ServerType{Name: "cpx21"},
-		Image:      &hcloud.Image{Name: "ubuntu-20.04"},
-		SSHKeys:    sshKeys,
-		UserData:   userData,
-		Labels:     map[string]string{"K8sVersion": s.K8sVersion, "test": s.TestIdentifier},
-		Networks:   []*hcloud.Network{s.network},
-	})
+	srv, err := s.createServer(ctx, "cluster-node", "cpx21", additionalSSHKeys)
 	if err != nil {
-		return fmt.Errorf("%s Hcloud.Server.Create: %s", op, err)
+		return fmt.Errorf("%s: create cluster node: %v", op, err)
 	}
+	s.ClusterNode = srv
 
-	_, errCh := s.Hcloud.Action.WatchProgress(ctx, res.Action)
-	if err := <-errCh; err != nil {
-		return fmt.Errorf("%s WatchProgress Action %s: %s", op, res.Action.Command, err)
-	}
-
-	for _, nextAction := range res.NextActions {
-		_, errCh := s.Hcloud.Action.WatchProgress(ctx, nextAction)
-		if err := <-errCh; err != nil {
-			return fmt.Errorf("%s WatchProgress NextAction %s: %s", op, nextAction.Command, err)
-		}
-	}
-	s.server, _, err = s.Hcloud.Server.GetByID(ctx, res.Server.ID)
+	srv, err = s.createServer(ctx, "ext-server", "cx11", additionalSSHKeys)
 	if err != nil {
-		return fmt.Errorf("%s Hcloud.Server.GetByID: %s", op, err)
+		return fmt.Errorf("%s: create ext server: %v", op, err)
 	}
+	s.ExtServer = srv
 
 	fmt.Printf("%s Waiting for server to be sshable:", op)
 	for {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:22", s.server.PublicNet.IPv4.IP.String()))
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:22", s.ClusterNode.PublicNet.IPv4.IP.String()))
 		if err != nil {
 			fmt.Print(".")
 			time.Sleep(1 * time.Second)
@@ -117,12 +93,55 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 	}
 
 	fmt.Printf("%s Load Image:\n", op)
-	err = RunCommandOnServer(s.privKey, s.server, fmt.Sprintf("docker load --input ci-hcloud-ccm.tar"))
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("docker load --input ci-hcloud-ccm.tar"))
 	if err != nil {
 		return fmt.Errorf("%s:  Load image %s", op, err)
 	}
 
 	return nil
+}
+
+func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, additionalSSHKeys []*hcloud.SSHKey) (*hcloud.Server, error) {
+	const op = "e2etest/createServer"
+
+	userData, err := s.getCloudInitConfig()
+	if err != nil {
+		return nil, fmt.Errorf("%s getCloudInitConfig: %s", op, err)
+	}
+	sshKeys := []*hcloud.SSHKey{s.sshKey}
+	for _, additionalSSHKey := range additionalSSHKeys {
+		sshKeys = append(sshKeys, additionalSSHKey)
+	}
+
+	res, _, err := s.Hcloud.Server.Create(ctx, hcloud.ServerCreateOpts{
+		Name:       fmt.Sprintf("srv-%s-%s", name, s.TestIdentifier),
+		ServerType: &hcloud.ServerType{Name: typ},
+		Image:      &hcloud.Image{Name: "ubuntu-20.04"},
+		SSHKeys:    sshKeys,
+		UserData:   userData,
+		Labels:     map[string]string{"K8sVersion": s.K8sVersion, "test": s.TestIdentifier},
+		Networks:   []*hcloud.Network{s.network},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s Hcloud.Server.Create: %s", op, err)
+	}
+
+	_, errCh := s.Hcloud.Action.WatchProgress(ctx, res.Action)
+	if err := <-errCh; err != nil {
+		return nil, fmt.Errorf("%s WatchProgress Action %s: %s", op, res.Action.Command, err)
+	}
+
+	for _, nextAction := range res.NextActions {
+		_, errCh := s.Hcloud.Action.WatchProgress(ctx, nextAction)
+		if err := <-errCh; err != nil {
+			return nil, fmt.Errorf("%s WatchProgress NextAction %s: %s", op, nextAction.Command, err)
+		}
+	}
+	srv, _, err := s.Hcloud.Server.GetByID(ctx, res.Server.ID)
+	if err != nil {
+		return nil, fmt.Errorf("%s Hcloud.Server.GetByID: %s", op, err)
+	}
+	return srv, nil
 }
 
 // PrepareK8s patches an existing kubernetes cluster with a CNI and the correct
@@ -148,13 +167,13 @@ func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
 	}
 
 	fmt.Printf("%s: Apply ccm deployment\n", op)
-	err = RunCommandOnServer(s.privKey, s.server, "KUBECONFIG=/root/.kube/config kubectl apply -f ccm.yml")
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl apply -f ccm.yml")
 	if err != nil {
 		return "", fmt.Errorf("%s Deploy ccm: %s", op, err)
 	}
 	fmt.Printf("%s: Download kubeconfig\n", op)
 
-	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.server.PublicNet.IPv4.IP.String()), "kubeconfig")
+	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.ClusterNode.PublicNet.IPv4.IP.String()), "kubeconfig")
 	if err != nil {
 		return "", fmt.Errorf("%s download kubeconfig: %s", op, err)
 	}
@@ -203,7 +222,7 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), "hetznercloud/hcloud-cloud-controller-manager:latest", fmt.Sprintf("hcloud-ccm:ci_%s", s.TestIdentifier)))
 	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), " imagePullPolicy: Always", " imagePullPolicy: IfNotPresent"))
 
-	err = RunCommandOnServer(s.privKey, s.server, fmt.Sprintf("echo '%s' >> ccm.yml", deploymentFile))
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("echo '%s' >> ccm.yml", deploymentFile))
 	if err != nil {
 		return fmt.Errorf("%s: Prepare deployment file and transfer it: %s", op, err)
 	}
@@ -215,12 +234,12 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 func (s *hcloudK8sSetup) deployFlannel() error {
 	const op = "hcloudK8sSetup/deployFlannel"
 	fmt.Printf("%s: apply flannel deployment\n", op)
-	err := RunCommandOnServer(s.privKey, s.server, "KUBECONFIG=/root/.kube/config kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml")
+	err := RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml")
 	if err != nil {
 		return fmt.Errorf("%s: apply flannel deployment: %s", op, err)
 	}
 	fmt.Printf("%s: patch flannel deployment\n", op)
-	err = RunCommandOnServer(s.privKey, s.server, "KUBECONFIG=/root/.kube/config kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{\"op\":\"add\",\"path\":\"/spec/template/spec/tolerations/-\",\"value\":{\"key\":\"node.cloudprovider.kubernetes.io/uninitialized\",\"value\":\"true\",\"effect\":\"NoSchedule\"}}]'")
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{\"op\":\"add\",\"path\":\"/spec/template/spec/tolerations/-\",\"value\":{\"key\":\"node.cloudprovider.kubernetes.io/uninitialized\",\"value\":\"true\",\"effect\":\"NoSchedule\"}}]'")
 	if err != nil {
 		return fmt.Errorf("%s: patch flannel deployment: %s", op, err)
 	}
@@ -237,13 +256,13 @@ func (s *hcloudK8sSetup) deployCilium() error {
 	if err != nil {
 		return fmt.Errorf("%s: read cilium deployment file %s: %v", op, "templates/cilium.yml", err)
 	}
-	err = RunCommandOnServer(s.privKey, s.server, fmt.Sprintf("echo '%s' >> cilium.yml", deploymentFile))
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("echo '%s' >> cilium.yml", deploymentFile))
 	if err != nil {
 		return fmt.Errorf("%s: Transfer cilium deployment: %s", op, err)
 	}
 
 	fmt.Printf("%s: apply cilium deployment\n", op)
-	err = RunCommandOnServer(s.privKey, s.server, "KUBECONFIG=/root/.kube/config kubectl apply -f cilium.yml")
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl apply -f cilium.yml")
 	if err != nil {
 		return fmt.Errorf("%s: apply cilium deployment: %s", op, err)
 	}
@@ -255,7 +274,7 @@ func (s *hcloudK8sSetup) deployCilium() error {
 func (s *hcloudK8sSetup) transferCCMDockerImage() error {
 	const op = "hcloudK8sSetup/transferCCMDockerImage"
 	fmt.Printf("%s: Transfer docker image\n", op)
-	err := WithSSHSession(s.privKey, s.server.PublicNet.IPv4.IP.String(), func(session *ssh.Session) error {
+	err := WithSSHSession(s.privKey, s.ClusterNode.PublicNet.IPv4.IP.String(), func(session *ssh.Session) error {
 		file, err := os.Open("ci-hcloud-ccm.tar")
 		if err != nil {
 			return fmt.Errorf("%s read ci-hcloud-ccm.tar: %s", op, err)
@@ -293,7 +312,7 @@ func (s *hcloudK8sSetup) transferCCMDockerImage() error {
 func (s *hcloudK8sSetup) waitForCloudInit() error {
 	const op = "hcloudK8sSetup/PrepareTestEnv"
 	fmt.Printf("%s: Wait for cloud-init\n", op)
-	err := RunCommandOnServer(s.privKey, s.server, fmt.Sprintf("cloud-init status --wait > /dev/null"))
+	err := RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("cloud-init status --wait > /dev/null"))
 	if err != nil {
 		return fmt.Errorf("%s: Wait for cloud-init: %s", op, err)
 	}
@@ -314,11 +333,18 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 
 	ctx := context.Background()
 
-	_, err := s.Hcloud.Server.Delete(ctx, s.server)
+	_, err := s.Hcloud.Server.Delete(ctx, s.ClusterNode)
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.Server.Delete: %s", op, err)
 	}
-	s.server = nil
+	s.ClusterNode = nil
+
+	_, err = s.Hcloud.Server.Delete(ctx, s.ExtServer)
+	if err != nil {
+		return fmt.Errorf("%s Hcloud.Server.Delete: %s", op, err)
+	}
+	s.ExtServer = nil
+
 	_, err = s.Hcloud.SSHKey.Delete(ctx, s.sshKey)
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.SSHKey.Delete: %s", err, err)

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -32,11 +33,12 @@ func init() {
 }
 
 type TestCluster struct {
-	useNetworks  bool
-	setup        *hcloudK8sSetup
-	k8sClient    *kubernetes.Clientset
-	started      bool
-	certificates []*hcloud.Certificate
+	KeepOnFailure bool
+	useNetworks   bool
+	setup         *hcloudK8sSetup
+	k8sClient     *kubernetes.Clientset
+	started       bool
+	certificates  []*hcloud.Certificate
 
 	mu sync.Mutex
 }
@@ -78,7 +80,7 @@ func (tc *TestCluster) initialize() error {
 	if len(token) != 64 {
 		return fmt.Errorf("%s: No valid HCLOUD_TOKEN found", op)
 	}
-	keepOnFailure := os.Getenv("KEEP_SERVER_ON_FAILURE") == "yes"
+	tc.KeepOnFailure = os.Getenv("KEEP_SERVER_ON_FAILURE") == "yes"
 
 	var additionalSSHKeys []*hcloud.SSHKey
 
@@ -122,7 +124,7 @@ func (tc *TestCluster) initialize() error {
 		K8sVersion:     k8sVersion,
 		TestIdentifier: testIdentifier,
 		HcloudToken:    token,
-		KeepOnFailure:  keepOnFailure,
+		KeepOnFailure:  tc.KeepOnFailure,
 	}
 	fmt.Println("Setting up test env")
 
@@ -284,10 +286,11 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 }
 
 type lbTestHelper struct {
-	podName   string
-	port      int
-	K8sClient *kubernetes.Clientset
-	t         *testing.T
+	podName       string
+	port          int
+	K8sClient     *kubernetes.Clientset
+	KeepOnFailure bool
+	t             *testing.T
 }
 
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
@@ -401,6 +404,11 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 // TearDown deletes the created pod and service
 func (l *lbTestHelper) TearDown() {
 	const op = "lbTestHelper/TearDown"
+
+	if l.KeepOnFailure && l.t.Failed() {
+		return
+	}
+
 	svcName := fmt.Sprintf("svc-%s", l.podName)
 	err := l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Delete(context.Background(), svcName, metav1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
@@ -445,7 +453,6 @@ type nwTestHelper struct {
 	podName    string
 	K8sClient  *kubernetes.Clientset
 	privateKey string
-	server     *hcloud.Server
 	t          *testing.T
 }
 
@@ -504,24 +511,6 @@ func (n *nwTestHelper) DeployTestPod() *corev1.Pod {
 	return pod
 }
 
-// WaitForHTTPOnServer tries to connect to the given IP using curl.
-//
-// It tries it for 2 minutes, if after two minutes the connection wasn't
-// successful or it was not a HTTP 200 response it will fail
-func (n *nwTestHelper) WaitForHTTPOnServer(podIp string) {
-	const op = "nwTestHelper/WaitForHTTPAvailable"
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-		err := RunCommandOnServer(n.privateKey, n.server, fmt.Sprintf("curl http://%s", podIp))
-		if err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		n.t.Errorf("%s: not available via curl: %s", op, err)
-	}
-}
-
 // TearDown deletes the created pod
 func (n *nwTestHelper) TearDown() {
 	const op = "nwTestHelper/TearDown"
@@ -578,5 +567,33 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 	})
 	if err != nil {
 		t.Errorf("%s: not available via client.Get: %s", op, err)
+	}
+}
+
+// WaitForHTTPOnServer tries to connect to the given IP using curl.
+//
+// It tries it for 2 minutes, if after two minutes the connection wasn't
+// successful or it was not a HTTP 200 response it will fail
+func WaitForHTTPOnServer(t *testing.T, srv *hcloud.Server, privateKey, tgtIP string, useHTTPS bool) {
+	const op = "e2etests/WaitForHTTPOnServer"
+
+	proto := "http"
+	if useHTTPS {
+		proto = "https"
+	}
+	cmd := fmt.Sprintf("curl -k %s://%s", proto, tgtIP)
+	if net.ParseIP(tgtIP).To4() == nil {
+		// Assume its a IPv6 address
+		cmd = fmt.Sprintf("curl -6 -kg %s://[%s]", proto, tgtIP)
+	}
+
+	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+		if err := RunCommandOnServer(privateKey, srv, cmd); err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Errorf("%s: not available via %q: %s", op, cmd, err)
 	}
 }
