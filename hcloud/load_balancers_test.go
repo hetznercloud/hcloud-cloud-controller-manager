@@ -22,7 +22,7 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 				Name: "no-host-name",
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					IPv4: hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
-					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+					IPv6: hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -35,10 +35,11 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 				assert.NoError(t, err)
 				assert.True(t, exists)
 
-				if !assert.Len(t, status.Ingress, 1) {
+				if !assert.Len(t, status.Ingress, 2) {
 					return
 				}
 				assert.Equal(t, tt.LB.PublicNet.IPv4.IP.String(), status.Ingress[0].IP)
+				assert.Equal(t, tt.LB.PublicNet.IPv6.IP.String(), status.Ingress[1].IP)
 			},
 		},
 		{
@@ -124,7 +125,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					Enabled: true,
 					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
-					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -151,7 +152,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				expected := &v1.LoadBalancerStatus{
 					Ingress: []v1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						// {IP: tt.LB.PublicNet.IPv6.IP.String()},
+						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -174,7 +175,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					Enabled: true,
 					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
-					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 				PrivateNet: []hcloud.LoadBalancerPrivateNet{
 					{
@@ -210,7 +211,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				expected := &v1.LoadBalancerStatus{
 					Ingress: []v1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						// {IP: tt.LB.PublicNet.IPv6.IP.String()},
+						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 						{IP: tt.LB.PrivateNet[0].IP.String()},
 					},
 				}
@@ -271,7 +272,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				expected := &v1.LoadBalancerStatus{
 					Ingress: []v1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						// {IP: tt.LB.PublicNet.IPv6.IP.String()},
+						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)

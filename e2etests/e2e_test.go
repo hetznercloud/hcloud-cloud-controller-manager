@@ -58,15 +58,15 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 }
 
 func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
-	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.setup.server.Name, metav1.GetOptions{})
+	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.setup.ClusterNode.Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 
 	labels := node.Labels
 	expectedLabels := map[string]string{
-		"node.kubernetes.io/instance-type": testCluster.setup.server.ServerType.Name,
-		"topology.kubernetes.io/region":    testCluster.setup.server.Datacenter.Location.Name,
-		"topology.kubernetes.io/zone":      testCluster.setup.server.Datacenter.Name,
-		"kubernetes.io/hostname":           testCluster.setup.server.Name,
+		"node.kubernetes.io/instance-type": testCluster.setup.ClusterNode.ServerType.Name,
+		"topology.kubernetes.io/region":    testCluster.setup.ClusterNode.Datacenter.Location.Name,
+		"topology.kubernetes.io/zone":      testCluster.setup.ClusterNode.Datacenter.Name,
+		"kubernetes.io/hostname":           testCluster.setup.ClusterNode.Name,
 		"kubernetes.io/os":                 "linux",
 		"kubernetes.io/arch":               "amd64",
 	}
@@ -79,7 +79,7 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 	for _, address := range node.Status.Addresses {
 		switch address.Type {
 		case typesv1.NodeExternalIP:
-			expectedIP := testCluster.setup.server.PublicNet.IPv4.IP.String()
+			expectedIP := testCluster.setup.ClusterNode.PublicNet.IPv4.IP.String()
 			if expectedIP != address.Address {
 				t.Errorf("Got %s as NodeExternalIP but expected %s", address.Address, expectedIP)
 			}
@@ -89,7 +89,7 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 		for _, address := range node.Status.Addresses {
 			switch address.Type {
 			case typesv1.NodeInternalIP:
-				expectedIP := testCluster.setup.server.PrivateNet[0].IP.String()
+				expectedIP := testCluster.setup.ClusterNode.PrivateNet[0].IP.String()
 				if expectedIP != address.Address {
 					t.Errorf("Got %s as NodeInternalIP but expected %s", address.Address, expectedIP)
 				}
@@ -115,12 +115,22 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
 	WaitForHTTPAvailable(t, ingressIP, false)
 
+	for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
+		WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, ing.IP, false)
+	}
+
 	lbTest.TearDown()
 }
 
 func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
-	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-https", port: 443}
+	lbTest := lbTestHelper{
+		t:             t,
+		K8sClient:     testCluster.k8sClient,
+		KeepOnFailure: testCluster.KeepOnFailure,
+		podName:       "loadbalancer-https",
+		port:          443,
+	}
 
 	pod := lbTest.DeployTestPod()
 
@@ -137,6 +147,10 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 
 	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
 	WaitForHTTPAvailable(t, ingressIP, true)
+
+	for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
+		WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, ing.IP, true)
+	}
 
 	lbTest.TearDown()
 }
@@ -171,11 +185,11 @@ func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 		t.Skipf("Private Networks test is disabled")
 	}
 
-	nwTest := nwTestHelper{t: t, K8sClient: testCluster.k8sClient, server: testCluster.setup.server, privateKey: testCluster.setup.privKey, podName: "network-routes-accessible"}
+	nwTest := nwTestHelper{t: t, K8sClient: testCluster.k8sClient, privateKey: testCluster.setup.privKey, podName: "network-routes-accessible"}
 
 	pod := nwTest.DeployTestPod()
 
-	nwTest.WaitForHTTPOnServer(pod.Status.PodIP)
+	WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, pod.Status.PodIP, false)
 
 	nwTest.TearDown()
 }
