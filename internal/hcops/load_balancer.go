@@ -68,6 +68,15 @@ type LoadBalancerOps struct {
 	CertClient    HCloudCertificateClient
 	RetryDelay    time.Duration
 	NetworkID     int
+	Defaults      LoadBalancerDefaults
+}
+
+// LoadBalancerDefaults stores cluster-wide default values for load balancers.
+type LoadBalancerDefaults struct {
+	Location              string
+	NetworkZone           string
+	DisablePrivateIngress bool
+	UsePrivateIP          bool
 }
 
 // GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service

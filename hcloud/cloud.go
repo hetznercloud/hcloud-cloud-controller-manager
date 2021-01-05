@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
@@ -29,14 +30,18 @@ import (
 )
 
 const (
-	hcloudTokenENVVar                = "HCLOUD_TOKEN"
-	hcloudEndpointENVVar             = "HCLOUD_ENDPOINT"
-	hcloudNetworkENVVar              = "HCLOUD_NETWORK"
-	hcloudDebugENVVar                = "HCLOUD_DEBUG"
-	hcloudLoadBalancersEnabledENVVar = "HCLOUD_LOAD_BALANCERS_ENABLED"
-	nodeNameENVVar                   = "NODE_NAME"
-	providerName                     = "hcloud"
-	providerVersion                  = "v1.8.1"
+	hcloudTokenENVVar                        = "HCLOUD_TOKEN"
+	hcloudEndpointENVVar                     = "HCLOUD_ENDPOINT"
+	hcloudNetworkENVVar                      = "HCLOUD_NETWORK"
+	hcloudDebugENVVar                        = "HCLOUD_DEBUG"
+	hcloudLoadBalancersEnabledENVVar         = "HCLOUD_LOAD_BALANCERS_ENABLED"
+	hcloudLoadBalancersLocation              = "HCLOUD_LOAD_BALANCERS_LOCATION"
+	hcloudLoadBalancersNetworkZone           = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
+	hcloudLoadBalancersDisablePrivateIngress = "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS"
+	hcloudLoadBalancersUsePrivateIP          = "HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP"
+	nodeNameENVVar                           = "NODE_NAME"
+	providerName                             = "hcloud"
+	providerVersion                          = "v1.8.1"
 )
 
 type cloud struct {
@@ -94,6 +99,12 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	lbDefaults, err := loadBalancerDefaultsFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	fmt.Printf("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
 	lbOps := &hcops.LoadBalancerOps{
@@ -102,6 +113,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
 		NetworkID:     networkID,
+		Defaults:      lbDefaults,
 	}
 
 	loadBalancers := newLoadBalancers(lbOps, &client.Action)
@@ -162,6 +174,43 @@ func (c *cloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []strin
 
 func (c *cloud) HasClusterID() bool {
 	return false
+}
+
+func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, error) {
+	defaults := hcops.LoadBalancerDefaults{
+		Location:    os.Getenv(hcloudLoadBalancersLocation),
+		NetworkZone: os.Getenv(hcloudLoadBalancersNetworkZone),
+	}
+
+	var err error
+
+	defaults.DisablePrivateIngress, err = getEnvBool(hcloudLoadBalancersDisablePrivateIngress)
+	if err != nil {
+		return defaults, err
+	}
+
+	defaults.UsePrivateIP, err = getEnvBool(hcloudLoadBalancersUsePrivateIP)
+	if err != nil {
+		return defaults, err
+	}
+
+	return defaults, nil
+}
+
+// getEnvBool returns the boolean parsed from the environment variable with the given key and a potential error
+// parsing the var. Returns false if the env var is unset.
+func getEnvBool(key string) (bool, error) {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return false, nil
+	}
+
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, fmt.Errorf("%s: %v", key, err)
+	}
+
+	return b, nil
 }
 
 func init() {

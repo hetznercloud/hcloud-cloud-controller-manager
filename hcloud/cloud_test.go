@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 	"github.com/stretchr/testify/assert"
@@ -253,4 +254,82 @@ func TestCloud(t *testing.T) {
 			t.Error("ProviderName should be hcloud")
 		}
 	})
+}
+
+func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
+	cases := []struct {
+		name        string
+		env         map[string]string
+		expDefaults hcops.LoadBalancerDefaults
+		expErr      string
+	}{
+		{
+			name:        "None set",
+			env:         map[string]string{},
+			expDefaults: hcops.LoadBalancerDefaults{
+				// strings should be empty (zero value)
+				// bools should be false (zero value)
+			},
+		},
+		{
+			name: "All set",
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_LOCATION":                "hel1",
+				"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE":            "eu-central",
+				"HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS": "true",
+				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP":          "true",
+			},
+			expDefaults: hcops.LoadBalancerDefaults{
+				Location:              "hel1",
+				NetworkZone:           "eu-central",
+				DisablePrivateIngress: true,
+				UsePrivateIP:          true,
+			},
+		},
+		{
+			name: "Invalid DISABLE_PRIVATE_INGRESS",
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS": "invalid",
+			},
+			expErr: `HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS: strconv.ParseBool: parsing "invalid": invalid syntax`,
+		},
+		{
+			name: "Invalid USE_PRIVATE_IP",
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP": "invalid",
+			},
+			expErr: `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP: strconv.ParseBool: parsing "invalid": invalid syntax`,
+		},
+	}
+
+	for _, c := range cases {
+		c := c // prevent scopelint from complaining
+		t.Run(c.name, func(t *testing.T) {
+			previousEnvVars := map[string]string{}
+
+			for k, v := range c.env {
+				// Store previous value, so we can later restore it and not affect other tests in this package.
+				if v, ok := os.LookupEnv(k); ok {
+					previousEnvVars[k] = v
+				}
+				os.Setenv(k, v)
+			}
+
+			// Make sure this is always executed, even on panic
+			defer func() {
+				for k, v := range previousEnvVars {
+					os.Setenv(k, v)
+				}
+			}()
+
+			defaults, err := loadBalancerDefaultsFromEnv()
+
+			if c.expErr != "" {
+				assert.EqualError(t, err, c.expErr)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, c.expDefaults, defaults)
+		})
+	}
 }
