@@ -165,9 +165,19 @@ func (l *LoadBalancerOps) Create(
 	if v, ok := annotation.LBType.StringFromService(svc); ok {
 		opts.LoadBalancerType.Name = v
 	}
-	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
-		opts.Location = &hcloud.Location{Name: v}
+	if l.Defaults.Location != "" {
+		opts.Location = &hcloud.Location{Name: l.Defaults.Location}
 	}
+	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
+		if v == "" {
+			// Allow resetting the location in case someone wants to specify a network zone in an annotation
+			// and a location as default.
+			opts.Location = nil
+		} else {
+			opts.Location = &hcloud.Location{Name: v}
+		}
+	}
+	opts.NetworkZone = hcloud.NetworkZone(l.Defaults.NetworkZone)
 	if v, ok := annotation.LBNetworkZone.StringFromService(svc); ok {
 		opts.NetworkZone = hcloud.NetworkZone(v)
 	}

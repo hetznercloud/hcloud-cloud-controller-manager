@@ -241,6 +241,7 @@ func TestGetByK8SServiceUID(t *testing.T) {
 func TestLoadBalancerOps_Create(t *testing.T) {
 	type testCase struct {
 		name               string
+		defaults           hcops.LoadBalancerDefaults
 		serviceAnnotations map[annotation.Name]interface{}
 		createOpts         hcloud.LoadBalancerCreateOpts
 		mock               func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture)
@@ -249,7 +250,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 	}
 	tests := []testCase{
 		{
-			name: "create with with location name only",
+			name: "create with with location name (and default set)",
+			defaults: hcops.LoadBalancerDefaults{
+				Location: "hel1",
+			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation: "fsn1",
 			},
@@ -266,7 +270,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			lb: &hcloud.LoadBalancer{ID: 1},
 		},
 		{
-			name: "create with network zone name only",
+			name: "create with network zone name only (and default set)",
+			defaults: hcops.LoadBalancerDefaults{
+				NetworkZone: "eu-central",
+			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBNetworkZone: "eu-central",
 			},
@@ -274,6 +281,78 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "another-lb-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 2},
+		},
+		{
+			name: "create with location as default only",
+			defaults: hcops.LoadBalancerDefaults{
+				Location: "fsn1",
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "some-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location: &hcloud.Location{
+					Name: "fsn1",
+				},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "some-lb-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 3},
+		},
+		{
+			name: "create with network zone as default only",
+			defaults: hcops.LoadBalancerDefaults{
+				NetworkZone: "eu-central",
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "some-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				NetworkZone:      hcloud.NetworkZoneEUCentral,
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "some-lb-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 4},
+		},
+		{
+			name: "create with network zone and reset default location",
+			defaults: hcops.LoadBalancerDefaults{
+				Location: "hel1",
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBLocation:    "",
+				annotation.LBNetworkZone: "eu-central",
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "another-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				NetworkZone:      hcloud.NetworkZoneEUCentral,
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "another-lb-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 2},
+		},
+		{
+			name: "create with location and reset default network zone",
+			defaults: hcops.LoadBalancerDefaults{
+				NetworkZone: "eu-central",
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBLocation:    "fsn1",
+				annotation.LBNetworkZone: "",
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "another-lb",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location: &hcloud.Location{
+					Name: "fsn1",
+				},
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -429,6 +508,8 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
+
+			fx.LBOps.Defaults = tt.defaults
 
 			if tt.mock == nil {
 				tt.mock = func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
