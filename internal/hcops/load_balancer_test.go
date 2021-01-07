@@ -587,6 +587,7 @@ func TestLoadBalancerOps_Delete(t *testing.T) {
 
 type LBReconcilementTestCase struct {
 	name               string
+	defaults           hcops.LoadBalancerDefaults
 	serviceUID         string
 	serviceAnnotations map[annotation.Name]interface{}
 	servicePorts       []v1.ServicePort
@@ -604,6 +605,8 @@ func (tt *LBReconcilementTestCase) run(t *testing.T) {
 	t.Helper()
 
 	tt.fx = hcops.NewLoadBalancerOpsFixture(t)
+	tt.fx.LBOps.Defaults = tt.defaults
+
 	if tt.service == nil {
 		tt.service = &v1.Service{
 			Spec:       v1.ServiceSpec{Ports: tt.servicePorts},
@@ -1088,7 +1091,41 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 		},
 		{
-			name: "enable use of private network",
+			name: "enable use of private network via default",
+			defaults: hcops.LoadBalancerDefaults{
+				// Make sure the annotation overrides the default
+				UsePrivateIP: true,
+			},
+			k8sNodes: []*v1.Node{
+				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 3,
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				tt.fx.LBOps.NetworkID = 4711
+
+				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Bool(true)}
+				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Bool(true)}
+				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "enable use of private network via annotation",
+			defaults: hcops.LoadBalancerDefaults{
+				// Make sure the annotation overrides the default
+				UsePrivateIP: false,
+			},
 			k8sNodes: []*v1.Node{
 				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
 				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
@@ -1117,7 +1154,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 		},
 		{
-			name: "disable use of private network",
+			name: "disable use of private network via annotation",
+			defaults: hcops.LoadBalancerDefaults{
+				// Make sure the annotation overrides the default
+				UsePrivateIP: true,
+			},
 			k8sNodes: []*v1.Node{
 				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
 			},

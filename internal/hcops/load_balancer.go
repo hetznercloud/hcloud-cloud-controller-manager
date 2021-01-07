@@ -500,8 +500,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		changed bool
 	)
 
-	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
+	usePrivateIP, err := l.getUsePrivateIP(svc)
+	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	if usePrivateIP && l.NetworkID == 0 {
@@ -571,6 +571,17 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	}
 
 	return changed, nil
+}
+
+func (l *LoadBalancerOps) getUsePrivateIP(svc *v1.Service) (bool, error) {
+	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
+	if err != nil {
+		if errors.Is(err, annotation.ErrNotSet) {
+			return l.Defaults.UsePrivateIP, nil
+		}
+		return false, err
+	}
+	return usePrivateIP, nil
 }
 
 // ReconcileHCLBServices synchronizes services exposed by the Hetzner Cloud
