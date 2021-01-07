@@ -97,6 +97,27 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 }
 
 func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
+	setupSuccessMocks := func(tt *LoadBalancerTestCase, lbName string) {
+		tt.LBOps.
+			On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+			Return(nil, hcops.ErrNotFound)
+		tt.LBOps.
+			On("GetByName", tt.Ctx, lbName).
+			Return(nil, hcops.ErrNotFound)
+		tt.LBOps.
+			On("Create", tt.Ctx, tt.LB.Name, tt.Service).
+			Return(tt.LB, nil)
+		tt.LBOps.
+			On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
+			Return(false, nil)
+		tt.LBOps.
+			On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
+			Return(false, nil)
+		tt.LBOps.
+			On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
+			Return(false, nil)
+	}
+
 	tests := []LoadBalancerTestCase{
 		{
 			Name:       "check for existing Load Balancer fails",
@@ -129,24 +150,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.
-					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("GetByName", tt.Ctx, "pub-net-only").
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
-					Return(tt.LB, nil)
-				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
+				setupSuccessMocks(tt, "pub-net-only")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -188,24 +192,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.
-					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("GetByName", tt.Ctx, "with-priv-net").
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
-					Return(tt.LB, nil)
-				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
+				setupSuccessMocks(tt, "with-priv-net")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -249,24 +236,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.
-					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("GetByName", tt.Ctx, "with-priv-net-no-priv-ingress").
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
-					Return(tt.LB, nil)
-				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
+				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
