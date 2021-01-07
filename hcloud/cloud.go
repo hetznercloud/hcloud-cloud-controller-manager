@@ -116,7 +116,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		Defaults:      lbDefaults,
 	}
 
-	loadBalancers := newLoadBalancers(lbOps, &client.Action)
+	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDefaults.DisablePrivateIngress)
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}

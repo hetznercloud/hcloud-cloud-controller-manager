@@ -27,12 +27,17 @@ type LoadBalancerOps interface {
 }
 
 type loadBalancers struct {
-	lbOps LoadBalancerOps
-	ac    hcops.HCloudActionClient // Deprecated: should only be referenced by hcops types
+	lbOps                        LoadBalancerOps
+	ac                           hcops.HCloudActionClient // Deprecated: should only be referenced by hcops types
+	disablePrivateIngressDefault bool
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient) *loadBalancers {
-	return &loadBalancers{lbOps: lbOps, ac: ac}
+func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disablePrivateIngressDefault bool) *loadBalancers {
+	return &loadBalancers{
+		lbOps:                        lbOps,
+		ac:                           ac,
+		disablePrivateIngressDefault: disablePrivateIngressDefault,
+	}
 }
 
 func (l *loadBalancers) GetLoadBalancer(
@@ -171,8 +176,8 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		)
 	}
 
-	disablePrivIngress, err := annotation.LBDisablePrivateIngress.BoolFromService(svc)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
+	disablePrivIngress, err := l.getDisablePrivateIngress(svc)
+	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if !disablePrivIngress {
@@ -182,6 +187,17 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 
 	return &v1.LoadBalancerStatus{Ingress: ingress}, nil
+}
+
+func (l *loadBalancers) getDisablePrivateIngress(svc *v1.Service) (bool, error) {
+	disable, err := annotation.LBDisablePrivateIngress.BoolFromService(svc)
+	if err == nil {
+		return disable, nil
+	}
+	if errors.Is(err, annotation.ErrNotSet) {
+		return l.disablePrivateIngressDefault, nil
+	}
+	return false, err
 }
 
 func (l *loadBalancers) UpdateLoadBalancer(
