@@ -4,7 +4,8 @@ Changelog
 Unreleased
 ----------
 
-* Fix: allow referencing certificates by name (GH-116)
+* Add support for setting load balancer values via cluster-wide defaults: `HCLOUD_LOAD_BALANCERS_LOCATION`, `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE`, `HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS`, `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP` (#125)
+* Fix: allow referencing certificates by name (#116)
 
 v1.8.1
 ------
