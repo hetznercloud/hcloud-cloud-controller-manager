@@ -273,19 +273,34 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "All set",
+			name: "All set (except network zone)",
 			env: map[string]string{
 				"HCLOUD_LOAD_BALANCERS_LOCATION":                "hel1",
-				"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE":            "eu-central",
 				"HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS": "true",
 				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP":          "true",
 			},
 			expDefaults: hcops.LoadBalancerDefaults{
 				Location:     "hel1",
-				NetworkZone:  "eu-central",
 				UsePrivateIP: true,
 			},
 			expDisablePrivateIngress: true,
+		},
+		{
+			name: "Network zone set",
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE": "eu-central",
+			},
+			expDefaults: hcops.LoadBalancerDefaults{
+				NetworkZone: "eu-central",
+			},
+		},
+		{
+			name: "Both location and network zone set (error)",
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_LOCATION":     "hel1",
+				"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE": "eu-central",
+			},
+			expErr: "HCLOUD_LOAD_BALANCERS_LOCATION/HCLOUD_LOAD_BALANCERS_NETWORK_ZONE: Only one of these can be set",
 		},
 		{
 			name: "Invalid DISABLE_PRIVATE_INGRESS",
@@ -307,11 +322,14 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 		c := c // prevent scopelint from complaining
 		t.Run(c.name, func(t *testing.T) {
 			previousEnvVars := map[string]string{}
+			unsetEnvVars := []string{}
 
 			for k, v := range c.env {
 				// Store previous value, so we can later restore it and not affect other tests in this package.
 				if v, ok := os.LookupEnv(k); ok {
 					previousEnvVars[k] = v
+				} else if !ok {
+					unsetEnvVars = append(unsetEnvVars, k)
 				}
 				os.Setenv(k, v)
 			}
@@ -320,6 +338,9 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 			defer func() {
 				for k, v := range previousEnvVars {
 					os.Setenv(k, v)
+				}
+				for _, k := range unsetEnvVars {
+					os.Unsetenv(k)
 				}
 			}()
 

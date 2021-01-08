@@ -18,6 +18,7 @@ package hcloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -180,6 +181,11 @@ func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, error) {
 	defaults := hcops.LoadBalancerDefaults{
 		Location:    os.Getenv(hcloudLoadBalancersLocation),
 		NetworkZone: os.Getenv(hcloudLoadBalancersNetworkZone),
+	}
+
+	if defaults.Location != "" && defaults.NetworkZone != "" {
+		return defaults, false, errors.New(
+			"HCLOUD_LOAD_BALANCERS_LOCATION/HCLOUD_LOAD_BALANCERS_NETWORK_ZONE: Only one of these can be set")
 	}
 
 	disablePrivateIngress, err := getEnvBool(hcloudLoadBalancersDisablePrivateIngress)
