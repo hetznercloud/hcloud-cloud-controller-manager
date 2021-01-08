@@ -100,7 +100,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	lbDefaults, err := loadBalancerDefaultsFromEnv()
+	lbOpsDefaults, lbDisablePrivateIngress, err := loadBalancerDefaultsFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -113,10 +113,10 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
 		NetworkID:     networkID,
-		Defaults:      lbDefaults,
+		Defaults:      lbOpsDefaults,
 	}
 
-	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDefaults.DisablePrivateIngress)
+	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDisablePrivateIngress)
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}
@@ -176,25 +176,23 @@ func (c *cloud) HasClusterID() bool {
 	return false
 }
 
-func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, error) {
+func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, error) {
 	defaults := hcops.LoadBalancerDefaults{
 		Location:    os.Getenv(hcloudLoadBalancersLocation),
 		NetworkZone: os.Getenv(hcloudLoadBalancersNetworkZone),
 	}
 
-	var err error
-
-	defaults.DisablePrivateIngress, err = getEnvBool(hcloudLoadBalancersDisablePrivateIngress)
+	disablePrivateIngress, err := getEnvBool(hcloudLoadBalancersDisablePrivateIngress)
 	if err != nil {
-		return defaults, err
+		return defaults, false, err
 	}
 
 	defaults.UsePrivateIP, err = getEnvBool(hcloudLoadBalancersUsePrivateIP)
 	if err != nil {
-		return defaults, err
+		return defaults, false, err
 	}
 
-	return defaults, nil
+	return defaults, disablePrivateIngress, nil
 }
 
 // getEnvBool returns the boolean parsed from the environment variable with the given key and a potential error

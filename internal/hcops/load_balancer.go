@@ -73,10 +73,9 @@ type LoadBalancerOps struct {
 
 // LoadBalancerDefaults stores cluster-wide default values for load balancers.
 type LoadBalancerDefaults struct {
-	Location              string
-	NetworkZone           string
-	DisablePrivateIngress bool
-	UsePrivateIP          bool
+	Location     string
+	NetworkZone  string
+	UsePrivateIP bool
 }
 
 // GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service

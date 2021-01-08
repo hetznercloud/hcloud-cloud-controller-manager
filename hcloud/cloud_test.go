@@ -258,10 +258,11 @@ func TestCloud(t *testing.T) {
 
 func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 	cases := []struct {
-		name        string
-		env         map[string]string
-		expDefaults hcops.LoadBalancerDefaults
-		expErr      string
+		name                     string
+		env                      map[string]string
+		expDefaults              hcops.LoadBalancerDefaults
+		expDisablePrivateIngress bool
+		expErr                   string
 	}{
 		{
 			name:        "None set",
@@ -280,11 +281,11 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP":          "true",
 			},
 			expDefaults: hcops.LoadBalancerDefaults{
-				Location:              "hel1",
-				NetworkZone:           "eu-central",
-				DisablePrivateIngress: true,
-				UsePrivateIP:          true,
+				Location:     "hel1",
+				NetworkZone:  "eu-central",
+				UsePrivateIP: true,
 			},
+			expDisablePrivateIngress: true,
 		},
 		{
 			name: "Invalid DISABLE_PRIVATE_INGRESS",
@@ -322,7 +323,7 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 				}
 			}()
 
-			defaults, err := loadBalancerDefaultsFromEnv()
+			defaults, disablePrivateIngress, err := loadBalancerDefaultsFromEnv()
 
 			if c.expErr != "" {
 				assert.EqualError(t, err, c.expErr)
@@ -330,6 +331,7 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 			}
 			assert.NoError(t, err)
 			assert.Equal(t, c.expDefaults, defaults)
+			assert.Equal(t, c.expDisablePrivateIngress, disablePrivateIngress)
 		})
 	}
 }
