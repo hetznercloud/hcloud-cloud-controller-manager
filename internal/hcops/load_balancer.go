@@ -68,6 +68,14 @@ type LoadBalancerOps struct {
 	CertClient    HCloudCertificateClient
 	RetryDelay    time.Duration
 	NetworkID     int
+	Defaults      LoadBalancerDefaults
+}
+
+// LoadBalancerDefaults stores cluster-wide default values for load balancers.
+type LoadBalancerDefaults struct {
+	Location     string
+	NetworkZone  string
+	UsePrivateIP bool
 }
 
 // GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service
@@ -156,9 +164,19 @@ func (l *LoadBalancerOps) Create(
 	if v, ok := annotation.LBType.StringFromService(svc); ok {
 		opts.LoadBalancerType.Name = v
 	}
-	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
-		opts.Location = &hcloud.Location{Name: v}
+	if l.Defaults.Location != "" {
+		opts.Location = &hcloud.Location{Name: l.Defaults.Location}
 	}
+	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
+		if v == "" {
+			// Allow resetting the location in case someone wants to specify a network zone in an annotation
+			// and a location as default.
+			opts.Location = nil
+		} else {
+			opts.Location = &hcloud.Location{Name: v}
+		}
+	}
+	opts.NetworkZone = hcloud.NetworkZone(l.Defaults.NetworkZone)
 	if v, ok := annotation.LBNetworkZone.StringFromService(svc); ok {
 		opts.NetworkZone = hcloud.NetworkZone(v)
 	}
@@ -481,8 +499,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		changed bool
 	)
 
-	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
+	usePrivateIP, err := l.getUsePrivateIP(svc)
+	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	if usePrivateIP && l.NetworkID == 0 {
@@ -552,6 +570,17 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	}
 
 	return changed, nil
+}
+
+func (l *LoadBalancerOps) getUsePrivateIP(svc *v1.Service) (bool, error) {
+	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
+	if err != nil {
+		if errors.Is(err, annotation.ErrNotSet) {
+			return l.Defaults.UsePrivateIP, nil
+		}
+		return false, err
+	}
+	return usePrivateIP, nil
 }
 
 // ReconcileHCLBServices synchronizes services exposed by the Hetzner Cloud

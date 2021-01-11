@@ -69,14 +69,15 @@ type LoadBalancerTestCase struct {
 	Name string
 
 	// Defined in test case as needed
-	ClusterName        string
-	NetworkID          int
-	ServiceUID         string
-	ServiceAnnotations map[annotation.Name]interface{}
-	Nodes              []*v1.Node
-	LB                 *hcloud.LoadBalancer
-	LBCreateResult     *hcloud.LoadBalancerCreateResult
-	Mock               func(t *testing.T, tt *LoadBalancerTestCase)
+	ClusterName                  string
+	NetworkID                    int
+	ServiceUID                   string
+	ServiceAnnotations           map[annotation.Name]interface{}
+	DisablePrivateIngressDefault bool
+	Nodes                        []*v1.Node
+	LB                           *hcloud.LoadBalancer
+	LBCreateResult               *hcloud.LoadBalancerCreateResult
+	Mock                         func(t *testing.T, tt *LoadBalancerTestCase)
 
 	// Defines the actual test
 	Perform func(t *testing.T, tt *LoadBalancerTestCase)
@@ -122,7 +123,7 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.ActionClient)
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.ActionClient, tt.DisablePrivateIngressDefault)
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)

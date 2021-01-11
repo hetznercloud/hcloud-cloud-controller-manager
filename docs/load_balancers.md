@@ -53,4 +53,11 @@ spec:
   type: LoadBalancer
 ```
 
+## Cluster-wide Defaults
 
+For convenvience, you can set the following environment variables as cluster-wide defaults, so you don't have to set them on each load balancer service. If a load balancer service has the corresponding annotation set, it overrides the default.
+
+* `HCLOUD_LOAD_BALANCERS_LOCATION` (mutually exclusive with `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE`)
+* `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE` (mutually exclusive with `HCLOUD_LOAD_BALANCERS_LOCATION`)
+* `HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS`
+* `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP`

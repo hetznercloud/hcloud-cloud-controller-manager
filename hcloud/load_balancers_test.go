@@ -97,6 +97,27 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 }
 
 func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
+	setupSuccessMocks := func(tt *LoadBalancerTestCase, lbName string) {
+		tt.LBOps.
+			On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+			Return(nil, hcops.ErrNotFound)
+		tt.LBOps.
+			On("GetByName", tt.Ctx, lbName).
+			Return(nil, hcops.ErrNotFound)
+		tt.LBOps.
+			On("Create", tt.Ctx, tt.LB.Name, tt.Service).
+			Return(tt.LB, nil)
+		tt.LBOps.
+			On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
+			Return(false, nil)
+		tt.LBOps.
+			On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
+			Return(false, nil)
+		tt.LBOps.
+			On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
+			Return(false, nil)
+	}
+
 	tests := []LoadBalancerTestCase{
 		{
 			Name:       "check for existing Load Balancer fails",
@@ -129,24 +150,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.
-					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("GetByName", tt.Ctx, "pub-net-only").
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
-					Return(tt.LB, nil)
-				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
+				setupSuccessMocks(tt, "pub-net-only")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -188,24 +192,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.
-					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("GetByName", tt.Ctx, "with-priv-net").
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
-					Return(tt.LB, nil)
-				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
+				setupSuccessMocks(tt, "with-priv-net")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
@@ -221,7 +208,50 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name:       "disable private ingress",
+			Name:       "disable private ingress via default",
+			NetworkID:  4711,
+			ServiceUID: "5",
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName: "with-priv-net-no-priv-ingress",
+			},
+			DisablePrivateIngressDefault: true,
+			LB: &hcloud.LoadBalancer{
+				ID:               1,
+				Name:             "with-priv-net-no-priv-ingress",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+				},
+				PrivateNet: []hcloud.LoadBalancerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   4711,
+							Name: "priv-net",
+						},
+						IP: net.ParseIP("10.10.10.2"),
+					},
+				},
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				expected := &v1.LoadBalancerStatus{
+					Ingress: []v1.LoadBalancerIngress{
+						{IP: tt.LB.PublicNet.IPv4.IP.String()},
+						{IP: tt.LB.PublicNet.IPv6.IP.String()},
+					},
+				}
+				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
+				assert.NoError(t, err)
+				assert.Equal(t, expected, lbStat)
+			},
+		},
+		{
+			Name:       "disable private ingress via annotation",
 			NetworkID:  4711,
 			ServiceUID: "5",
 			ServiceAnnotations: map[annotation.Name]interface{}{
@@ -249,24 +279,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				},
 			},
 			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
-				tt.LBOps.
-					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("GetByName", tt.Ctx, "with-priv-net-no-priv-ingress").
-					Return(nil, hcops.ErrNotFound)
-				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
-					Return(tt.LB, nil)
-				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
-					Return(false, nil)
-				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
-					Return(false, nil)
+				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &v1.LoadBalancerStatus{
