@@ -1,25 +1,49 @@
 name: Run e2e tests
 on: [ push ]
 jobs:
-  test:
+  k8s:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s: [ 1.17.14, 1.18.12, 1.19.4, 1.20.0 ]
-        networks: [yes, no]
-    name: ${{ matrix.k8s }}- networks - ${{ matrix.networks }}
+        k8s: [ 1.18.13, 1.19.5, 1.20.0 ]
+        networks: [ yes, no ]
+      fail-fast: false
+    name: k8s ${{ matrix.k8s }}- networks - ${{ matrix.networks }}
     steps:
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '1.15'
-    - uses: actions/checkout@master
-    - name: Run tests
-      env:
-        K8S_VERSION: ${{ matrix.k8s }}
-        TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-        USE_NETWORKS: ${{ matrix.networks }}
-      run: |
-        export HCLOUD_TOKEN=$(./scripts/get-token.sh)
-        cat resp.json
-        go test $(go list ./... | grep e2etests) -v -timeout 60m
-        ./scripts/delete-token.sh $HCLOUD_TOKEN
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@master
+      - name: Run tests
+        env:
+          K8S_VERSION: k8s-${{ matrix.k8s }}
+          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
+          USE_NETWORKS: ${{ matrix.networks }}
+        run: |
+          export HCLOUD_TOKEN=$(./scripts/get-token.sh)
+          cat resp.json
+          go test $(go list ./... | grep e2etests) -v -timeout 60m
+          ./scripts/delete-token.sh $HCLOUD_TOKEN
+  k3s:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k3s: [ v1.18.13+k3s1, v1.19.5+k3s2, v1.20.0+k3s2 ]
+        networks: [ yes, no ]
+      fail-fast: false
+    name: k3s ${{ matrix.k3s }}- networks - ${{ matrix.networks }}
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@master
+      - name: Run tests
+        env:
+          K8S_VERSION: k3s-${{ matrix.k3s }}
+          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
+          USE_NETWORKS: ${{ matrix.networks }}
+        run: |
+          export HCLOUD_TOKEN=$(./scripts/get-token.sh)
+          cat resp.json
+          go test $(go list ./... | grep e2etests) -v -timeout 60m
+          ./scripts/delete-token.sh $HCLOUD_TOKEN

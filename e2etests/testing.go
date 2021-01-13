@@ -74,8 +74,14 @@ func (tc *TestCluster) initialize() error {
 
 	k8sVersion := os.Getenv("K8S_VERSION")
 	if k8sVersion == "" {
-		k8sVersion = "1.18.9"
+		k8sVersion = "k8s-1.18.9"
 	}
+
+	k8sVersionsDetails := strings.Split(k8sVersion, "-")
+	if len(k8sVersionsDetails) != 2 {
+		return fmt.Errorf("%s: invalid k8s version: %v should be format <distribution>-<version>", op, k8sVersion)
+	}
+
 	token := os.Getenv("HCLOUD_TOKEN")
 	if len(token) != 64 {
 		return fmt.Errorf("%s: No valid HCLOUD_TOKEN found", op)
@@ -101,7 +107,7 @@ func (tc *TestCluster) initialize() error {
 		}
 	}
 
-	fmt.Printf("Test against k8s %s\n", k8sVersion)
+	fmt.Printf("Test against %s\n", k8sVersion)
 
 	fmt.Println("Building ccm image")
 	cmd := exec.Command("docker", "build", "-t", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier), "../")
@@ -120,11 +126,12 @@ func (tc *TestCluster) initialize() error {
 	}
 
 	tc.setup = &hcloudK8sSetup{
-		Hcloud:         hcloudClient,
-		K8sVersion:     k8sVersion,
-		TestIdentifier: testIdentifier,
-		HcloudToken:    token,
-		KeepOnFailure:  tc.KeepOnFailure,
+		Hcloud:          hcloudClient,
+		K8sDistribution: K8sDistribution(k8sVersionsDetails[0]),
+		K8sVersion:      k8sVersionsDetails[1],
+		TestIdentifier:  testIdentifier,
+		HcloudToken:     token,
+		KeepOnFailure:   tc.KeepOnFailure,
 	}
 	fmt.Println("Setting up test env")
 
@@ -415,7 +422,7 @@ func (l *lbTestHelper) TearDown() {
 		l.t.Errorf("%s: deleting test svc failed: %s", op, err)
 	}
 
-	err = wait.Poll(1*time.Second, 1*time.Minute, func() (done bool, err error) {
+	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
 		_, err = l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Get(context.Background(), svcName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
@@ -426,7 +433,7 @@ func (l *lbTestHelper) TearDown() {
 		return false, nil
 	})
 	if err != nil {
-		l.t.Errorf("%s: test service was not removed after 1 minute: %s", op, err)
+		l.t.Errorf("%s: test service was not removed after 3 minutes: %s", op, err)
 	}
 
 	podName := fmt.Sprintf("pod-%s", l.podName)
@@ -434,7 +441,7 @@ func (l *lbTestHelper) TearDown() {
 	if err != nil && !k8serrors.IsNotFound(err) {
 		l.t.Errorf("%s: deleting test pod failed: %s", op, err)
 	}
-	err = wait.Poll(1*time.Second, 1*time.Minute, func() (done bool, err error) {
+	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
 		_, err = l.K8sClient.CoreV1().Pods(corev1.NamespaceDefault).Get(context.Background(), podName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
@@ -445,7 +452,7 @@ func (l *lbTestHelper) TearDown() {
 		return false, nil
 	})
 	if err != nil {
-		l.t.Errorf("%s: test pod not removed after 1 minute: %s", op, err)
+		l.t.Errorf("%s: test pod not removed after 3 minutes: %s", op, err)
 	}
 }
 

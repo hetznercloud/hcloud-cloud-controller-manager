@@ -22,17 +22,26 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type K8sDistribution string
+
+const (
+	K8sDistributionK8s K8sDistribution = "k8s"
+	K8sDistributionK3s K8sDistribution = "k3s"
+)
+
 type hcloudK8sSetup struct {
-	Hcloud         *hcloud.Client
-	HcloudToken    string
-	K8sVersion     string
-	TestIdentifier string
-	KeepOnFailure  bool
-	ClusterNode    *hcloud.Server
-	ExtServer      *hcloud.Server
-	privKey        string
-	sshKey         *hcloud.SSHKey
-	network        *hcloud.Network
+	Hcloud          *hcloud.Client
+	HcloudToken     string
+	K8sVersion      string
+	K8sDistribution K8sDistribution
+	TestIdentifier  string
+	KeepOnFailure   bool
+	ClusterNode     *hcloud.Server
+	ExtServer       *hcloud.Server
+	privKey         string
+	sshKey          *hcloud.SSHKey
+	network         *hcloud.Network
+	testLabels      map[string]string
 }
 
 type cloudInitTmpl struct {
@@ -44,10 +53,11 @@ type cloudInitTmpl struct {
 // PrepareTestEnv setups a test environment for the Cloud Controller Manager
 // This includes the creation of a Network, SSH Key and Server.
 // The server will be created with a Cloud Init UserData
-// The template can be found under e2etests/templates/cloudinit.ixt.tpl
+// The template can be found under e2etests/templates/cloudinit_<k8s-distribution>.ixt.tpl
 func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys []*hcloud.SSHKey) error {
 	const op = "hcloudK8sSetup/PrepareTestEnv"
 
+	s.testLabels = map[string]string{"K8sDistribution": string(s.K8sDistribution), "K8sVersion": strings.ReplaceAll(s.K8sVersion, "+", ""), "test": s.TestIdentifier}
 	err := s.getSSHKey(ctx)
 	if err != nil {
 		return fmt.Errorf("%s getSSHKey: %s", op, err)
@@ -93,9 +103,16 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 	}
 
 	fmt.Printf("%s Load Image:\n", op)
-	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("docker load --input ci-hcloud-ccm.tar"))
-	if err != nil {
-		return fmt.Errorf("%s:  Load image %s", op, err)
+	if s.K8sDistribution == K8sDistributionK3s {
+		err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("ctr -n=k8s.io image import ci-hcloud-ccm.tar"))
+		if err != nil {
+			return fmt.Errorf("%s:  Load image %s", op, err)
+		}
+	} else {
+		err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("docker load --input ci-hcloud-ccm.tar"))
+		if err != nil {
+			return fmt.Errorf("%s:  Load image %s", op, err)
+		}
 	}
 
 	return nil
@@ -119,7 +136,7 @@ func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, add
 		Image:      &hcloud.Image{Name: "ubuntu-20.04"},
 		SSHKeys:    sshKeys,
 		UserData:   userData,
-		Labels:     map[string]string{"K8sVersion": s.K8sVersion, "test": s.TestIdentifier},
+		Labels:     s.testLabels,
 		Networks:   []*hcloud.Network{s.network},
 	})
 	if err != nil {
@@ -171,11 +188,36 @@ func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s Deploy ccm: %s", op, err)
 	}
+
+	fmt.Printf("%s: Ensure Server is not labeled as master\n", op)
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl label nodes --all node-role.kubernetes.io/master-")
+	if err != nil {
+		return "", fmt.Errorf("%s Ensure Server is not labeled as master: %s", op, err)
+	}
+
+	if s.K8sDistribution == K8sDistributionK8s {
+		fmt.Printf("%s: Ensure Server is not tainted as master\n", op)
+		err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl taint nodes --all node-role.kubernetes.io/master-")
+		if err != nil {
+			return "", fmt.Errorf("%s Ensure Server is not tainted as master: %s", op, err)
+		}
+	}
 	fmt.Printf("%s: Download kubeconfig\n", op)
 
 	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.ClusterNode.PublicNet.IPv4.IP.String()), "kubeconfig")
 	if err != nil {
 		return "", fmt.Errorf("%s download kubeconfig: %s", op, err)
+	}
+
+	fmt.Printf("%s: Ensure correct server is set\n", op)
+	kubeconfigBefore, err := ioutil.ReadFile("kubeconfig")
+	if err != nil {
+		return "", fmt.Errorf("%s reading kubeconfig: %s", op, err)
+	}
+	kubeconfigAfterwards := strings.Replace(string(kubeconfigBefore), "127.0.0.1", s.ClusterNode.PublicNet.IPv4.IP.String(), -1)
+	err = ioutil.WriteFile("kubeconfig", []byte(kubeconfigAfterwards), 0)
+	if err != nil {
+		return "", fmt.Errorf("%s writing kubeconfig: %s", op, err)
 	}
 	return "kubeconfig", nil
 }
@@ -361,7 +403,8 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 // getCloudInitConfig returns the generated cloud init configuration
 func (s *hcloudK8sSetup) getCloudInitConfig() (string, error) {
 	const op = "hcloudK8sSetup/getCloudInitConfig"
-	str, err := ioutil.ReadFile("templates/cloudinit.txt.tpl")
+
+	str, err := ioutil.ReadFile(fmt.Sprintf("templates/cloudinit_%s.txt.tpl", s.K8sDistribution))
 	if err != nil {
 		return "", fmt.Errorf("%s: read template file %s: %v", "templates/cloudinit.txt.tpl", op, err)
 	}
@@ -386,7 +429,7 @@ func (s *hcloudK8sSetup) getSSHKey(ctx context.Context) error {
 	sshKey, _, err := s.Hcloud.SSHKey.Create(ctx, hcloud.SSHKeyCreateOpts{
 		Name:      fmt.Sprintf("s-%s", s.TestIdentifier),
 		PublicKey: pubKey,
-		Labels:    map[string]string{"K8sVersion": s.K8sVersion, "test": s.TestIdentifier},
+		Labels:    s.testLabels,
 	})
 	if err != nil {
 		return fmt.Errorf("%s: creating ssh key: %v", op, err)
@@ -408,7 +451,7 @@ func (s *hcloudK8sSetup) getNetwork(ctx context.Context) error {
 	network, _, err := s.Hcloud.Network.Create(ctx, hcloud.NetworkCreateOpts{
 		Name:    fmt.Sprintf("nw-%s", s.TestIdentifier),
 		IPRange: ipRange,
-		Labels:  map[string]string{"K8sVersion": s.K8sVersion, "test": s.TestIdentifier},
+		Labels:  s.testLabels,
 	})
 	if err != nil {
 		return fmt.Errorf("%s: creating network: %v", op, err)
