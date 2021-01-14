@@ -6,9 +6,8 @@ jobs:
     strategy:
       matrix:
         k8s: [ 1.18.13, 1.19.5, 1.20.0 ]
-        networks: [ yes, no ]
       fail-fast: false
-    name: k8s ${{ matrix.k8s }}- networks - ${{ matrix.networks }}
+    name: k8s ${{ matrix.k8s }}
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -18,7 +17,7 @@ jobs:
         env:
           K8S_VERSION: k8s-${{ matrix.k8s }}
           TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-          USE_NETWORKS: ${{ matrix.networks }}
+          USE_NETWORKS: yes
         run: |
           export HCLOUD_TOKEN=$(./scripts/get-token.sh)
           cat resp.json
@@ -29,9 +28,8 @@ jobs:
     strategy:
       matrix:
         k3s: [ v1.18.13+k3s1, v1.19.5+k3s2, v1.20.0+k3s2 ]
-        networks: [ yes, no ]
       fail-fast: false
-    name: k3s ${{ matrix.k3s }}- networks - ${{ matrix.networks }}
+    name: k3s ${{ matrix.k3s }}
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -41,7 +39,7 @@ jobs:
         env:
           K8S_VERSION: k3s-${{ matrix.k3s }}
           TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-          USE_NETWORKS: ${{ matrix.networks }}
+          USE_NETWORKS: yes
         run: |
           export HCLOUD_TOKEN=$(./scripts/get-token.sh)
           cat resp.json

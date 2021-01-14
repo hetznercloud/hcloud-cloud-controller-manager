@@ -115,7 +115,7 @@ the [Deployment with Networks support documentation](./docs/deploy_with_networks
 We aim to support the latest three versions of Kubernetes. After a new Kubernetes version has been released we will stop
 supporting the oldest previously supported version. This does not necessarily mean that the Cloud Controller Manager
 does not still work with this version. However, it means that we do not test that version anymore. Additionally, we will
-not fix bugs related only to an unsupported version. We also try to keep compatibility for the respective k3s release
+not fix bugs related only to an unsupported version. We also try to keep compatibility with the respective k3s release
 for a specific Kubernetes release.
 
 | Kubernetes | k3s           | cloud controller Manager   | Networks support | Deployment File                                                                                         |
@@ -132,7 +132,7 @@ for a specific Kubernetes release.
 
 The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. We also test against
 the same k3s releases (Sample: When we support testing against Kubernetes 1.20.x we also try to support k3s 1.20.x). We
-try to keep compatibility to k3s but never guarantee this.
+try to keep compatibility with k3s but never guarantee this.
 
 You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will
 create Load Balancers that will be billed.
