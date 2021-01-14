@@ -36,9 +36,6 @@ runcmd:
 - cp -i /etc/kubernetes/admin.conf /root/.kube/config
 - until KUBECONFIG=/root/.kube/config kubectl get node; do sleep 2;done
 - KUBECONFIG=/root/.kube/config kubectl -n kube-system create secret generic hcloud --from-literal=token={{.HcloudToken}} --from-literal=network={{.HcloudNetwork}}
-# Remove all master taints and labels, this is special for the one-node cluster we use within the tests
-- KUBECONFIG=/root/.kube/config kubectl taint nodes --all node-role.kubernetes.io/master-
-- KUBECONFIG=/root/.kube/config kubectl label nodes --all node-role.kubernetes.io/master-
 # Download and install latest hcloud cli release for easier debugging on host
 - curl -s https://api.github.com/repos/hetznercloud/cli/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d '"' -f 4 | wget -qi -
 - tar xvzf hcloud-linux-amd64.tar.gz && cp hcloud /usr/bin/hcloud && chmod +x /usr/bin/hcloud

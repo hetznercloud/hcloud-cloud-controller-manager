@@ -42,7 +42,7 @@ test:unit:
   stage: E2E
   image: docker:git
   variables:
-    K8S_VERSION: 1.18.12
+    K8S_VERSION: k8s-1.18.12
   before_script:
     - apk add --no-cache git make musl-dev go openssh-client
   script:
@@ -53,43 +53,43 @@ test:unit:
 k8s-1.17:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.17.14
+    K8S_VERSION: k8s-1.17.14
 
 k8s-1.17 networks:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.17.14
+    K8S_VERSION: k8s-1.17.14
     USE_NETWORKS: "yes"
 
 k8s-1.18:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.18.12
+    K8S_VERSION: k8s-1.18.12
 
 k8s-1.18 networks:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.18.12
+    K8S_VERSION: k8s-1.18.12
     USE_NETWORKS: "yes"
 
 k8s-1.19:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.19.4
+    K8S_VERSION: k8s-1.19.4
 
 k8s-1.19 networks:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.19.4
+    K8S_VERSION: k8s-1.19.4
     USE_NETWORKS: "yes"
 
 k8s-1.20:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.20.0
+    K8S_VERSION: k8s-1.20.0
 
 k8s-1.20 networks:
   <<: *testk8se2e
   variables:
-    K8S_VERSION: 1.20.0
+    K8S_VERSION: k8s-1.20.0
     USE_NETWORKS: "yes"

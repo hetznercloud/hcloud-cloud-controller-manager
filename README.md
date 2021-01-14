@@ -107,12 +107,35 @@ kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-co
 
 ```
 
-If you want to use the Hetzner Cloud `Networks` Feature, head over to the [Deployment with Networks support documentation](./docs/deploy_with_networks.md).
+If you want to use the Hetzner Cloud `Networks` Feature, head over to
+the [Deployment with Networks support documentation](./docs/deploy_with_networks.md).
 
+## Versioning policy
+
+We aim to support the latest three versions of Kubernetes. After a new Kubernetes version has been released we will stop
+supporting the oldest previously supported version. This does not necessarily mean that the Cloud Controller Manager
+does not still work with this version. However, it means that we do not test that version anymore. Additionally, we will
+not fix bugs related only to an unsupported version. We also try to keep compatibility with the respective k3s release
+for a specific Kubernetes release.
+
+| Kubernetes | k3s           | cloud controller Manager   | Networks support | Deployment File                                                                                         |
+| ---------- | -------------:| --------------------------:| -----------------|--------------------------------------------------------------------------------------------------------:|
+| 1.20       | v1.20.0+k3s2  | master                     | Yes              | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/master/deploy/ccm-networks.yaml  |
+| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm-networks.yaml  |
+| 1.18       | v1.18.13+k3s1 | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm-networks.yaml  |
+| ---------- | -------------:| ---------------------------|------------------|--------------------------------------------------------------------------------------------------------:|
+| 1.20       | v1.20.0+k3s2  | master                     | No               | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/master/deploy/ccm.yaml           |
+| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | No               | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm.yaml           |
+| 1.18       | v1.18.13+k3s1 | 1.8.1, master              | No               | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm.yaml           |
 
 ## E2E Tests
 
-The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will create Load Balancers that will be billed.
+The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. We also test against
+the same k3s releases (Sample: When we support testing against Kubernetes 1.20.x we also try to support k3s 1.20.x). We
+try to keep compatibility with k3s but never guarantee this.
+
+You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will
+create Load Balancers that will be billed.
 
 **Test Server Setup:**
 1x CPX21 (Ubuntu 18.04)
@@ -123,7 +146,7 @@ The Hetzner Cloud cloud controller manager was tested against all supported Kube
 
 ```bash
 export HCLOUD_TOKEN=<specifiy a project token>
-export K8S_VERSION=1.20.0 # The specific (latest) version is needed here
+export K8S_VERSION=k8s-1.20.0 # The specific (latest) version is needed here
 export USE_SSH_KEYS=key1,key2 # Name or IDs of your SSH Keys within the Hetzner Cloud, the servers will be accessable with that keys
 export USE_NETWORKS=yes # if `yes` this identidicates that the tests should provision the server with cilium as CNI and also enable the Network related tests
 ## Optional configuration env vars:

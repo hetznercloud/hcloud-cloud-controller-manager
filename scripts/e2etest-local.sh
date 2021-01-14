@@ -10,7 +10,7 @@ function test_k8s_version() {
 
     export K8S_VERSION="$1"
 
-    echo "Testing K8S $K8S_VERSION without network support"
+    echo "Testing $K8S_VERSION without network support"
     export USE_NETWORKS="no"
     if ! go test -count=1 -v -timeout 60m ./e2etests; then
         return 2
@@ -18,7 +18,7 @@ function test_k8s_version() {
 
     echo
     echo
-    echo "Testing K8S $K8S_VERSION with network support"
+    echo "Testing $K8S_VERSION with network support"
     export USE_NETWORKS="yes"
     if ! go test -count=1 -v -timeout 60m ./e2etests; then
         return 2
@@ -30,7 +30,7 @@ if [[ -z "$HCLOUD_TOKEN" ]]; then
     exit 1
 fi
 
-K8S_VERSIONS=("1.17.13" "1.18.12" "1.19.4" "1.20.0")
+K8S_VERSIONS=("k8s-1.18.12" "k8s-1.19.4" "k8s-1.20.0" "k3s-v1.20.0+k3s2")
 for v in "${K8S_VERSIONS[@]}"; do
     test_k8s_version "$v"
 done
