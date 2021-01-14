@@ -103,16 +103,13 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 	}
 
 	fmt.Printf("%s Load Image:\n", op)
+	transferCmd := "docker load --input ci-hcloud-ccm.tar"
 	if s.K8sDistribution == K8sDistributionK3s {
-		err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("ctr -n=k8s.io image import ci-hcloud-ccm.tar"))
-		if err != nil {
-			return fmt.Errorf("%s:  Load image %s", op, err)
-		}
-	} else {
-		err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("docker load --input ci-hcloud-ccm.tar"))
-		if err != nil {
-			return fmt.Errorf("%s:  Load image %s", op, err)
-		}
+		transferCmd = "ctr -n=k8s.io image import ci-hcloud-ccm.tar"
+	}
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, transferCmd)
+	if err != nil {
+		return fmt.Errorf("%s: Load image %s", op, err)
 	}
 
 	return nil
