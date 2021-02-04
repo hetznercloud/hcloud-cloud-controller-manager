@@ -561,6 +561,10 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		}
 		a, _, err := l.LBClient.AddServerTarget(ctx, lb, opts)
 		if err != nil {
+			if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
+				klog.InfoS("resource limit exceeded", "err", err.Error(), "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
+				return false, nil
+			}
 			return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
 		}
 		if err := WatchAction(ctx, l.ActionClient, a); err != nil {
