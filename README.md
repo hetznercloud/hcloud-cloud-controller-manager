@@ -140,7 +140,7 @@ create Load Balancers that will be billed.
 **Test Server Setup:**
 1x CPX21 (Ubuntu 18.04)
 
-**Requirements: Docker and Go 1.15**
+**Requirements: Docker and Go 1.16**
 
 1. Configure your environment correctly
 

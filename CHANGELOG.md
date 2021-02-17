@@ -6,6 +6,7 @@ Unreleased
 
 * Add support for setting load balancer values via cluster-wide defaults: `HCLOUD_LOAD_BALANCERS_LOCATION`, `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE`, `HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS`, `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP` (#125)
 * Fix: allow referencing certificates by name (#116)
+* Update build to go 1.16
 
 v1.8.1
 ------
