@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM golang:1.16 as builder
 WORKDIR /maschine-controller/src
 ADD . .
 RUN CGO_ENABLED=0 go build -o hcloud-maschine-controller.bin .
