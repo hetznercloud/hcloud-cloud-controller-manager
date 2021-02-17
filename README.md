@@ -120,13 +120,13 @@ for a specific Kubernetes release.
 
 | Kubernetes | k3s           | cloud controller Manager   | Networks support | Deployment File                                                                                         |
 | ---------- | -------------:| --------------------------:| -----------------|--------------------------------------------------------------------------------------------------------:|
-| 1.20       | v1.20.0+k3s2  | master                     | Yes              | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/master/deploy/ccm-networks.yaml  |
-| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm-networks.yaml  |
-| 1.18       | v1.18.13+k3s1 | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm-networks.yaml  |
+| 1.20       | v1.20.0+k3s2  | master                     | Yes              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm-networks.yaml  |
+| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm-networks.yaml  |
+| 1.18       | v1.18.13+k3s1 | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm-networks.yaml  |
 | ---------- | -------------:| ---------------------------|------------------|--------------------------------------------------------------------------------------------------------:|
-| 1.20       | v1.20.0+k3s2  | master                     | No               | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/master/deploy/ccm.yaml           |
-| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | No               | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm.yaml           |
-| 1.18       | v1.18.13+k3s1 | 1.8.1, master              | No               | https://raw.githubusercontent.com/hcloud-cloud-controller-manager/blob/v1.8.1/deploy/ccm.yaml           |
+| 1.20       | v1.20.0+k3s2  | master                     | No               | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm.yaml           |
+| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | No               | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm.yaml           |
+| 1.18       | v1.18.13+k3s1 | 1.8.1, master              | No               | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm.yaml           |
 
 ## E2E Tests
 
