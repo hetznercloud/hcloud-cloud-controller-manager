@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/klog/v2"
+
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	cloudprovider "k8s.io/cloud-provider"
 )
@@ -34,6 +36,7 @@ func getServerByName(ctx context.Context, c *hcloud.Client, name string) (*hclou
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if server == nil {
+		klog.Infof("%s: server with name %s not found, are the name in the Hetzner Cloud and the node name identical?", op, name)
 		return nil, cloudprovider.InstanceNotFound
 	}
 	return server, nil
@@ -57,6 +60,7 @@ func providerIDToServerID(providerID string) (int, error) {
 
 	providerPrefix := providerName + "://"
 	if !strings.HasPrefix(providerID, providerPrefix) {
+		klog.Infof("%s: make sure your cluster was initialized with kublet arg --cloud-provider=external", op)
 		return 0, fmt.Errorf("%s: missing prefix hcloud://: %s", op, providerID)
 	}
 
