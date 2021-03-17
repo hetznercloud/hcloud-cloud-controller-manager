@@ -41,7 +41,7 @@ func (c *AllServersCache) ByPrivateIP(ip net.IP) (*hcloud.Server, error) {
 		return srv, ok
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %v %w", op, ip, err)
 	}
 
 	return srv, nil
@@ -60,7 +60,7 @@ func (c *AllServersCache) ByName(name string) (*hcloud.Server, error) {
 		return srv, ok
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %s %w", op, name, err)
 	}
 
 	return srv, nil
