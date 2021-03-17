@@ -83,7 +83,16 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 
 	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
 	if !ok {
-		return fmt.Errorf("%s: server %v: no network with id: %d", op, route.TargetNode, r.network.ID)
+		r.serverCache.InvalidateCache()
+		srv, err = r.serverCache.ByName(string(route.TargetNode))
+		if err != nil {
+			return fmt.Errorf("%s: %v", op, err)
+		}
+
+		privNet, ok = findServerPrivateNetByID(srv, r.network.ID)
+		if !ok {
+			return fmt.Errorf("%s: server %v: network with id %d not attached to this server ", op, route.TargetNode, r.network.ID)
+		}
 	}
 	ip := privNet.IP
 

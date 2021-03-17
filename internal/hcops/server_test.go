@@ -71,6 +71,48 @@ func TestAllServersCache_CacheHit(t *testing.T) {
 	runAllServersCacheTests(t, "Cache hit", tmpl, cacheOps)
 }
 
+func TestAllServersCache_InvalidateCache(t *testing.T) {
+	srv := &hcloud.Server{
+		ID:   54321,
+		Name: "cache-hit",
+		PrivateNet: []hcloud.ServerPrivateNet{
+			{
+				IP: net.ParseIP("10.0.0.3"),
+			},
+		},
+	}
+	cacheOps := newAllServersCacheOps(t, srv)
+	tmpl := allServersCacheTestCase{
+		SetUp: func(t *testing.T, tt *allServersCacheTestCase) {
+			tt.ServerClient.
+				On("All", mock.Anything).
+				Return([]*hcloud.Server{srv}, nil).
+				Times(2)
+
+			// Perform any cache op to initialize caches
+			if _, err := tt.Cache.ByName(srv.Name); err != nil {
+				t.Fatalf("SetUp: %v", err)
+			}
+
+			// Invalidate Cache
+			tt.Cache.InvalidateCache()
+
+			// Perform a second cache lookup
+			if _, err := tt.Cache.ByName(srv.Name); err != nil {
+				t.Fatalf("SetUp: %v", err)
+			}
+		},
+		Assert: func(t *testing.T, tt *allServersCacheTestCase) {
+			// All must be called twice. This call has happened during the
+			// test SetUp method.
+			tt.ServerClient.AssertNumberOfCalls(t, "All", 2)
+		},
+		Expected: srv,
+	}
+
+	runAllServersCacheTests(t, "Cache hit", tmpl, cacheOps)
+}
+
 func TestAllServersCache_CacheRefresh(t *testing.T) {
 	srv := &hcloud.Server{
 		ID:   56789,
