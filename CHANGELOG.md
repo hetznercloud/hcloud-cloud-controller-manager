@@ -8,6 +8,7 @@ Unreleased
 * Fix: allow referencing certificates by name (#116)
 * Update build to go 1.16
 * Update hcloud-go to 1.24.0
+* Fix: Creating a Route may fail because of stale cache
 
 v1.8.1
 ------
