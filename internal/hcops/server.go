@@ -117,6 +117,14 @@ func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hclou
 	return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
 }
 
+// InvalidateCache invalidates the cache so that on the next cache call the cache gets refreshed
+func (c *AllServersCache) InvalidateCache() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.lastRefresh = time.Time{}
+}
+
 func (c *AllServersCache) isExpired() bool {
 	maxAge := c.MaxAge
 	if maxAge == 0 {
