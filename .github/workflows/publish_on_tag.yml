@@ -10,14 +10,13 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '1.16'
-      - name: Set env
-        run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
       - uses: actions/checkout@master
       - name: Publish tag to registry
         env:
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
+          export RELEASE_VERSION=$(echo ${GITHUB_REF:10})
           docker version
           docker login -u "$DOCKER_USER" -p "$DOCKER_PASSWORD"
           docker build -t hetznercloud/hcloud-cloud-controller-manager:$RELEASE_VERSION .
