@@ -558,7 +558,6 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 	proto := "http"
 	if useHTTPS {
 		proto = "https"
-
 	}
 
 	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {

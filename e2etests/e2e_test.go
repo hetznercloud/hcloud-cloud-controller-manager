@@ -3,11 +3,14 @@ package e2etests
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/assert"
 	typesv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,6 +156,43 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	}
 
 	lbTest.TearDown()
+}
+
+func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
+	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
+	lbTest := lbTestHelper{
+		t:             t,
+		K8sClient:     testCluster.k8sClient,
+		KeepOnFailure: testCluster.KeepOnFailure,
+		podName:       "loadbalancer-https",
+		port:          443,
+	}
+
+	pod := lbTest.DeployTestPod()
+
+	lbSvc := lbTest.ServiceDefinition(pod, map[string]string{
+		string(annotation.LBLocation):                                "nbg1",
+		string(annotation.LBSvcHTTPCertificateType):                  "managed",
+		string(annotation.LBSvcHTTPManagedCertificateDomains):        domainName,
+		string(annotation.LBSvcProtocol):                             "https",
+		string(annotation.LBSvcHTTPManagedCertificateUseACMEStaging): "true",
+	})
+
+	lbSvc, err := lbTest.CreateService(lbSvc)
+	if err != nil {
+		t.Fatalf("deploying test svc: %s", err)
+	}
+	certs, err := testCluster.setup.Hcloud.Certificate.AllWithOpts(context.Background(), hcloud.CertificateListOpts{
+		ListOpts: hcloud.ListOpts{
+			LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, lbSvc.ObjectMeta.UID),
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, certs, 1)
+
+	lbTest.TearDown()
+	_, err = testCluster.setup.Hcloud.Certificate.Delete(context.Background(), certs[0])
+	assert.NoError(t, err)
 }
 
 func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {

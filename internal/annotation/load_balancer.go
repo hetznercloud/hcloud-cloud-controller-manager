@@ -94,9 +94,41 @@ const (
 	// LBSvcHTTPCookieLifetime specifies the lifetime of the HTTP cookie.
 	LBSvcHTTPCookieLifetime Name = "load-balancer.hetzner.cloud/http-cookie-lifetime"
 
-	// LBSvcHTTPCertificates specifies a comma separated IDs of Certificates
-	// assigned to the service. HTTPS only.
+	// LBSvcHTTPCertificateType defines the type of certificate the Load
+	// Balancer should use.
+	//
+	// Possible values are "uploaded" and "managed".
+	//
+	// If not set LBSvcHTTPCertificateType defaults to "uploaded".
+	// LBSvcHTTPManagedCertificateDomains is ignored in this case.
+	//
+	// HTTPS only.
+	LBSvcHTTPCertificateType Name = "load-balancer.hetzner.cloud/certificate-type"
+
+	// LBSvcHTTPCertificates a comma separated list of IDs or Names of
+	// Certificates assigned to the service.
+	//
+	// HTTPS only.
 	LBSvcHTTPCertificates Name = "load-balancer.hetzner.cloud/http-certificates"
+
+	// LBSvcHTTPManagedCertificateName contains the names of the managed
+	// certificate to create by the Cloud Controller manager. Ignored if
+	// LBSvcHTTPCertificateType is missing or set to "uploaded". Optional.
+	LBSvcHTTPManagedCertificateName Name = "load-balancer.hetzner.cloud/http-managed-certificate-name"
+
+	// LBSvcHTTPManagedCertificateUseACMEStaging tells the cloud controller manager to create
+	// the certificate using Let's Encrypt staging.
+	//
+	// This annotation is exclusively for Hetzner internal testing purposes.
+	// Users should not use this annotation. There is no guarantee that it
+	// remains or continues to function as it currently functions.
+	LBSvcHTTPManagedCertificateUseACMEStaging Name = "load-balancer.hetzner.cloud/http-managed-certificate-acme-staging"
+
+	// LBSvcHTTPManagedCertificateDomains contains a coma separated list of the
+	// domain names of the managed certificate.
+	//
+	// All domains are used to create a single managed certificate.
+	LBSvcHTTPManagedCertificateDomains Name = "load-balancer.hetzner.cloud/http-managed-certificate-domains"
 
 	// LBSvcRedirectHTTP create a redirect from HTTP to HTTPS. HTTPS only.
 	LBSvcRedirectHTTP Name = "load-balancer.hetzner.cloud/http-redirect-http"

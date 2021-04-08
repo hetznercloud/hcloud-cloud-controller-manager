@@ -11,4 +11,8 @@ var (
 	// by the Hetzner Cloud backend was returned where only one item was
 	// expected.
 	ErrNonUniqueResult = errors.New("non-unique result")
+
+	// ErrAlreadyExists signals that the resource creation failed, because the
+	// resource already exists.
+	ErrAlreadyExists = errors.New("already exists")
 )

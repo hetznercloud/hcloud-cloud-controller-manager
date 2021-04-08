@@ -65,7 +65,7 @@ type LoadBalancerOps struct {
 	LBClient      HCloudLoadBalancerClient
 	ActionClient  HCloudActionClient
 	NetworkClient HCloudNetworkClient
-	CertClient    HCloudCertificateClient
+	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int
 	Defaults      LoadBalancerDefaults
@@ -595,6 +595,10 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	const op = "hcops/LoadBalancerOps.ReconcileHCLBServices"
 	var changed bool
 
+	if err := l.reconcileManagedCertificate(ctx, svc); err != nil {
+		return false, fmt.Errorf("%s: %v", op, err)
+	}
+
 	hclbListenPorts := make(map[int]bool, len(lb.Services))
 	for _, hclbService := range lb.Services {
 		hclbListenPorts[hclbService.ListenPort] = true
@@ -616,7 +620,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		portExists := hclbListenPorts[portNo]
 		delete(hclbListenPorts, portNo)
 
-		b := &hclbServiceOptsBuilder{Port: port, Service: svc, CertClient: l.CertClient}
+		b := &hclbServiceOptsBuilder{Port: port, Service: svc, CertOps: l.CertOps}
 		if portExists {
 			klog.InfoS("update service", "op", op, "port", portNo, "loadBalancerID", lb.ID)
 
@@ -664,10 +668,43 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	return changed, nil
 }
 
+func (l *LoadBalancerOps) reconcileManagedCertificate(ctx context.Context, svc *v1.Service) error {
+	const op = "hcops/LoadBalancerOps.reconcileManagedCertificate"
+
+	if typ, ok := annotation.LBSvcHTTPCertificateType.StringFromService(svc); !ok || typ != string(hcloud.CertificateTypeManaged) {
+		return nil
+	}
+	name, ok := annotation.LBSvcHTTPManagedCertificateName.StringFromService(svc)
+	if !ok || name == "" {
+		name = fmt.Sprintf("ccm-managed-certificate-%s", svc.ObjectMeta.UID)
+	}
+	domains, err := annotation.LBSvcHTTPManagedCertificateDomains.StringsFromService(svc)
+	if errors.Is(err, annotation.ErrNotSet) {
+		return fmt.Errorf("%s: no domains for managed certificate", op)
+	}
+	labels := map[string]string{
+		LabelServiceUID: string(svc.ObjectMeta.UID),
+	}
+	// It's ok to ignore the error here. We are only interested if the
+	// annotation is set and parseable as a truthy boolean. Anything else tells
+	// us we do not want to use ACME staging.
+	if ok, _ := annotation.LBSvcHTTPManagedCertificateUseACMEStaging.BoolFromService(svc); ok {
+		labels["HC-Use-Staging-CA"] = "true"
+	}
+	err = l.CertOps.CreateManagedCertificate(ctx, name, domains, labels)
+	if errors.Is(err, ErrAlreadyExists) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+	return nil
+}
+
 type hclbServiceOptsBuilder struct {
-	Port       v1.ServicePort
-	Service    *v1.Service
-	CertClient HCloudCertificateClient
+	Port    v1.ServicePort
+	Service *v1.Service
+	CertOps *CertificateOps
 
 	listenPort      int
 	destinationPort int
@@ -751,6 +788,12 @@ func (b *hclbServiceOptsBuilder) extract() {
 	})
 
 	b.do(func() error {
+		certtyp, ok := annotation.LBSvcHTTPCertificateType.StringFromService(b.Service)
+		if ok && certtyp == string(hcloud.CertificateTypeManaged) {
+			// Continue with managed certificates below
+			return nil
+		}
+
 		certs, err := annotation.LBSvcHTTPCertificates.CertificatesFromService(b.Service)
 		if errors.Is(err, annotation.ErrNotSet) {
 			return nil
@@ -762,11 +805,31 @@ func (b *hclbServiceOptsBuilder) extract() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		certs, err = b.resolveCertNames(ctx, certs)
+		certs, err = b.resolveCertsByNameOrID(ctx, certs)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		b.httpOpts.Certificates = certs
+		b.addHTTP = true
+		return nil
+	})
+
+	b.do(func() error {
+		certtyp, ok := annotation.LBSvcHTTPCertificateType.StringFromService(b.Service)
+		if !ok || certtyp != string(hcloud.CertificateTypeManaged) {
+			// Not a a managed certificate.
+			return nil
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		svcUID := b.Service.ObjectMeta.UID
+		cert, err := b.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", LabelServiceUID, svcUID))
+		if err != nil {
+			return err
+		}
+		b.httpOpts.Certificates = []*hcloud.Certificate{{ID: cert.ID}}
 		b.addHTTP = true
 		return nil
 	})
@@ -800,8 +863,8 @@ func (b *hclbServiceOptsBuilder) extract() {
 	b.extractHealthCheck()
 }
 
-func (b *hclbServiceOptsBuilder) resolveCertNames(ctx context.Context, cs []*hcloud.Certificate) ([]*hcloud.Certificate, error) {
-	const op = "hcops/hclbServiceOptsBuilder.resolveCertNames"
+func (b *hclbServiceOptsBuilder) resolveCertsByNameOrID(ctx context.Context, cs []*hcloud.Certificate) ([]*hcloud.Certificate, error) {
+	const op = "hcops/hclbServiceOptsBuilder.resolveCertsByNameOrID"
 
 	resolved := make([]*hcloud.Certificate, len(cs))
 	for i, c := range cs {
@@ -810,7 +873,7 @@ func (b *hclbServiceOptsBuilder) resolveCertNames(ctx context.Context, cs []*hcl
 			continue
 		}
 
-		c, _, err := b.CertClient.Get(ctx, c.Name)
+		c, err := b.CertOps.GetCertificateByNameOrID(ctx, c.Name)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

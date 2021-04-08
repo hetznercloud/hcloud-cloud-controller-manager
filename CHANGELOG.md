@@ -7,8 +7,9 @@ Unreleased
 * Add support for setting load balancer values via cluster-wide defaults: `HCLOUD_LOAD_BALANCERS_LOCATION`, `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE`, `HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS`, `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP` (#125)
 * Fix: allow referencing certificates by name (#116)
 * Update build to go 1.16
-* Update hcloud-go to 1.24.0
+* Update hcloud-go to 1.25.0
 * Fix: Creating a Route may fail because of stale cache
+* Add support for Hetzner Cloud Managed Certificates
 
 v1.8.1
 ------
