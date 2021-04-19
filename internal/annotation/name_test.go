@@ -69,7 +69,7 @@ func TestName_AddToService(t *testing.T) {
 		{
 			name:  "set unsupported value",
 			value: struct{}{},
-			err:   fmt.Errorf("annotation/Spec.AddToService: %v: unsupported type: %T", ann, struct{}{}),
+			err:   fmt.Errorf("annotation/Name.AnnotateService: %v: unsupported type: %T", ann, struct{}{}),
 		},
 		{
 			name:  "does not overwrite unrelated annotations",
@@ -98,12 +98,6 @@ func TestName_AddToService(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.svc.ObjectMeta.Annotations)
 		})
 	}
-}
-
-type stringer struct{ Value string }
-
-func (s stringer) String() string {
-	return s.Value
 }
 
 func TestName_StringFromService(t *testing.T) {
@@ -140,54 +134,6 @@ func TestName_StringFromService(t *testing.T) {
 			actual, ok := ann.StringFromService(&svc)
 			assert.Equal(t, tt.ok, ok)
 			assert.Equal(t, tt.expected, actual)
-		})
-	}
-}
-
-type typedAccessorTest struct {
-	name           string
-	svcAnnotations map[annotation.Name]interface{}
-	err            error
-	expected       interface{}
-}
-
-func (tt *typedAccessorTest) run(t *testing.T, call func(svc *v1.Service) (interface{}, error)) {
-	var svc v1.Service
-
-	t.Helper()
-
-	for k, v := range tt.svcAnnotations {
-		if err := k.AnnotateService(&svc, v); !assert.NoError(t, err) {
-			return
-		}
-	}
-
-	actual, err := call(&svc)
-	if tt.err != nil {
-		if errors.Is(err, tt.err) {
-			return
-		}
-		assert.EqualError(t, err, tt.err.Error())
-		return
-	}
-	assert.NoError(t, err)
-	// Don't use assert.Equal to compare nil values, as it requires the nil
-	// values to be casted to the correct type.
-	if tt.expected == nil && actual == nil {
-		return
-	}
-	assert.Equal(t, tt.expected, actual)
-}
-
-func runAllTypedAccessorTests(
-	t *testing.T, tests []typedAccessorTest, call func(svc *v1.Service) (interface{}, error),
-) {
-	t.Helper()
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			tt.run(t, call)
 		})
 	}
 }
@@ -452,4 +398,88 @@ func TestName_CertificatesFromService(t *testing.T) {
 	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
 		return ann.CertificatesFromService(svc)
 	})
+}
+
+func TestName_CertificateTypeFromService(t *testing.T) {
+	tests := []typedAccessorTest{
+		{
+			name: "uploaded certificate",
+			svcAnnotations: map[annotation.Name]interface{}{
+				ann: hcloud.CertificateTypeUploaded,
+			},
+			expected: hcloud.CertificateTypeUploaded,
+		},
+		{
+			name: "managed certificate",
+			svcAnnotations: map[annotation.Name]interface{}{
+				ann: hcloud.CertificateTypeManaged,
+			},
+			expected: hcloud.CertificateTypeManaged,
+		},
+		{
+			name: "unsupported certificate type",
+			svcAnnotations: map[annotation.Name]interface{}{
+				ann: "unsupported type",
+			},
+			err: fmt.Errorf("annotation/Name.CertificateTypeFromService: annotation/Name.CertificateTypeFromService: unsupported certificate type: unsupported type"),
+		},
+	}
+
+	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+		return ann.CertificateTypeFromService(svc)
+	})
+}
+
+type stringer struct{ Value string }
+
+func (s stringer) String() string {
+	return s.Value
+}
+
+type typedAccessorTest struct {
+	name           string
+	svcAnnotations map[annotation.Name]interface{}
+	err            error
+	expected       interface{}
+}
+
+func (tt *typedAccessorTest) run(t *testing.T, call func(svc *v1.Service) (interface{}, error)) {
+	var svc v1.Service
+
+	t.Helper()
+
+	for k, v := range tt.svcAnnotations {
+		if err := k.AnnotateService(&svc, v); !assert.NoError(t, err) {
+			return
+		}
+	}
+
+	actual, err := call(&svc)
+	if tt.err != nil {
+		if errors.Is(err, tt.err) {
+			return
+		}
+		assert.EqualError(t, err, tt.err.Error())
+		return
+	}
+	assert.NoError(t, err)
+	// Don't use assert.Equal to compare nil values, as it requires the nil
+	// values to be casted to the correct type.
+	if tt.expected == nil && actual == nil {
+		return
+	}
+	assert.Equal(t, tt.expected, actual)
+}
+
+func runAllTypedAccessorTests(
+	t *testing.T, tests []typedAccessorTest, call func(svc *v1.Service) (interface{}, error),
+) {
+	t.Helper()
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			tt.run(t, call)
+		})
+	}
 }

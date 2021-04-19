@@ -22,7 +22,7 @@ type Name string
 //
 // AnnotateService returns an error if converting v to a string fails.
 func (s Name) AnnotateService(svc *v1.Service, v interface{}) error {
-	const op = "annotation/Spec.AddToService"
+	const op = "annotation/Name.AnnotateService"
 
 	if svc.ObjectMeta.Annotations == nil {
 		svc.ObjectMeta.Annotations = make(map[string]string)
@@ -37,6 +37,8 @@ func (s Name) AnnotateService(svc *v1.Service, v interface{}) error {
 		svc.ObjectMeta.Annotations[k] = vt
 	case []string:
 		svc.ObjectMeta.Annotations[k] = strings.Join(vt, ",")
+	case hcloud.CertificateType:
+		svc.ObjectMeta.Annotations[k] = string(vt)
 	case []*hcloud.Certificate:
 		idsOrNames := make([]string, len(vt))
 		for i, c := range vt {
@@ -280,6 +282,31 @@ func (s Name) CertificatesFromService(svc *v1.Service) ([]*hcloud.Certificate, e
 	})
 
 	return cs, err
+}
+
+// CertificateTypeFromService retrieves the hcloud.CertificateType value
+// belonging to the annotation from svc.
+//
+// CertificateTypeFromService returns an error if the value could not be
+// converted to a hcloud.CertificateType. In the case of a missing value, the
+// error wraps ErrNotSet.
+func (s Name) CertificateTypeFromService(svc *v1.Service) (hcloud.CertificateType, error) {
+	const op = "annotation/Name.CertificateTypeFromService"
+	var ct hcloud.CertificateType
+
+	err := s.applyToValue(op, svc, func(v string) error {
+		switch strings.ToLower(v) {
+		case string(hcloud.CertificateTypeUploaded):
+			ct = hcloud.CertificateTypeUploaded
+		case string(hcloud.CertificateTypeManaged):
+			ct = hcloud.CertificateTypeManaged
+		default:
+			return fmt.Errorf("%s: unsupported certificate type: %s", op, v)
+		}
+		return nil
+	})
+
+	return ct, err
 }
 
 func (s Name) applyToValue(op string, svc *v1.Service, f func(string) error) error {

@@ -68,3 +68,19 @@ func getCertificatePtr(args mock.Arguments, i int) *hcloud.Certificate {
 	}
 	return v.(*hcloud.Certificate)
 }
+
+func getCertificatePtrS(args mock.Arguments, i int) []*hcloud.Certificate {
+	v := args.Get(i)
+	if v == nil {
+		return nil
+	}
+	return v.([]*hcloud.Certificate)
+}
+
+func getCertificateCreateResult(args mock.Arguments, i int) hcloud.CertificateCreateResult {
+	v := args.Get(i)
+	if v == nil {
+		return hcloud.CertificateCreateResult{}
+	}
+	return v.(hcloud.CertificateCreateResult)
+}

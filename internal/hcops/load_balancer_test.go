@@ -1316,6 +1316,59 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 		},
 		{
+			name:         "create managed certificate",
+			servicePorts: []v1.ServicePort{{Port: 443, NodePort: 8443}},
+			initialLB:    &hcloud.LoadBalancer{ID: 11},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBSvcHTTPCertificateType:           hcloud.CertificateTypeManaged,
+				annotation.LBSvcHTTPManagedCertificateDomains: []string{"example.com", "*.example.com"},
+			},
+			serviceUID: "some service uid",
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				cert := &hcloud.Certificate{ID: 1}
+
+				tt.fx.CertClient.
+					On("CreateCertificate", mock.Anything, hcloud.CertificateCreateOpts{
+						Name:        "ccm-managed-certificate-some service uid",
+						Type:        hcloud.CertificateTypeManaged,
+						DomainNames: []string{"example.com", "*.example.com"},
+						Labels:      map[string]string{hcops.LabelServiceUID: tt.serviceUID},
+					}).
+					Return(hcloud.CertificateCreateResult{Certificate: cert}, nil, nil)
+
+				tt.fx.CertClient.
+					On(
+						"AllWithOpts",
+						mock.Anything,
+						hcloud.CertificateListOpts{
+							ListOpts: hcloud.ListOpts{
+								LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, tt.serviceUID),
+							},
+						}).
+					Return([]*hcloud.Certificate{cert}, nil, nil)
+
+				opts := hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      hcloud.Int(443),
+					DestinationPort: hcloud.Int(8443),
+					HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
+						Certificates: []*hcloud.Certificate{cert},
+					},
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Int(8443),
+					},
+				}
+				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
 			name: "replace hc Load Balancer services",
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProtocol: string(hcloud.LoadBalancerServiceProtocolHTTP),

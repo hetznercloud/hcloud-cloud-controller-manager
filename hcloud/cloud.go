@@ -110,7 +110,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &client.LoadBalancer,
-		CertClient:    &client.Certificate,
+		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
 		NetworkID:     networkID,
