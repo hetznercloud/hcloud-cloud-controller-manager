@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s: [ 1.18.13, 1.19.5, 1.20.0 ]
+        k8s: [ 1.19.10, 1.20.6, 1.21.0 ]
       fail-fast: false
     name: k8s ${{ matrix.k8s }}
     steps:
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k3s: [ v1.18.13+k3s1, v1.19.5+k3s2, v1.20.0+k3s2 ]
+        k3s: [ v1.19.10+k3s1, v1.20.6+k3s1 ]
       fail-fast: false
     name: k3s ${{ matrix.k3s }}
     steps:

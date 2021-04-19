@@ -93,3 +93,14 @@ k8s-1.20 networks:
   variables:
     K8S_VERSION: k8s-1.20.0
     USE_NETWORKS: "yes"
+
+k8s-1.21:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: k8s-1.21.0
+
+k8s-1.21 networks:
+  <<: *testk8se2e
+  variables:
+    K8S_VERSION: k8s-1.21.0
+    USE_NETWORKS: "yes"
