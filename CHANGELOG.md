@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v1.10.0
+-------
+
+*Note* starting from this release this file is no longer maintained. We
+changed to an automated release process. Changelog entries can now be
+found on the respective [GitHub
+releases](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases).
+
 v1.9.1
 ------
 

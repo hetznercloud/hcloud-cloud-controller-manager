@@ -1,0 +1,42 @@
+# Visit https://goreleaser.com for documentation on how to customize this
+# behavior.
+---
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: hcloud-cloud-controller-manager
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    binary: hcloud-cloud-controller-manager
+    ldflags:
+      - "-s -w -X hcloud.providerVersion={{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
+    hooks:
+      post: ./scripts/generate-deployment-yamls.sh {{ .Version }}
+archives:
+  - id: deployment-yamls
+    # builds: [""]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_deployment_yamls"
+    wrap_in_directory: true
+
+dockers:
+  - ids:
+      - hcloud-cloud-controller-manager
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "hetznercloud/hcloud-cloud-controller-manager:latest"
+      - "hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
+    dockerfile: Dockerfile
+    use_buildx: true
+    build_flag_templates:
+      - "--platform=linux/amd64"
+release:
+  ids: [""]
+  draft: true
+  extra_files:
+    - glob: "./deploy/ccm-*.yaml"
