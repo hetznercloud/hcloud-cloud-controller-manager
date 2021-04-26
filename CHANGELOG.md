@@ -1,6 +1,11 @@
 Changelog
 =========
 
+v1.9.1
+------
+
+* Fix: add correct version number to config files
+
 v1.9.0
 ------
 
