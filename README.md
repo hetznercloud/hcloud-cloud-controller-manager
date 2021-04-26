@@ -1,15 +1,25 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
+
 [![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
 
-The Hetzner Cloud cloud controller manager integrates your Kubernets cluster with the Hetzner Cloud API.
-Read more about kubernetes cloud controller managers in the [kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
+The Hetzner Cloud cloud controller manager integrates your Kubernets
+cluster with the Hetzner Cloud API.  Read more about kubernetes cloud
+controller managers in the [kubernetes
+documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 
 ## Features
 
-- **instances interface**: adds the server type to the `beta.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
-- **zones interface**: makes Kubernetes aware of the failure domain of the server by setting the `failure-domain.beta.kubernetes.io/region` and `failure-domain.beta.kubernetes.io/zone` labels on the node.
-- **Private Networks**: allows to use Hetzner Cloud Private Networks for your pods traffic.
-- **Load Balancers**: allows to use Hetzner Cloud Load Balancers with Kubernetes Services
+* **instances interface**: adds the server type to the
+  `beta.kubernetes.io/instance-type` label, sets the external ipv4 and
+  ipv6 addresses and deletes nodes from Kubernetes that were deleted
+  from the Hetzner Cloud.
+* **zones interface**: makes Kubernetes aware of the failure domain of
+  the server by setting the `failure-domain.beta.kubernetes.io/region`
+  and `failure-domain.beta.kubernetes.io/zone` labels on the node.
+* **Private Networks**: allows to use Hetzner Cloud Private Networks for
+  your pods traffic.
+* **Load Balancers**: allows to use Hetzner Cloud Load Balancers with
+  Kubernetes Services
 
 
 ## Example
@@ -52,92 +62,117 @@ status:
 
 ## Deployment
 
-This deployment example uses `kubeadm` to bootstrap an Kubernetes cluster, with [flannel](https://github.com/coreos/flannel) as overlay network agent. Feel free to adapt the steps to your preferred method of installing Kubernetes.
+This deployment example uses `kubeadm` to bootstrap an Kubernetes
+cluster, with [flannel](https://github.com/coreos/flannel) as overlay
+network agent. Feel free to adapt the steps to your preferred method of
+installing Kubernetes.
 
-These deployment instructions are designed to guide with the installation of the `hcloud-cloud-controller-manager` and are by no means an in depth tutorial of setting up Kubernetes clusters.
+These deployment instructions are designed to guide with the
+installation of the `hcloud-cloud-controller-manager` and are by no
+means an in depth tutorial of setting up Kubernetes clusters.
 **Previous knowledge about the involved components is required.**
 
-Please refer to the [kubeadm cluster creation guide](https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/), which these instructions are meant to argument and the [kubeadm documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
+Please refer to the [kubeadm cluster creation
+guide](https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/),
+which these instructions are meant to argument and the [kubeadm
+documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
-1. The cloud controller manager adds its labels when a node is added to the cluster. This means we have to add the `--cloud-provider=external` flag to the `kubelet` before initializing the cluster master with `kubeadm init`.
-To do accomplish this we add this systemd drop-in unit:
-`/etc/systemd/system/kubelet.service.d/20-hcloud.conf`
+1. The cloud controller manager adds its labels when a node is added to
+   the cluster. This means we have to add the
+   `--cloud-provider=external` flag to the `kubelet` before initializing
+   the cluster master with `kubeadm init`.  To do accomplish this we add
+   this systemd drop-in unit:
+   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`
 
-```
-[Service]
-Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
-```
+    ```
+    [Service]
+    Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
+    ```
 
 2. Now the cluster master can be initialized:
 
-```sh
-sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-```
+    ```sh
+    sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+    ```
 
 3. Configure kubectl to connect to the kube-apiserver:
 
-```sh
-mkdir -p $HOME/.kube
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
-```
+    ```sh
+    mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    ```
 
 4. Deploy the flannel CNI plugin:
 
-```sh
-kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
-```
+    ```sh
+    kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+    ```
 
 5. Patch the flannel deployment to tolerate the `uninitialized` taint:
 
-```sh
-kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
-```
+    ```sh
+    kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+    ```
 
 6. Create a secret containing your Hetzner Cloud API token.
 
-```sh
-kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
-```
+    ```sh
+    kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
+    ```
 
 7. Deploy the `hcloud-cloud-controller-manager`:
 
-```
-kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm.yaml
-
-```
+    ```
+    kubectl apply -f  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+    ```
 
 If you want to use the Hetzner Cloud `Networks` Feature, head over to
-the [Deployment with Networks support documentation](./docs/deploy_with_networks.md).
+the [Deployment with Networks support
+documentation](./docs/deploy_with_networks.md).
 
 ## Versioning policy
 
-We aim to support the latest three versions of Kubernetes. After a new Kubernetes version has been released we will stop
-supporting the oldest previously supported version. This does not necessarily mean that the Cloud Controller Manager
-does not still work with this version. However, it means that we do not test that version anymore. Additionally, we will
-not fix bugs related only to an unsupported version. We also try to keep compatibility with the respective k3s release
-for a specific Kubernetes release.
+We aim to support the latest three versions of Kubernetes. After a new
+Kubernetes version has been released we will stop supporting the oldest
+previously supported version. This does not necessarily mean that the
+Cloud Controller Manager does not still work with this version. However,
+it means that we do not test that version anymore. Additionally, we will
+not fix bugs related only to an unsupported version. We also try to keep
+compatibility with the respective k3s release for a specific Kubernetes
+release.
 
-| Kubernetes | k3s           | cloud controller Manager   | Networks support | Deployment File                                                                                         |
-| ---------- | -------------:| --------------------------:| -----------------|--------------------------------------------------------------------------------------------------------:|
-| 1.21       | -             | master                     | Yes              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm-networks.yaml  |
-| 1.20       | v1.20.0+k3s2  | master                     | Yes              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm-networks.yaml  |
-| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | Yes              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm-networks.yaml  |
-| ---------- | -------------:| ---------------------------|------------------|--------------------------------------------------------------------------------------------------------:|
-| 1.21       | -             | master                     | No               | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm.yaml           |
-| 1.20       | v1.20.0+k3s2  | master                     | No               | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/ccm.yaml           |
-| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | No               | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm.yaml           |
+### With Networks support
+
+| Kubernetes | k3s           | cloud controller Manager   | Deployment File                                                                                                 |
+| ---------- | -------------:| --------------------------:|----------------------------------------------------------------------------------------------------------------:|
+| 1.21       | -             | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml      |
+| 1.20       | v1.20.0+k3s2  | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml      |
+| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm-networks.yaml  |
+
+
+### Without Networks support
+
+| Kubernetes | k3s           | cloud controller Manager   | Deployment File                                                                                                 |
+| ---------- | -------------:| --------------------------:|----------------------------------------------------------------------------------------------------------------:|
+| 1.21       | -             | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml               |
+| 1.20       | v1.20.0+k3s2  | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml               |
+| 1.19       | v1.19.5+k3s2  | 1.8.1, master              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm.yaml           |
 
 ## E2E Tests
 
-The Hetzner Cloud cloud controller manager was tested against all supported Kubernetes versions. We also test against
-the same k3s releases (Sample: When we support testing against Kubernetes 1.20.x we also try to support k3s 1.20.x). We
-try to keep compatibility with k3s but never guarantee this.
+The Hetzner Cloud cloud controller manager was tested against all
+supported Kubernetes versions. We also test against the same k3s
+releases (Sample: When we support testing against Kubernetes 1.20.x we
+also try to support k3s 1.20.x). We try to keep compatibility with k3s
+but never guarantee this.
 
-You can run the tests with the following commands. Keep in mind, that these tests run on real cloud servers and will
-create Load Balancers that will be billed.
+You can run the tests with the following commands. Keep in mind, that
+these tests run on real cloud servers and will create Load Balancers
+that will be billed.
 
 **Test Server Setup:**
+
 1x CPX21 (Ubuntu 18.04)
 
 **Requirements: Docker and Go 1.16**

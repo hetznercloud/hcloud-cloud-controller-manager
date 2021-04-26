@@ -35,6 +35,7 @@ type hcloudK8sSetup struct {
 	K8sVersion      string
 	K8sDistribution K8sDistribution
 	TestIdentifier  string
+	ImageName       string
 	KeepOnFailure   bool
 	ClusterNode     *hcloud.Server
 	ExtServer       *hcloud.Server
@@ -222,22 +223,36 @@ func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
 func scp(identityFile, src, dest string) error {
 	const op = "e2etests/scp"
 
-	cmd := exec.Command(
+	err := runCmd(
 		"/usr/bin/scp",
-		"-F", "/dev/null", // ignore $HOME/.ssh/config
-		"-i", identityFile,
-		"-o", "IdentitiesOnly=yes", // only use the identities passed on the command line
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-o", "StrictHostKeyChecking=no",
-		src,
-		dest,
+		[]string{
+			"-F", "/dev/null", // ignore $HOME/.ssh/config
+			"-i", identityFile,
+			"-o", "IdentitiesOnly=yes", // only use the identities passed on the command line
+			"-o", "UserKnownHostsFile=/dev/null",
+			"-o", "StrictHostKeyChecking=no",
+			src,
+			dest,
+		},
+		nil,
 	)
-	if ok := os.Getenv("TEST_DEBUG_MODE"); ok != "" {
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+	return nil
+}
+
+func runCmd(name string, argv []string, env []string) error {
+	cmd := exec.Command(name, argv...)
+	if os.Getenv("TEST_DEBUG_MODE") != "" {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
+	if env != nil {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("run cmd: %s %s: %v", name, strings.Join(argv, " "), err)
 	}
 	return nil
 }
@@ -247,7 +262,7 @@ func scp(identityFile, src, dest string) error {
 // from this test run
 func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	const op = "hcloudK8sSetup/prepareCCMDeploymentFile"
-	fmt.Printf("%s: Read master deployment filee\n", op)
+	fmt.Printf("%s: Read master deployment file\n", op)
 	var deploymentFilePath = "../deploy/dev-ccm.yaml"
 	if networks {
 		deploymentFilePath = "../deploy/dev-ccm-networks.yaml"
@@ -258,7 +273,7 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	}
 
 	fmt.Printf("%s: Prepare deployment file and transfer it\n", op)
-	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), "hetznercloud/hcloud-cloud-controller-manager:latest", fmt.Sprintf("hcloud-ccm:ci_%s", s.TestIdentifier)))
+	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), "hetznercloud/hcloud-cloud-controller-manager:latest", s.ImageName))
 	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), " imagePullPolicy: Always", " imagePullPolicy: IfNotPresent"))
 
 	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("echo '%s' >> ccm.yml", deploymentFile))

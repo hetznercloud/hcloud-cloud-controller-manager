@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"testing"
@@ -109,20 +108,32 @@ func (tc *TestCluster) initialize() error {
 
 	fmt.Printf("Test against %s\n", k8sVersion)
 
-	fmt.Println("Building ccm image")
-	cmd := exec.Command("docker", "build", "-t", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier), "../")
-	cmd.Stdout = os.Stdout
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
+	imageName := os.Getenv("CCM_IMAGE_NAME")
+	buildImage := false
+	if imageName == "" {
+		imageName = fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier)
+		buildImage = true
+	}
+	if buildImage {
+		fmt.Println("Building ccm image")
+
+		err := runCmd(
+			"go",
+			[]string{"build", "-o", "../hcloud-cloud-controller-manager", "../."},
+			[]string{"CGO_ENABLED=0"},
+		)
+		if err != nil {
+			return fmt.Errorf("%s: %v", op, err)
+		}
+
+		if err := runCmd("docker", []string{"build", "-t", imageName, "../"}, nil); err != nil {
+			return fmt.Errorf("%s: %v", op, err)
+		}
 	}
 
 	fmt.Println("Saving ccm image to disk")
-	cmd = exec.Command("docker", "save", "--output", "ci-hcloud-ccm.tar", fmt.Sprintf("hcloud-ccm:ci_%s", testIdentifier))
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
+	if err := runCmd("docker", []string{"save", "--output", "ci-hcloud-ccm.tar", imageName}, nil); err != nil {
+		return fmt.Errorf("%s: %v", op, err)
 	}
 
 	tc.setup = &hcloudK8sSetup{
@@ -130,12 +141,13 @@ func (tc *TestCluster) initialize() error {
 		K8sDistribution: K8sDistribution(k8sVersionsDetails[0]),
 		K8sVersion:      k8sVersionsDetails[1],
 		TestIdentifier:  testIdentifier,
+		ImageName:       imageName,
 		HcloudToken:     token,
 		KeepOnFailure:   tc.KeepOnFailure,
 	}
 	fmt.Println("Setting up test env")
 
-	err = tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
+	err := tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
 	if err != nil {
 		return fmt.Errorf("%s: %s", op, err)
 	}

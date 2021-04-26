@@ -1,16 +1,17 @@
 ---
 include:
   - project: "hc/backend/deploy-tools"
-    file: "ci/release/image.yml"
-  - project: "hc/backend/deploy-tools"
     file: "ci/build/image.yml"
-
+  - project: "hc/backend/deploy-tools"
+    file: "ci/release/image.yml"
 
 stages:
   - test
-  - E2E
   - build
+  - build:image
+  - e2e
   - release
+  - release:image
 
 variables:
   GOPROXY: goproxy.prodext.hcinfra.de
@@ -38,11 +39,45 @@ test:unit:
   tags:
     - hc-bladerunner
 
+.build:goreleaser: &build-goreleaser
+  stage: build
+  image:
+    name: goreleaser/goreleaser
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: 0
+  after_script:
+    - cp dist/hcloud-cloud-controller-manager_linux_amd64/hcloud-cloud-controller-manager hcloud-cloud-controller-manager
+  artifacts:
+    paths:
+      - hcloud-cloud-controller-manager
+    expire_in: 1 day
+  tags:
+    - hc-bladerunner
+
+build:goreleaser:snapshot:
+  <<: *build-goreleaser
+  script: |
+    goreleaser build --rm-dist --snapshot
+  except:
+    - tags
+
+build:goreleaser:tags:
+  <<: *build-goreleaser
+  script: |
+    goreleaser build --rm-dist
+  only:
+    - tags
+
+build:image:
+  stage: build:image
+
 .e2e:k8s: &testk8se2e
-  stage: E2E
+  stage: e2e
   image: docker:git
   variables:
     K8S_VERSION: k8s-1.19.10
+    CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   before_script:
     - apk add --no-cache git make musl-dev go openssh-client
   script:
@@ -82,3 +117,6 @@ k8s-1.21 networks:
   variables:
     K8S_VERSION: k8s-1.21.0
     USE_NETWORKS: "yes"
+
+release:image:
+  stage: release:image

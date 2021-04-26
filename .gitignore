@@ -1,4 +1,6 @@
 /bin
 /vendor
+dist/
+deploy/gen/
 .coverage.out
 .envrc
