@@ -42,7 +42,7 @@ const (
 	hcloudLoadBalancersUsePrivateIP          = "HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
-	providerVersion                          = "v1.8.1"
+	providerVersion                          = "v1.9.1"
 )
 
 type cloud struct {
