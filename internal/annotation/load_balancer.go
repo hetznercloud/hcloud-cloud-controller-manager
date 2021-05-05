@@ -20,6 +20,13 @@ const (
 	// the backend. Read-only.
 	LBPublicIPv6 Name = "load-balancer.hetzner.cloud/ipv6"
 
+	// LBIPv6Disabled disables the use of IPv6 for the Load Balancer.
+	//
+	// Set this annotation if you use external-dns.
+	//
+	// Default: false
+	LBIPv6Disabled Name = "load-balancer.hetzner.cloud/ipv6-disabled"
+
 	// LBName is the name of the Load Balancer. The name will be visible in
 	// the Hetzner Cloud API console.
 	LBName Name = "load-balancer.hetzner.cloud/name"
