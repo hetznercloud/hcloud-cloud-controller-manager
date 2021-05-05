@@ -15,6 +15,35 @@ import (
 func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 	tests := []LoadBalancerTestCase{
 		{
+			Name:       "get load balancer without host name IPv6 disabled",
+			ServiceUID: "1",
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBIPv6Disabled: true,
+			},
+			LB: &hcloud.LoadBalancer{
+				ID:   1,
+				Name: "no-host-name",
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					IPv4: hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+				},
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				if !assert.Len(t, status.Ingress, 1) {
+					return
+				}
+				assert.Equal(t, tt.LB.PublicNet.IPv4.IP.String(), status.Ingress[0].IP)
+			},
+		},
+		{
 			Name:       "get load balancer without host name",
 			ServiceUID: "1",
 			LB: &hcloud.LoadBalancer{
@@ -133,6 +162,37 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			},
 		},
 		{
+			Name:       "public network only no ipv6",
+			ServiceUID: "2",
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName:         "pub-net-only-no-ipv6",
+				annotation.LBIPv6Disabled: true,
+			},
+			LB: &hcloud.LoadBalancer{
+				ID:               1,
+				Name:             "pub-net-only-no-ipv6",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+				},
+			},
+			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+				setupSuccessMocks(tt, "pub-net-only-no-ipv6")
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				expected := &v1.LoadBalancerStatus{
+					Ingress: []v1.LoadBalancerIngress{
+						{IP: tt.LB.PublicNet.IPv4.IP.String()},
+					},
+				}
+				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
+				assert.NoError(t, err)
+				assert.Equal(t, expected, lbStat)
+			},
+		},
+		{
 			Name:       "public network only",
 			ServiceUID: "2",
 			ServiceAnnotations: map[annotation.Name]interface{}{
@@ -223,7 +283,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					Enabled: true,
 					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
-					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 				PrivateNet: []hcloud.LoadBalancerPrivateNet{
 					{
@@ -256,7 +316,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			ServiceUID: "5",
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName:                  "with-priv-net-no-priv-ingress",
-				annotation.LBDisablePrivateIngress: "true",
+				annotation.LBDisablePrivateIngress: true,
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -266,7 +326,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					Enabled: true,
 					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
-					// IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 				PrivateNet: []hcloud.LoadBalancerPrivateNet{
 					{

@@ -59,14 +59,23 @@ func (l *loadBalancers) GetLoadBalancer(
 		}, true, nil
 	}
 
-	return &v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{
+	ingresses := []v1.LoadBalancerIngress{
 		{
 			IP: lb.PublicNet.IPv4.IP.String(),
 		},
-		{
+	}
+
+	disableIPV6, err := annotation.LBIPv6Disabled.BoolFromService(service)
+	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
+		return nil, false, fmt.Errorf("%s: %v", op, err)
+	}
+	if !disableIPV6 {
+		ingresses = append(ingresses, v1.LoadBalancerIngress{
 			IP: lb.PublicNet.IPv6.IP.String(),
-		},
-	}}, true, nil
+		})
+	}
+
+	return &v1.LoadBalancerStatus{Ingress: ingresses}, true, nil
 }
 
 func (l *loadBalancers) GetLoadBalancerName(ctx context.Context, clusterName string, service *v1.Service) string {
@@ -165,15 +174,17 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	if !disablePubNet {
-		ingress = append(ingress,
-			v1.LoadBalancerIngress{
-				IP: lb.PublicNet.IPv4.IP.String(),
-			},
-			v1.LoadBalancerIngress{
-				IP: lb.PublicNet.IPv6.IP.String(),
-			},
-		)
+		ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
+
+		disableIPV6, err := annotation.LBIPv6Disabled.BoolFromService(svc)
+		if err != nil && !errors.Is(err, annotation.ErrNotSet) {
+			return nil, fmt.Errorf("%s: %v", op, err)
+		}
+		if !disableIPV6 {
+			ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
+		}
 	}
 
 	disablePrivIngress, err := l.getDisablePrivateIngress(svc)
