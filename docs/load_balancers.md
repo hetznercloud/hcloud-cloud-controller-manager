@@ -53,6 +53,13 @@ spec:
   type: LoadBalancer
 ```
 
+For IPVS based plugins (kube-router, kube-proxy in ipvs mode, etc...) make sure you
+supply '**load-balancer.hetzner.cloud/disable-private-ingress: "true"**' annotation
+to your service or set "**HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS**" environment variable
+to true on hcloud-controller-manager deployment as mentioned in a paragraph below. Otherwise, network
+plugin installs load balancer's IP address on system's dummy interface effectively
+looping IPVS system in a cycle. In such scenario cluster nodes won't ever pass load balancer's health probes
+
 ## Cluster-wide Defaults
 
 For convenvience, you can set the following environment variables as cluster-wide defaults, so you don't have to set them on each load balancer service. If a load balancer service has the corresponding annotation set, it overrides the default.
