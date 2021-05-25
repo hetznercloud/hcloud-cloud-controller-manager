@@ -39,4 +39,4 @@ release:
   ids: [""]
   draft: true
   extra_files:
-    - glob: "./deploy/ccm*.yaml"
+    - glob: "./deploy/gen/ccm*.yaml"
