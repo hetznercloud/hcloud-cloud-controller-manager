@@ -127,6 +127,12 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     kubectl apply -f  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
 
+## Networks support
+
+When you use the Cloud Controller Manager with networks support, the CCM is in favor of allocating the IPs (& setup the routing) (Docs: https://kubernetes.io/docs/concepts/architecture/cloud-controller/#route-controller). The CNI plugin you use needs to support this k8s native functionality (Cilium does it, I don't know about Calico & WeaveNet), so basically you use the Hetzner Cloud Networks as the underlying networking stack.
+
+When you use the CCM without Networks support it just disables the RouteController part, all other parts work completely the same. Then just the CNI is in charge of making all the networking stack things. Using the CCM with Networks support has the benefit that your node is connected to a private network so the node doesn't need to encrypt the connections and you have a bit less operational overhead as you don't need to manage the Network.
+
 If you want to use the Hetzner Cloud `Networks` Feature, head over to
 the [Deployment with Networks support
 documentation](./docs/deploy_with_networks.md).
