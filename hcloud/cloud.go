@@ -40,6 +40,7 @@ const (
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
+	hcloudInstancesAddressFamily             = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 	hcloudLoadBalancersEnabledENVVar         = "HCLOUD_LOAD_BALANCERS_ENABLED"
 	hcloudLoadBalancersLocation              = "HCLOUD_LOAD_BALANCERS_LOCATION"
 	hcloudLoadBalancersNetworkZone           = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
@@ -140,10 +141,16 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}
+
+	instancesAddressFamily, err := addressFamilyFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return &cloud{
 		client:       client,
 		zones:        newZones(client, nodeName),
-		instances:    newInstances(client),
+		instances:    newInstances(client, instancesAddressFamily),
 		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,
@@ -235,6 +242,27 @@ func serverIsAttachedToNetwork(networkId int) (bool, error) {
 		return false, fmt.Errorf("%s: %s", op, err)
 	}
 	return strings.Contains(string(body), fmt.Sprintf("network_id: %d\n", networkId)), nil
+}
+
+// addressFamilyFromEnv returns the address family for the instance address from the environment
+// variable. Returns AddressFamilyIPv4 if unset.
+func addressFamilyFromEnv() (addressFamily, error) {
+	family, ok := os.LookupEnv(hcloudInstancesAddressFamily)
+	if !ok {
+		return AddressFamilyIPv4, nil
+	}
+
+	switch strings.ToLower(family) {
+	case "ipv6":
+		return AddressFamilyIPv6, nil
+	case "ipv4":
+		return AddressFamilyIPv4, nil
+	case "dualstack":
+		return AddressFamilyDualStack, nil
+	default:
+		return -1, fmt.Errorf(
+			"%v: Invalid value, expected one of: ipv4,ipv6,dualstack", hcloudInstancesAddressFamily)
+	}
 }
 
 // getEnvBool returns the boolean parsed from the environment variable with the given key and a potential error

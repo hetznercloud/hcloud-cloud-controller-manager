@@ -36,6 +36,9 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 				ID:   1,
 				Name: "node15",
 				PublicNet: schema.ServerPublicNet{
+					IPv6: schema.ServerPublicNetIPv6{
+						IP: "2001:db8::1/64",
+					},
 					IPv4: schema.ServerPublicNetIPv4{
 						IP: "131.232.99.1",
 					},
@@ -44,7 +47,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client)
+	instances := newInstances(env.Client, AddressFamilyIPv4)
 	addr, err := instances.NodeAddressesByProviderID(context.TODO(), "hcloud://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -69,6 +72,9 @@ func TestNodeAddresses(t *testing.T) {
 					ID:   1,
 					Name: "node15",
 					PublicNet: schema.ServerPublicNet{
+						IPv6: schema.ServerPublicNetIPv6{
+							IP: "2001:db8::1",
+						},
 						IPv4: schema.ServerPublicNetIPv4{
 							IP: "131.232.99.1",
 						},
@@ -78,7 +84,7 @@ func TestNodeAddresses(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client)
+	instances := newInstances(env.Client, AddressFamilyIPv4)
 	addr, err := instances.NodeAddresses(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -86,6 +92,81 @@ func TestNodeAddresses(t *testing.T) {
 	if len(addr) != 2 ||
 		addr[0].Type != v1.NodeHostName || addr[0].Address != "node15" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "131.232.99.1" {
+		t.Errorf("Unexpected node addresses: %v", addr)
+	}
+}
+
+func TestNodeAddressesIPv6(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "name=node15" {
+			t.Fatal("missing name query")
+		}
+		json.NewEncoder(w).Encode(schema.ServerListResponse{
+			Servers: []schema.Server{
+				{
+					ID:   1,
+					Name: "node15",
+					PublicNet: schema.ServerPublicNet{
+						IPv6: schema.ServerPublicNetIPv6{
+							IP: "2001:db8::1/64",
+						},
+						IPv4: schema.ServerPublicNetIPv4{
+							IP: "131.232.99.1",
+						},
+					},
+				},
+			},
+		})
+	})
+
+	instances := newInstances(env.Client, AddressFamilyIPv6)
+	addr, err := instances.NodeAddresses(context.TODO(), "node15")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(addr) != 2 ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "node15" ||
+		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2001:db8::1" {
+		t.Errorf("Unexpected node addresses: %v", addr)
+	}
+}
+
+func TestNodeAddressesDualStack(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "name=node15" {
+			t.Fatal("missing name query")
+		}
+		json.NewEncoder(w).Encode(schema.ServerListResponse{
+			Servers: []schema.Server{
+				{
+					ID:   1,
+					Name: "node15",
+					PublicNet: schema.ServerPublicNet{
+						IPv6: schema.ServerPublicNetIPv6{
+							IP: "2001:db8::1/64",
+						},
+						IPv4: schema.ServerPublicNetIPv4{
+							IP: "131.232.99.1",
+						},
+					},
+				},
+			},
+		})
+	})
+
+	instances := newInstances(env.Client, AddressFamilyDualStack)
+	addr, err := instances.NodeAddresses(context.TODO(), "node15")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if len(addr) != 3 ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "node15" ||
+		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2001:db8::1" ||
+		addr[2].Type != v1.NodeExternalIP || addr[2].Address != "131.232.99.1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
 }
@@ -106,7 +187,7 @@ func TestExternalID(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client)
+	instances := newInstances(env.Client, AddressFamilyIPv4)
 	id, err := instances.ExternalID(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -135,7 +216,7 @@ func TestInstanceType(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client)
+	instances := newInstances(env.Client, AddressFamilyIPv4)
 	serverType, err := instances.InstanceType(context.TODO(), "node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -160,7 +241,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client)
+	instances := newInstances(env.Client, AddressFamilyIPv4)
 	instanceType, err := instances.InstanceTypeByProviderID(context.TODO(), "hcloud://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -186,7 +267,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 			})
 		})
 
-		instances := newInstances(env.Client)
+		instances := newInstances(env.Client, AddressFamilyIPv4)
 		exists, err := instances.InstanceExistsByProviderID(context.TODO(), "hcloud://1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -209,7 +290,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 			})
 		})
 
-		instances := newInstances(env.Client)
+		instances := newInstances(env.Client, AddressFamilyIPv4)
 		exists, err := instances.InstanceExistsByProviderID(context.TODO(), "hcloud://1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -233,7 +314,7 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 			})
 		})
 
-		instances := newInstances(env.Client)
+		instances := newInstances(env.Client, AddressFamilyIPv4)
 		isOff, err := instances.InstanceShutdownByProviderID(context.TODO(), "hcloud://1")
 		if !isOff {
 			t.Errorf("Unexpected isOff state: %v", isOff)
@@ -255,7 +336,7 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 			})
 		})
 
-		instances := newInstances(env.Client)
+		instances := newInstances(env.Client, AddressFamilyIPv4)
 		isOff, err := instances.InstanceShutdownByProviderID(context.TODO(), "hcloud://1")
 		if isOff {
 			t.Errorf("Unexpected isOff state: %v", isOff)
@@ -279,7 +360,7 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 			})
 		})
 
-		instances := newInstances(env.Client)
+		instances := newInstances(env.Client, AddressFamilyIPv4)
 		isOff, err := instances.InstanceShutdownByProviderID(context.TODO(), "hcloud://1")
 		if isOff {
 			t.Errorf("Unexpected isOff state: %v", isOff)
@@ -293,7 +374,7 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 func TestCurrentNodeName(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
-	instances := newInstances(env.Client)
+	instances := newInstances(env.Client, AddressFamilyIPv4)
 	nodeName, err := instances.CurrentNodeName(context.TODO(), "hostname")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

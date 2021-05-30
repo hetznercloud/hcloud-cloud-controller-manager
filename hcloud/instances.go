@@ -28,12 +28,21 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 )
 
+type addressFamily int
+
+const (
+	AddressFamilyDualStack addressFamily = iota
+	AddressFamilyIPv6
+	AddressFamilyIPv4
+)
+
 type instances struct {
-	client *hcloud.Client
+	client        *hcloud.Client
+	addressFamily addressFamily
 }
 
-func newInstances(client *hcloud.Client) *instances {
-	return &instances{client}
+func newInstances(client *hcloud.Client, addressFamily addressFamily) *instances {
+	return &instances{client, addressFamily}
 }
 
 func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
@@ -149,8 +158,22 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 	addresses = append(
 		addresses,
 		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
-		v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
 	)
+
+	if i.addressFamily == AddressFamilyIPv6 || i.addressFamily == AddressFamilyDualStack {
+		addresses = append(
+			addresses,
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv6.IP.String()},
+		)
+	}
+
+	if i.addressFamily == AddressFamilyIPv4 || i.addressFamily == AddressFamilyDualStack {
+		addresses = append(
+			addresses,
+			v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
+		)
+	}
+
 	n := os.Getenv(hcloudNetworkENVVar)
 	if len(n) > 0 {
 		network, _, _ := i.client.Network.Get(ctx, n)
