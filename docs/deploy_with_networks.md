@@ -15,4 +15,4 @@ We assume, that you have knowledge about Kubernetes and the Hetzner Cloud.
 
 When deploying Cilium, make sure that you have set `tunnel: disabled` and `nativeRoutingCIDR` to your clusters subnet CIDR. If you are using Cilium <1.9.0 you also have to set `blacklist-conflicting-routes: false`.
 
-After this, you should be able to see the correct routes in the [Hetzner Cloud Console](https://console.hetzner.cloud) or via `hcloud-cli` (`hcloud networks describe <hcloud Network_ID_or_Name>`).
+After this, you should be able to see the correct routes in the [Hetzner Cloud Console](https://console.hetzner.cloud) or via `hcloud-cli` (`hcloud network describe <hcloud Network_ID_or_Name>`).
