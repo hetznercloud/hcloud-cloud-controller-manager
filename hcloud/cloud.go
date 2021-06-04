@@ -21,8 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
@@ -31,10 +34,12 @@ import (
 )
 
 const (
-	hcloudTokenENVVar                        = "HCLOUD_TOKEN"
-	hcloudEndpointENVVar                     = "HCLOUD_ENDPOINT"
-	hcloudNetworkENVVar                      = "HCLOUD_NETWORK"
-	hcloudDebugENVVar                        = "HCLOUD_DEBUG"
+	hcloudTokenENVVar    = "HCLOUD_TOKEN"
+	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
+	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
+	hcloudDebugENVVar    = "HCLOUD_DEBUG"
+	// Disable the "master/server is attached to the network" check against the metadata service.
+	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudLoadBalancersEnabledENVVar         = "HCLOUD_LOAD_BALANCERS_ENABLED"
 	hcloudLoadBalancersLocation              = "HCLOUD_LOAD_BALANCERS_LOCATION"
 	hcloudLoadBalancersNetworkZone           = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
@@ -91,6 +96,15 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 			return nil, fmt.Errorf("%s: Network %s not found", op, v)
 		}
 		networkID = n.ID
+		if networkDisableAttachedCheck := os.Getenv(hcloudNetworkDisableAttachedCheckENVVar); networkDisableAttachedCheck != "true" {
+			e, err := serverIsAttachedToNetwork(networkID)
+			if err != nil {
+				return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
+			}
+			if !e {
+				return nil, fmt.Errorf("%s: This node is not attached to Network %s", op, v)
+			}
+		}
 	}
 	if networkID == 0 {
 		klog.Infof("%s: %s empty", op, hcloudNetworkENVVar)
@@ -199,6 +213,23 @@ func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, error) {
 	}
 
 	return defaults, disablePrivateIngress, nil
+}
+
+// serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network
+// We use this measurement to protect users against some parts of misconfiguration, like configuring a master in a not attached
+// network.
+func serverIsAttachedToNetwork(networkId int) (bool, error) {
+	const op = "serverIsAttachedToNetwork"
+	resp, err := http.Get("http://169.254.169.254/hetzner/v1/metadata/private-networks")
+	if err != nil {
+		return false, fmt.Errorf("%s: %s", op, err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false, fmt.Errorf("%s: %s", op, err)
+	}
+	return strings.Contains(string(body), fmt.Sprintf("network_id: %d", networkId)), nil
 }
 
 // getEnvBool returns the boolean parsed from the environment variable with the given key and a potential error

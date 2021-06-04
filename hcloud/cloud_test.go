@@ -233,10 +233,13 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("RoutesWithNetworks", func(t *testing.T) {
-		resetEnv := Setenv(t, "HCLOUD_NETWORK", "1")
+		resetEnv := Setenv(t, "HCLOUD_NETWORK", "1", "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "true")
 		defer resetEnv()
 
-		c, _ := newCloud(&bytes.Buffer{})
+		c, err := newCloud(&bytes.Buffer{})
+		if err != nil {
+			t.Errorf("%s", err)
+		}
 		_, supported := c.Routes()
 		if !supported {
 			t.Error("Routes interface should be supported")

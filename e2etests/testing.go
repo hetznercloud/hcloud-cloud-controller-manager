@@ -120,7 +120,7 @@ func (tc *TestCluster) initialize() error {
 		err := runCmd(
 			"go",
 			[]string{"build", "-o", "../hcloud-cloud-controller-manager", "../."},
-			[]string{"CGO_ENABLED=0"},
+			[]string{"CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64"},
 		)
 		if err != nil {
 			return fmt.Errorf("%s: %v", op, err)
