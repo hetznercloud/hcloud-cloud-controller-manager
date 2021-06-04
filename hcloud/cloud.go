@@ -96,7 +96,12 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 			return nil, fmt.Errorf("%s: Network %s not found", op, v)
 		}
 		networkID = n.ID
-		if networkDisableAttachedCheck := os.Getenv(hcloudNetworkDisableAttachedCheckENVVar); networkDisableAttachedCheck != "true" {
+
+		networkDisableAttachedCheck, err := getEnvBool(hcloudNetworkDisableAttachedCheckENVVar)
+		if err != nil {
+			return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
+		}
+		if !networkDisableAttachedCheck {
 			e, err := serverIsAttachedToNetwork(networkID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
@@ -229,7 +234,7 @@ func serverIsAttachedToNetwork(networkId int) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("%s: %s", op, err)
 	}
-	return strings.Contains(string(body), fmt.Sprintf("network_id: %d", networkId)), nil
+	return strings.Contains(string(body), fmt.Sprintf("network_id: %d\n", networkId)), nil
 }
 
 // getEnvBool returns the boolean parsed from the environment variable with the given key and a potential error
