@@ -16,7 +16,7 @@ builds:
     ldflags:
       - "-s -w -X hcloud.providerVersion={{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
     hooks:
-      post: ./scripts/generate-deployment-yamls.sh {{ .Version }}
+      post: "./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
 archives:
   - id: deployment-yamls
     # builds: [""]
