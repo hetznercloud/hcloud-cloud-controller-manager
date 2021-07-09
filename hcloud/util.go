@@ -60,7 +60,7 @@ func providerIDToServerID(providerID string) (int, error) {
 
 	providerPrefix := providerName + "://"
 	if !strings.HasPrefix(providerID, providerPrefix) {
-		klog.Infof("%s: make sure your cluster was initialized with kubelet arg --cloud-provider=external", op)
+		klog.Infof("%s: make sure your cluster configured for an external cloud provider", op)
 		return 0, fmt.Errorf("%s: missing prefix hcloud://: %s", op, providerID)
 	}
 
