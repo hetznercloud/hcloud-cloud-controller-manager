@@ -78,16 +78,19 @@ which these instructions are meant to argument and the [kubeadm
 documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
 1. The cloud controller manager adds its labels when a node is added to
-   the cluster. This means we have to add the
-   `--cloud-provider=external` flag to the `kubelet` before initializing
-   the cluster master with `kubeadm init`.  To do accomplish this we add
-   this systemd drop-in unit:
-   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`
+   the cluster. For Kubernetes versions prior to 1.23, this means we
+   have to add the `--cloud-provider=external` flag to the `kubelet`
+   before initializing the cluster master with `kubeadm init`. To do
+   accomplish this we add this systemd drop-in unit
+   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`:
 
     ```
     [Service]
     Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
     ```
+
+    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
+    will see a log message regarding this.
 
 2. Now the cluster master can be initialized:
 
