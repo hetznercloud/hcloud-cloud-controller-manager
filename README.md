@@ -140,6 +140,12 @@ If you want to use the Hetzner Cloud `Networks` Feature, head over to
 the [Deployment with Networks support
 documentation](./docs/deploy_with_networks.md).
 
+## Kube-proxy mode IPVS and HCloud LoadBalancer
+
+If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP. 
+
+See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
+
 ## Versioning policy
 
 We aim to support the latest three versions of Kubernetes. After a new
