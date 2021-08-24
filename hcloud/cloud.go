@@ -21,14 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 )
@@ -86,6 +85,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		opts = append(opts, hcloud.WithEndpoint(endpoint))
 	}
 	client := hcloud.NewClient(opts...)
+	metadataClient := metadata.NewClient()
 
 	var networkID int
 	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
@@ -103,7 +103,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 			return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
 		}
 		if !networkDisableAttachedCheck {
-			e, err := serverIsAttachedToNetwork(networkID)
+			e, err := serverIsAttachedToNetwork(metadataClient, networkID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
 			}
@@ -230,18 +230,13 @@ func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, error) {
 // serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network
 // We use this measurement to protect users against some parts of misconfiguration, like configuring a master in a not attached
 // network.
-func serverIsAttachedToNetwork(networkId int) (bool, error) {
+func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkId int) (bool, error) {
 	const op = "serverIsAttachedToNetwork"
-	resp, err := http.Get("http://169.254.169.254/hetzner/v1/metadata/private-networks")
+	serverPrivateNetworks, err := metadataClient.PrivateNetworks()
 	if err != nil {
 		return false, fmt.Errorf("%s: %s", op, err)
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, fmt.Errorf("%s: %s", op, err)
-	}
-	return strings.Contains(string(body), fmt.Sprintf("network_id: %d\n", networkId)), nil
+	return strings.Contains(serverPrivateNetworks, fmt.Sprintf("network_id: %d\n", networkId)), nil
 }
 
 // addressFamilyFromEnv returns the address family for the instance address from the environment
