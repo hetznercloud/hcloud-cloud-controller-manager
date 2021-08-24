@@ -74,6 +74,7 @@ type LoadBalancerTestCase struct {
 	ServiceUID                   string
 	ServiceAnnotations           map[annotation.Name]interface{}
 	DisablePrivateIngressDefault bool
+	DisableIPv6Default           bool
 	Nodes                        []*v1.Node
 	LB                           *hcloud.LoadBalancer
 	LBCreateResult               *hcloud.LoadBalancerCreateResult
@@ -123,7 +124,7 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.ActionClient, tt.DisablePrivateIngressDefault)
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.ActionClient, tt.DisablePrivateIngressDefault, tt.DisableIPv6Default)
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)

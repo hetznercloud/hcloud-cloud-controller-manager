@@ -30,13 +30,15 @@ type loadBalancers struct {
 	lbOps                        LoadBalancerOps
 	ac                           hcops.HCloudActionClient // Deprecated: should only be referenced by hcops types
 	disablePrivateIngressDefault bool
+	disableIPv6Default           bool
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disablePrivateIngressDefault bool) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
 	return &loadBalancers{
 		lbOps:                        lbOps,
 		ac:                           ac,
 		disablePrivateIngressDefault: disablePrivateIngressDefault,
+		disableIPv6Default:           disableIPv6Default,
 	}
 }
 
@@ -65,8 +67,8 @@ func (l *loadBalancers) GetLoadBalancer(
 		},
 	}
 
-	disableIPV6, err := annotation.LBIPv6Disabled.BoolFromService(service)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
+	disableIPV6, err := l.getDisableIPv6(service)
+	if err != nil {
 		return nil, false, fmt.Errorf("%s: %v", op, err)
 	}
 	if !disableIPV6 {
@@ -178,9 +180,9 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	if !disablePubNet {
 		ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
 
-		disableIPV6, err := annotation.LBIPv6Disabled.BoolFromService(svc)
-		if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-			return nil, fmt.Errorf("%s: %v", op, err)
+		disableIPV6, err := l.getDisableIPv6(svc)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		if !disableIPV6 {
 			ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
@@ -207,6 +209,17 @@ func (l *loadBalancers) getDisablePrivateIngress(svc *v1.Service) (bool, error) 
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
 		return l.disablePrivateIngressDefault, nil
+	}
+	return false, err
+}
+
+func (l *loadBalancers) getDisableIPv6(svc *v1.Service) (bool, error) {
+	disable, err := annotation.LBIPv6Disabled.BoolFromService(svc)
+	if err == nil {
+		return disable, nil
+	}
+	if errors.Is(err, annotation.ErrNotSet) {
+		return l.disableIPv6Default, nil
 	}
 	return false, err
 }
