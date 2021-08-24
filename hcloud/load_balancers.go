@@ -65,11 +65,19 @@ func (l *loadBalancers) GetLoadBalancer(
 		},
 	}
 
-	disableIPV6, err := annotation.LBIPv6Disabled.BoolFromService(service)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-		return nil, false, fmt.Errorf("%s: %v", op, err)
+	disableIPV6, err := getEnvBool(hcloudLoadBalancersDisableIPv6)
+	if err != nil {
+		return nil, false, fmt.Errorf("%s",err)
 	}
-	if !disableIPV6 {
+	disableipv6Annotation, err := annotation.LBIPv6Disabled.BoolFromService(service)
+	if err != nil {
+		return nil, false, fmt.Errorf("%s",err)
+	}
+	enableipv6Annotation, err := annotation.LBIPv6Enabled.BoolFromService(service)
+	if err != nil {
+		return nil, false, fmt.Errorf("%s",err)
+	}
+	if !disableIPV6 || !disableipv6Annotation || enableipv6Annotation {
 		ingresses = append(ingresses, v1.LoadBalancerIngress{
 			IP: lb.PublicNet.IPv6.IP.String(),
 		})
@@ -178,11 +186,19 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	if !disablePubNet {
 		ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
 
-		disableIPV6, err := annotation.LBIPv6Disabled.BoolFromService(svc)
-		if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-			return nil, fmt.Errorf("%s: %v", op, err)
+		disableIPV6, err := getEnvBool(hcloudLoadBalancersDisableIPv6)
+		if err != nil {
+			return nil, fmt.Errorf("%s",err)
 		}
-		if !disableIPV6 {
+		disableipv6Annotation, err := annotation.LBIPv6Disabled.BoolFromService(service)
+		if err != nil {
+			return nil, fmt.Errorf("%s",err)
+		}
+		enableipv6Annotation, err := annotation.LBIPv6Enabled.BoolFromService(service)
+		if err != nil {
+			return nil, false, fmt.Errorf("%s",err)
+		}
+		if !disableIPV6 || disableipv6Annotation || enableipv6Annotation {
 			ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
 		}
 	}

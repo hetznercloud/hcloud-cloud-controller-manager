@@ -27,6 +27,11 @@ const (
 	// Default: false
 	LBIPv6Disabled Name = "load-balancer.hetzner.cloud/ipv6-disabled"
 
+	// LBIPv6Enabled enables the use of IPv6 for the Load Balancer.
+	//
+	// Default: false
+	LBIPv6Enabled Name = "load-balancer.hetzner.cloud/ipv6-enabled"
+
 	// LBName is the name of the Load Balancer. The name will be visible in
 	// the Hetzner Cloud API console.
 	LBName Name = "load-balancer.hetzner.cloud/name"
