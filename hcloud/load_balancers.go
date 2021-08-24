@@ -190,11 +190,11 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		if err != nil {
 			return nil, fmt.Errorf("%s",err)
 		}
-		disableipv6Annotation, err := annotation.LBIPv6Disabled.BoolFromService(service)
+		disableipv6Annotation, err := annotation.LBIPv6Disabled.BoolFromService(svc)
 		if err != nil {
 			return nil, fmt.Errorf("%s",err)
 		}
-		enableipv6Annotation, err := annotation.LBIPv6Enabled.BoolFromService(service)
+		enableipv6Annotation, err := annotation.LBIPv6Enabled.BoolFromService(svc)
 		if err != nil {
 			return nil, false, fmt.Errorf("%s",err)
 		}
