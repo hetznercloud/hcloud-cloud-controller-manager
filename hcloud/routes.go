@@ -2,6 +2,7 @@ package hcloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -59,13 +60,25 @@ func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudpr
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	routes := make([]*cloudprovider.Route, len(r.network.Routes))
-	for i, route := range r.network.Routes {
-		r, err := r.hcloudRouteToRoute(route)
+	// We do not now the exact length here, as the network might have outdated routes with servers that do not exist
+	// anymore.
+	var routes []*cloudprovider.Route
+	for _, route := range r.network.Routes {
+		ro, err := r.hcloudRouteToRoute(route)
 		if err != nil {
+			if errors.Is(err, hcops.ErrNotFound) {
+				klog.InfoS("server for route not found, deleting route in hcloud because the route is not functional",
+					"op", op, "gateway", route.Gateway.String(), "err", fmt.Sprintf("%v", err))
+				err = r.deleteRouteFromHcloud(ctx, route.Destination, route.Gateway)
+				if err != nil {
+					klog.InfoS("deleting the route failed, continue",
+						"op", op, "gateway", route.Gateway.String(), "err", fmt.Sprintf("%v", err))
+				}
+				continue
+			}
 			return routes, fmt.Errorf("%s: %w", op, err)
 		}
-		routes[i] = r
+		routes = append(routes, ro)
 	}
 	return routes, nil
 }
@@ -152,6 +165,15 @@ func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *clo
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+	err = r.deleteRouteFromHcloud(ctx, cidr, ip)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip net.IP) error {
+	const op = "hcloud/deleteRouteFromHcloud"
 	opts := hcloud.NetworkDeleteRouteOpts{
 		Route: hcloud.NetworkRoute{
 			Destination: cidr,
@@ -167,7 +189,7 @@ func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *clo
 				"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
 			time.Sleep(retryDelay)
 
-			return r.DeleteRoute(ctx, clusterName, route)
+			return r.deleteRouteFromHcloud(ctx, cidr, ip)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -182,7 +204,7 @@ func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.R
 
 	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %v", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	nodeName := srv.Name
 
