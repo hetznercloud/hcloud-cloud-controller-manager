@@ -126,7 +126,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	fmt.Printf("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
+	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &client.LoadBalancer,
