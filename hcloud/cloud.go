@@ -45,6 +45,7 @@ const (
 	hcloudLoadBalancersNetworkZone           = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
 	hcloudLoadBalancersDisablePrivateIngress = "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS"
 	hcloudLoadBalancersUsePrivateIP          = "HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP"
+	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
 	providerVersion                          = "v1.9.1"
@@ -121,7 +122,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	lbOpsDefaults, lbDisablePrivateIngress, err := loadBalancerDefaultsFromEnv()
+	lbOpsDefaults, lbDisablePrivateIngress, lbDisableIPv6, err := loadBalancerDefaultsFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -137,7 +138,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		Defaults:      lbOpsDefaults,
 	}
 
-	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDisablePrivateIngress)
+	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDisablePrivateIngress, lbDisableIPv6)
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}
@@ -203,28 +204,33 @@ func (c *cloud) HasClusterID() bool {
 	return false
 }
 
-func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, error) {
+func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, bool, error) {
 	defaults := hcops.LoadBalancerDefaults{
 		Location:    os.Getenv(hcloudLoadBalancersLocation),
 		NetworkZone: os.Getenv(hcloudLoadBalancersNetworkZone),
 	}
 
 	if defaults.Location != "" && defaults.NetworkZone != "" {
-		return defaults, false, errors.New(
+		return defaults, false, false, errors.New(
 			"HCLOUD_LOAD_BALANCERS_LOCATION/HCLOUD_LOAD_BALANCERS_NETWORK_ZONE: Only one of these can be set")
 	}
 
 	disablePrivateIngress, err := getEnvBool(hcloudLoadBalancersDisablePrivateIngress)
 	if err != nil {
-		return defaults, false, err
+		return defaults, false, false, err
+	}
+
+	disableIPv6, err := getEnvBool(hcloudLoadBalancersDisableIPv6)
+	if err != nil {
+		return defaults, false, false, err
 	}
 
 	defaults.UsePrivateIP, err = getEnvBool(hcloudLoadBalancersUsePrivateIP)
 	if err != nil {
-		return defaults, false, err
+		return defaults, false, false, err
 	}
 
-	return defaults, disablePrivateIngress, nil
+	return defaults, disablePrivateIngress, disableIPv6, nil
 }
 
 // serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network
