@@ -78,16 +78,19 @@ which these instructions are meant to argument and the [kubeadm
 documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
 1. The cloud controller manager adds its labels when a node is added to
-   the cluster. This means we have to add the
-   `--cloud-provider=external` flag to the `kubelet` before initializing
-   the cluster master with `kubeadm init`.  To do accomplish this we add
-   this systemd drop-in unit:
-   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`
+   the cluster. For Kubernetes versions prior to 1.23, this means we
+   have to add the `--cloud-provider=external` flag to the `kubelet`
+   before initializing the cluster master with `kubeadm init`. To do
+   accomplish this we add this systemd drop-in unit
+   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`:
 
     ```
     [Service]
     Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
     ```
+
+    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
+    will see a log message regarding this.
 
 2. Now the cluster master can be initialized:
 
@@ -151,6 +154,12 @@ with the network name/ID in the CCM deployment.
 
 You also need to add the network name/ID to the secret: `kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token> --from-literal=network=<hcloud Network_ID_or_Name>`.
 
+## Kube-proxy mode IPVS and HCloud LoadBalancer
+
+If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP. 
+
+See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
+
 ## Versioning policy
 
 We aim to support the latest three versions of Kubernetes. After a new
@@ -195,7 +204,7 @@ that will be billed.
 
 1x CPX21 (Ubuntu 18.04)
 
-**Requirements: Docker and Go 1.16**
+**Requirements: Docker and Go 1.17**
 
 1. Configure your environment correctly
 
