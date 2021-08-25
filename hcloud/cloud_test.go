@@ -289,7 +289,7 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 				UsePrivateIP: true,
 			},
 			expDisablePrivateIngress: true,
-			expDisableIPv6: true,
+			expDisableIPv6:           true,
 		},
 		{
 			name: "Network zone set",
