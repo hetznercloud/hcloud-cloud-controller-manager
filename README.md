@@ -175,8 +175,8 @@ release.
 
 | Kubernetes | k3s           | cloud controller Manager   | Deployment File                                                                                                 |
 | ---------- | -------------:| --------------------------:|----------------------------------------------------------------------------------------------------------------:|
-| 1.21       | -             | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml      |
-| 1.20       | v1.20.0+k3s2  | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml      |
+| 1.21       | -             | 1.12.0, master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml      |
+| 1.20       | v1.20.0+k3s2  | 1.12.0, master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml      |
 | 1.19       | v1.19.5+k3s2  | 1.8.1, master              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm-networks.yaml  |
 
 
@@ -184,8 +184,8 @@ release.
 
 | Kubernetes | k3s           | cloud controller Manager   | Deployment File                                                                                                 |
 | ---------- | -------------:| --------------------------:|----------------------------------------------------------------------------------------------------------------:|
-| 1.21       | -             | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml               |
-| 1.20       | v1.20.0+k3s2  | master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml               |
+| 1.21       | -             | 1.12.0, master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml               |
+| 1.20       | v1.20.0+k3s2  | 1.12.0, master                     | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml               |
 | 1.19       | v1.19.5+k3s2  | 1.8.1, master              | https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.8.1/deploy/ccm.yaml           |
 
 ## E2E Tests
