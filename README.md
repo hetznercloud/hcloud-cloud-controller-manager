@@ -140,6 +140,20 @@ If you want to use the Hetzner Cloud `Networks` Feature, head over to
 the [Deployment with Networks support
 documentation](./docs/deploy_with_networks.md).
 
+If you manage the network yourself it might still be required to let the CCM know about private networks. You can do this by adding the environment variable
+with the network name/ID in the CCM deployment.
+
+```
+          env:
+            - name: HCLOUD_NETWORK
+              valueFrom:
+                secretKeyRef:
+                  name: hcloud
+                  key: network
+```
+
+You also need to add the network name/ID to the secret: `kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token> --from-literal=network=<hcloud Network_ID_or_Name>`.
+
 ## Kube-proxy mode IPVS and HCloud LoadBalancer
 
 If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP. 
