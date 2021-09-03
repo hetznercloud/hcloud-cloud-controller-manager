@@ -28,7 +28,7 @@ every traffic that arrives at the Load Balancer on Port 80 will be
 routed to the public interface of the targets on port 8080.  You can
 change the behavior of the Load Balancer by specifying more annotations.
 A list of all available annotations can be found on
-[pkg.go.dev](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation).
+[pkg.go.dev](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation#Name).
 If you have the cloud controller deployed with Private Network Support,
 we attach the Load Balancer to the specific network automatically. You
 can specifiy with an annotation that the Load Balancer should use the
@@ -68,3 +68,4 @@ For convenvience, you can set the following environment variables as cluster-wid
 * `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE` (mutually exclusive with `HCLOUD_LOAD_BALANCERS_LOCATION`)
 * `HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS`
 * `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP`
+* `HCLOUD_LOAD_BALANCERS_ENABLED`
