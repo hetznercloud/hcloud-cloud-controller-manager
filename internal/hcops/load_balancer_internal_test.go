@@ -310,6 +310,55 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:        "health check port defaults to node port/destination Port if not specified",
+			servicePort: v1.ServicePort{Port: 84, NodePort: 8084},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBSvcHealthCheckProtocol:                hcloud.LoadBalancerServiceProtocolHTTP,
+				annotation.LBSvcHealthCheckInterval:                time.Hour,
+				annotation.LBSvcHealthCheckTimeout:                 30 * time.Second,
+				annotation.LBSvcHealthCheckRetries:                 5,
+				annotation.LBSvcHealthCheckHTTPDomain:              "example.com",
+				annotation.LBSvcHealthCheckHTTPPath:                "/internal/health",
+				annotation.LBSvcHealthCheckHTTPValidateCertificate: "true",
+				annotation.LBSvcHealthCheckHTTPStatusCodes:         "200,202",
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Int(84),
+				DestinationPort: hcloud.Int(8084),
+				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
+					Port:     hcloud.Int(8084),
+					Interval: hcloud.Duration(time.Hour),
+					Timeout:  hcloud.Duration(30 * time.Second),
+					Retries:  hcloud.Int(5),
+					HTTP: &hcloud.LoadBalancerAddServiceOptsHealthCheckHTTP{
+						Domain:      hcloud.String("example.com"),
+						Path:        hcloud.String("/internal/health"),
+						TLS:         hcloud.Bool(true),
+						StatusCodes: []string{"200", "202"},
+					},
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Int(8084),
+				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
+					Port:     hcloud.Int(8084),
+					Interval: hcloud.Duration(time.Hour),
+					Timeout:  hcloud.Duration(30 * time.Second),
+					Retries:  hcloud.Int(5),
+					HTTP: &hcloud.LoadBalancerUpdateServiceOptsHealthCheckHTTP{
+						Domain:      hcloud.String("example.com"),
+						Path:        hcloud.String("/internal/health"),
+						TLS:         hcloud.Bool(true),
+						StatusCodes: []string{"200", "202"},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
