@@ -1027,10 +1027,14 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 		}
 	}
 	if b.addHealthCheck {
+		port := b.healthCheckOpts.Port
+		if port == nil {
+			port = hcloud.Int(b.destinationPort)
+		}
 		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 			Protocol: b.healthCheckOpts.Protocol,
 			Interval: b.healthCheckOpts.Interval,
-			Port:     b.healthCheckOpts.Port,
+			Port:     port,
 			Retries:  b.healthCheckOpts.Retries,
 			Timeout:  b.healthCheckOpts.Timeout,
 		}
@@ -1076,10 +1080,14 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 		}
 	}
 	if b.addHealthCheck {
+		port := b.healthCheckOpts.Port
+		if port == nil {
+			port = hcloud.Int(b.destinationPort)
+		}
 		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 			Protocol: b.healthCheckOpts.Protocol,
 			Interval: b.healthCheckOpts.Interval,
-			Port:     b.healthCheckOpts.Port,
+			Port:     port,
 			Retries:  b.healthCheckOpts.Retries,
 			Timeout:  b.healthCheckOpts.Timeout,
 		}
