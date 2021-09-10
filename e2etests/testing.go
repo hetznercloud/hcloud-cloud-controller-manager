@@ -106,7 +106,7 @@ func (tc *TestCluster) initialize() error {
 		}
 	}
 
-	fmt.Printf("Test against %s\n", k8sVersion)
+	fmt.Printf("%s: Test against %s\n", op, k8sVersion)
 
 	imageName := os.Getenv("CCM_IMAGE_NAME")
 	buildImage := false
@@ -115,7 +115,7 @@ func (tc *TestCluster) initialize() error {
 		buildImage = true
 	}
 	if buildImage {
-		fmt.Println("Building ccm image")
+		fmt.Printf("%s: Building ccm image\n", op)
 
 		err := runCmd(
 			"go",
@@ -131,7 +131,7 @@ func (tc *TestCluster) initialize() error {
 		}
 	}
 
-	fmt.Println("Saving ccm image to disk")
+	fmt.Printf("%s: Saving ccm image to disk\n", op)
 	if err := runCmd("docker", []string{"save", "--output", "ci-hcloud-ccm.tar", imageName}, nil); err != nil {
 		return fmt.Errorf("%s: %v", op, err)
 	}
@@ -145,14 +145,9 @@ func (tc *TestCluster) initialize() error {
 		HcloudToken:     token,
 		KeepOnFailure:   tc.KeepOnFailure,
 	}
-	fmt.Println("Setting up test env")
+	fmt.Printf("%s: Setting up test env\n", op)
 
-	err := tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
-	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
-	}
-
-	kubeconfigPath, err := tc.setup.PrepareK8s(tc.useNetworks)
+	kubeconfigPath, err := tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys, tc.useNetworks)
 	if err != nil {
 		return fmt.Errorf("%s: %s", op, err)
 	}
@@ -215,8 +210,8 @@ func (tc *TestCluster) ensureNodesReady() error {
 	const op = "e2etests/ensureNodesReady"
 
 	err := wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
-		var available bool
-
+		var totalNodes = len(tc.setup.WorkerNodes) + 1 // Number Worker Nodes + 1 Cluster Node
+		var readyNodes int
 		nodes, err := tc.k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
@@ -224,11 +219,13 @@ func (tc *TestCluster) ensureNodesReady() error {
 		for _, node := range nodes.Items {
 			for _, cond := range node.Status.Conditions {
 				if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
-					available = true
+					readyNodes++
 				}
 			}
 		}
-		return available, nil
+		pendingNodes := totalNodes - readyNodes
+		fmt.Printf("Waiting for %d/%d nodes\n", pendingNodes, totalNodes)
+		return pendingNodes == 0, err
 	})
 
 	if err != nil {

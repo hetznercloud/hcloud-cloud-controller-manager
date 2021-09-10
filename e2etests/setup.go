@@ -29,6 +29,8 @@ const (
 	K8sDistributionK3s K8sDistribution = "k3s"
 )
 
+var instanceType = "cpx21"
+
 type hcloudK8sSetup struct {
 	Hcloud          *hcloud.Client
 	HcloudToken     string
@@ -42,87 +44,176 @@ type hcloudK8sSetup struct {
 	privKey         string
 	sshKey          *hcloud.SSHKey
 	network         *hcloud.Network
+	clusterJoinCMD  string
+	WorkerNodes     []*hcloud.Server
 	testLabels      map[string]string
 }
 
 type cloudInitTmpl struct {
-	K8sVersion    string
-	HcloudToken   string
-	HcloudNetwork string
+	K8sVersion      string
+	HcloudToken     string
+	HcloudNetwork   string
+	IsClusterServer bool
+	JoinCMD         string
 }
 
 // PrepareTestEnv setups a test environment for the Cloud Controller Manager
 // This includes the creation of a Network, SSH Key and Server.
 // The server will be created with a Cloud Init UserData
 // The template can be found under e2etests/templates/cloudinit_<k8s-distribution>.ixt.tpl
-func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys []*hcloud.SSHKey) error {
+func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys []*hcloud.SSHKey, useNetworks bool) (string, error) {
 	const op = "hcloudK8sSetup/PrepareTestEnv"
 
 	s.testLabels = map[string]string{"K8sDistribution": string(s.K8sDistribution), "K8sVersion": strings.ReplaceAll(s.K8sVersion, "+", ""), "test": s.TestIdentifier}
 	err := s.getSSHKey(ctx)
 	if err != nil {
-		return fmt.Errorf("%s getSSHKey: %s", op, err)
+		return "", fmt.Errorf("%s getSSHKey: %s", op, err)
 	}
 
 	err = s.getNetwork(ctx)
 	if err != nil {
-		return fmt.Errorf("%s getNetwork: %s", op, err)
+		return "", fmt.Errorf("%s getNetwork: %s", op, err)
 	}
-
-	srv, err := s.createServer(ctx, "cluster-node", "cpx21", additionalSSHKeys)
+	userData, err := s.getCloudInitConfig(true)
 	if err != nil {
-		return fmt.Errorf("%s: create cluster node: %v", op, err)
+		fmt.Printf("[cluster-node] %s getCloudInitConfig: %s", op, err)
+		return "", err
+	}
+	srv, err := s.createServer(ctx, "cluster-node", instanceType, additionalSSHKeys, userData)
+	if err != nil {
+		return "", fmt.Errorf("%s: create cluster node: %v", op, err)
 	}
 	s.ClusterNode = srv
-
-	srv, err = s.createServer(ctx, "ext-server", "cx11", additionalSSHKeys)
+	s.waitUntilSSHable(srv)
+	err = s.waitForCloudInit(srv)
 	if err != nil {
-		return fmt.Errorf("%s: create ext server: %v", op, err)
+		return "", err
+	}
+
+	joinCmd, err := s.getJoinCmd()
+	if err != nil {
+		return "", err
+	}
+	s.clusterJoinCMD = joinCmd
+
+	err = s.transferDockerImage(s.ClusterNode)
+	if err != nil {
+		return "", fmt.Errorf("%s: %s", op, err)
+	}
+
+	fmt.Printf("[%s] %s: Load Image:\n", s.ClusterNode.Name, op)
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, "ctr -n=k8s.io image import ci-hcloud-ccm.tar")
+	if err != nil {
+		return "", fmt.Errorf("%s: Load image %s", op, err)
+	}
+	kubeconfigPath, err := s.PrepareK8s(useNetworks)
+	if err != nil {
+		return "", fmt.Errorf("%s: %s", op, err)
+	}
+
+	var workers = 1 // Change this value if you want to have more workers for the test
+	var wg sync.WaitGroup
+	for worker := 1; worker <= workers; worker++ {
+		wg.Add(1)
+		go s.createClusterWorker(ctx, additionalSSHKeys, &wg, worker)
+	}
+	wg.Wait()
+
+	srv, err = s.createServer(ctx, "ext-server", instanceType, additionalSSHKeys, "")
+	if err != nil {
+		return "", fmt.Errorf("%s: create ext server: %v", op, err)
 	}
 	s.ExtServer = srv
+	s.waitUntilSSHable(srv)
 
-	fmt.Printf("%s Waiting for server to be sshable:", op)
-	for {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:22", s.ClusterNode.PublicNet.IPv4.IP.String()))
+	return kubeconfigPath, nil
+}
+
+func (s *hcloudK8sSetup) createClusterWorker(ctx context.Context, additionalSSHKeys []*hcloud.SSHKey, wg *sync.WaitGroup, worker int) {
+	const op = "hcloudK8sSetup/createClusterWorker"
+	defer wg.Done()
+
+	workerName := fmt.Sprintf("cluster-worker-%d", worker)
+	fmt.Printf("[%s] %s Create worker node:\n", workerName, op)
+
+	userData, err := s.getCloudInitConfig(false)
+	if err != nil {
+		fmt.Printf("[%s] %s getCloudInitConfig: %s", workerName, op, err)
+		return
+	}
+	srv, err := s.createServer(ctx, workerName, instanceType, additionalSSHKeys, userData)
+	if err != nil {
+		fmt.Printf("[%s] %s createServer: %s", workerName, op, err)
+		return
+	}
+	s.WorkerNodes = append(s.WorkerNodes, srv)
+
+	s.waitUntilSSHable(srv)
+
+	err = s.waitForCloudInit(srv)
+	if err != nil {
+		fmt.Printf("[%s] %s: wait for cloud init on worker: %v", srv.Name, op, err)
+		return
+	}
+
+	err = s.transferDockerImage(srv)
+	if err != nil {
+		fmt.Printf("[%s] %s: transfer image on worker: %v", srv.Name, op, err)
+		return
+	}
+
+	fmt.Printf("[%s] %s Load Image\n", srv.Name, op)
+	err = RunCommandOnServer(s.privKey, srv, "ctr -n=k8s.io image import ci-hcloud-ccm.tar")
+	if err != nil {
+		fmt.Printf("[%s] %s: load image on worker: %v", srv.Name, op, err)
+		return
+	}
+}
+
+// waitForCloudInit waits on cloud init on the server.
+// when cloud init is ready we can assume that the server
+// and the plain k8s installation is ready
+func (s *hcloudK8sSetup) getJoinCmd() (string, error) {
+	const op = "hcloudK8sSetup/getJoinCmd"
+	fmt.Printf("[%s] %s: Download join cmd\n", s.ClusterNode.Name, op)
+	if s.K8sDistribution == K8sDistributionK8s {
+		err := scp("ssh_key", fmt.Sprintf("root@%s:/root/join.txt", s.ClusterNode.PublicNet.IPv4.IP.String()), "join.txt")
 		if err != nil {
-			fmt.Print(".")
+			return "", fmt.Errorf("[%s] %s download join cmd: %s", s.ClusterNode.Name, op, err)
+		}
+		cmd, err := ioutil.ReadFile("join.txt")
+		if err != nil {
+			return "", fmt.Errorf("[%s] %s reading join cmd file: %s", s.ClusterNode.Name, op, err)
+		}
+
+		return string(cmd), nil
+	}
+	err := scp("ssh_key", fmt.Sprintf("root@%s:/var/lib/rancher/k3s/server/node-token", s.ClusterNode.PublicNet.IPv4.IP.String()), "join.txt")
+	if err != nil {
+		return "", fmt.Errorf("[%s] %s download join cmd: %s", s.ClusterNode.Name, op, err)
+	}
+	token, err := ioutil.ReadFile("join.txt")
+	return fmt.Sprintf("K3S_URL=https://%s:6443 K3S_TOKEN=%s", s.ClusterNode.PublicNet.IPv4.IP.String(), token), nil
+}
+
+func (s *hcloudK8sSetup) waitUntilSSHable(server *hcloud.Server) {
+	const op = "hcloudK8sSetup/PrepareTestEnv"
+	fmt.Printf("[%s] %s: Waiting for server to be sshable:\n", server.Name, op)
+	for {
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:22", server.PublicNet.IPv4.IP.String()))
+		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
 		}
 		_ = conn.Close()
-		fmt.Print("Connection successful\n")
+		fmt.Printf("[%s] %s: SSH Connection successful\n", server.Name, op)
 		break
 	}
-	err = s.waitForCloudInit()
-	if err != nil {
-		return err
-	}
-
-	err = s.transferCCMDockerImage()
-	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
-	}
-
-	fmt.Printf("%s Load Image:\n", op)
-	transferCmd := "docker load --input ci-hcloud-ccm.tar"
-	if s.K8sDistribution == K8sDistributionK3s {
-		transferCmd = "ctr -n=k8s.io image import ci-hcloud-ccm.tar"
-	}
-	err = RunCommandOnServer(s.privKey, s.ClusterNode, transferCmd)
-	if err != nil {
-		return fmt.Errorf("%s: Load image %s", op, err)
-	}
-
-	return nil
 }
 
-func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, additionalSSHKeys []*hcloud.SSHKey) (*hcloud.Server, error) {
+func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, additionalSSHKeys []*hcloud.SSHKey, userData string) (*hcloud.Server, error) {
 	const op = "e2etest/createServer"
 
-	userData, err := s.getCloudInitConfig()
-	if err != nil {
-		return nil, fmt.Errorf("%s getCloudInitConfig: %s", op, err)
-	}
 	sshKeys := []*hcloud.SSHKey{s.sshKey}
 	for _, additionalSSHKey := range additionalSSHKeys {
 		sshKeys = append(sshKeys, additionalSSHKey)
@@ -181,33 +272,33 @@ func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
 		return "", fmt.Errorf("%s: %s", op, err)
 	}
 
-	fmt.Printf("%s: Apply ccm deployment\n", op)
+	fmt.Printf("[%s] %s: Apply ccm deployment\n", s.ClusterNode.Name, op)
 	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl apply -f ccm.yml")
 	if err != nil {
 		return "", fmt.Errorf("%s Deploy ccm: %s", op, err)
 	}
 
-	fmt.Printf("%s: Ensure Server is not labeled as master\n", op)
-	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl label nodes --all node-role.kubernetes.io/master-")
-	if err != nil {
-		return "", fmt.Errorf("%s Ensure Server is not labeled as master: %s", op, err)
-	}
-
-	if s.K8sDistribution == K8sDistributionK8s {
-		fmt.Printf("%s: Ensure Server is not tainted as master\n", op)
-		err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl taint nodes --all node-role.kubernetes.io/master-")
+	/*	fmt.Printf("[%s] %s: Ensure Server is not labeled as master\n", s.ClusterNode.Name, op)
+		err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl label nodes --all node-role.kubernetes.io/master-")
 		if err != nil {
-			return "", fmt.Errorf("%s Ensure Server is not tainted as master: %s", op, err)
+			return "", fmt.Errorf("%s Ensure Server is not labeled as master: %s", op, err)
 		}
-	}
-	fmt.Printf("%s: Download kubeconfig\n", op)
+
+		if s.K8sDistribution == K8sDistributionK8s {
+			fmt.Printf("[%s] %s: Ensure Server is not tainted as master\n", s.ClusterNode.Name, op)
+			err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl taint nodes --all node-role.kubernetes.io/master-")
+			if err != nil {
+				return "", fmt.Errorf("%s Ensure Server is not tainted as master: %s", op, err)
+			}
+		}*/
+	fmt.Printf("[%s] %s: Download kubeconfig\n", s.ClusterNode.Name, op)
 
 	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.ClusterNode.PublicNet.IPv4.IP.String()), "kubeconfig")
 	if err != nil {
 		return "", fmt.Errorf("%s download kubeconfig: %s", op, err)
 	}
 
-	fmt.Printf("%s: Ensure correct server is set\n", op)
+	fmt.Printf("[%s] %s: Ensure correct server is set\n", s.ClusterNode.Name, op)
 	kubeconfigBefore, err := ioutil.ReadFile("kubeconfig")
 	if err != nil {
 		return "", fmt.Errorf("%s reading kubeconfig: %s", op, err)
@@ -324,11 +415,11 @@ func (s *hcloudK8sSetup) deployCilium() error {
 	return nil
 }
 
-// transferCCMDockerImage transfers the local build docker image tar via SCP
-func (s *hcloudK8sSetup) transferCCMDockerImage() error {
-	const op = "hcloudK8sSetup/transferCCMDockerImage"
-	fmt.Printf("%s: Transfer docker image\n", op)
-	err := WithSSHSession(s.privKey, s.ClusterNode.PublicNet.IPv4.IP.String(), func(session *ssh.Session) error {
+// transferDockerImage transfers the local build docker image tar via SCP
+func (s *hcloudK8sSetup) transferDockerImage(server *hcloud.Server) error {
+	const op = "hcloudK8sSetup/transferDockerImage"
+	fmt.Printf("[%s] %s: Transfer docker image\n", server.Name, op)
+	err := WithSSHSession(s.privKey, server.PublicNet.IPv4.IP.String(), func(session *ssh.Session) error {
 		file, err := os.Open("ci-hcloud-ccm.tar")
 		if err != nil {
 			return fmt.Errorf("%s read ci-hcloud-ccm.tar: %s", op, err)
@@ -363,10 +454,10 @@ func (s *hcloudK8sSetup) transferCCMDockerImage() error {
 // waitForCloudInit waits on cloud init on the server.
 // when cloud init is ready we can assume that the server
 // and the plain k8s installation is ready
-func (s *hcloudK8sSetup) waitForCloudInit() error {
+func (s *hcloudK8sSetup) waitForCloudInit(server *hcloud.Server) error {
 	const op = "hcloudK8sSetup/PrepareTestEnv"
-	fmt.Printf("%s: Wait for cloud-init\n", op)
-	err := RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("cloud-init status --wait > /dev/null"))
+	fmt.Printf("[%s] %s: Wait for cloud-init\n", server.Name, op)
+	err := RunCommandOnServer(s.privKey, server, fmt.Sprintf("cloud-init status --wait > /dev/null"))
 	if err != nil {
 		return fmt.Errorf("%s: Wait for cloud-init: %s", op, err)
 	}
@@ -393,6 +484,13 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 	}
 	s.ClusterNode = nil
 
+	for _, wn := range s.WorkerNodes {
+		_, err := s.Hcloud.Server.Delete(ctx, wn)
+		if err != nil {
+			return fmt.Errorf("[%s] %s Hcloud.Server.Delete: %s", wn.Name, op, err)
+		}
+	}
+
 	_, err = s.Hcloud.Server.Delete(ctx, s.ExtServer)
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.Server.Delete: %s", op, err)
@@ -413,7 +511,7 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 }
 
 // getCloudInitConfig returns the generated cloud init configuration
-func (s *hcloudK8sSetup) getCloudInitConfig() (string, error) {
+func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error) {
 	const op = "hcloudK8sSetup/getCloudInitConfig"
 
 	str, err := ioutil.ReadFile(fmt.Sprintf("templates/cloudinit_%s.txt.tpl", s.K8sDistribution))
@@ -425,7 +523,7 @@ func (s *hcloudK8sSetup) getCloudInitConfig() (string, error) {
 		return "", fmt.Errorf("%s: parsing template file %s: %v", "templates/cloudinit.txt.tpl", op, err)
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, cloudInitTmpl{K8sVersion: s.K8sVersion, HcloudToken: s.HcloudToken, HcloudNetwork: s.network.Name}); err != nil {
+	if err := tmpl.Execute(&buf, cloudInitTmpl{K8sVersion: s.K8sVersion, HcloudToken: s.HcloudToken, HcloudNetwork: s.network.Name, IsClusterServer: isClusterServer, JoinCMD: s.clusterJoinCMD}); err != nil {
 		return "", fmt.Errorf("%s: execute template: %v", op, err)
 	}
 	return buf.String(), nil
