@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"reflect"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
@@ -116,7 +117,7 @@ func MustGetObject(obj interface{}) metav1.Object {
 	panic(fmt.Errorf("Unknown type: %v", reflect.TypeOf(obj)))
 }
 
-func (l *loadBalancers) nodesForService(svc *v1.Service, nodes []*v1.Node) ([]*v1.Node) {
+func (l *loadBalancers) nodesForService(svc *v1.Service, nodes []*v1.Node) []*v1.Node {
 	objectMeta := MustGetObject(svc)
 	svcAnnotations := objectMeta.GetAnnotations()
 
@@ -129,7 +130,7 @@ func (l *loadBalancers) nodesForService(svc *v1.Service, nodes []*v1.Node) ([]*v
 		filteredNodes := []*v1.Node{}
 		for _, n := range nodes {
 			if nodeSelector.Matches(labels.Set(n.Labels)) {
-				filteredNodes = append(filteredNodes,n)
+				filteredNodes = append(filteredNodes, n)
 			}
 		}
 
@@ -150,7 +151,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		lb     *hcloud.LoadBalancer
 		err    error
 	)
-	nodes = l.nodesForService(svc,nodes)
+	nodes = l.nodesForService(svc, nodes)
 	nodeNames := make([]string, len(nodes))
 	for i, n := range nodes {
 		nodeNames[i] = n.Name
