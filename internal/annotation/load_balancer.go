@@ -185,6 +185,9 @@ const (
 	// LBSvcHealthCheckHTTPStatusCodes is a comma separated list of HTTP status
 	// codes which we expect.
 	LBSvcHealthCheckHTTPStatusCodes Name = "load-balancer.hetzner.cloud/http-status-codes"
+
+	// LBSvcTargetNodesMatching is a comma separated list of label matchers to get a subset of nodes in the cluster.
+	LBSvcTargetNodesMatching Name = "load-balancer.hetzner.cloud/target-nodes-matching"
 )
 
 // LBToService sets the relevant annotations on svc to their respective values
