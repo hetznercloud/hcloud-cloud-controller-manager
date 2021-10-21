@@ -48,7 +48,7 @@ const (
 	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
-	providerVersion                          = "v1.9.1"
+	providerVersion                          = "v1.12.1"
 )
 
 type cloud struct {
