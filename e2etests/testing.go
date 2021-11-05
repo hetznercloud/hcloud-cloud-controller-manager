@@ -412,7 +412,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 		return false, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: test service (load balancer) did not come up after 1 minute: %s", op, err)
+		return nil, fmt.Errorf("%s: test service (load balancer) did not come up after 5 minute: %s", op, err)
 	}
 	return lbSvc, nil
 }
