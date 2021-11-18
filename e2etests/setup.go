@@ -41,6 +41,7 @@ type hcloudK8sSetup struct {
 	KeepOnFailure   bool
 	ClusterNode     *hcloud.Server
 	ExtServer       *hcloud.Server
+	UseNetworks     bool
 	privKey         string
 	sshKey          *hcloud.SSHKey
 	network         *hcloud.Network
@@ -55,6 +56,7 @@ type cloudInitTmpl struct {
 	HcloudNetwork   string
 	IsClusterServer bool
 	JoinCMD         string
+	UseFlannel      bool
 }
 
 // PrepareTestEnv setups a test environment for the Cloud Controller Manager
@@ -106,7 +108,7 @@ func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys [
 	if err != nil {
 		return "", fmt.Errorf("%s: Load image %s", op, err)
 	}
-	kubeconfigPath, err := s.PrepareK8s(useNetworks)
+	kubeconfigPath, err := s.PrepareK8s()
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", op, err)
 	}
@@ -252,22 +254,23 @@ func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, add
 
 // PrepareK8s patches an existing kubernetes cluster with a CNI and the correct
 // Cloud Controller Manager version from this test run
-func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
+func (s *hcloudK8sSetup) PrepareK8s() (string, error) {
 	const op = "hcloudK8sSetup/PrepareK8s"
 
-	if withNetworks {
+	if s.UseNetworks {
 		err := s.deployCilium()
 		if err != nil {
 			return "", fmt.Errorf("%s: %s", op, err)
 		}
-	} else {
+	}
+	if s.K8sDistribution != K8sDistributionK3s && !s.UseNetworks {
 		err := s.deployFlannel()
 		if err != nil {
 			return "", fmt.Errorf("%s: %s", op, err)
 		}
 	}
 
-	err := s.prepareCCMDeploymentFile(withNetworks)
+	err := s.prepareCCMDeploymentFile(s.UseNetworks)
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", op, err)
 	}
@@ -278,19 +281,6 @@ func (s *hcloudK8sSetup) PrepareK8s(withNetworks bool) (string, error) {
 		return "", fmt.Errorf("%s Deploy ccm: %s", op, err)
 	}
 
-	/*	fmt.Printf("[%s] %s: Ensure Server is not labeled as master\n", s.ClusterNode.Name, op)
-		err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl label nodes --all node-role.kubernetes.io/master-")
-		if err != nil {
-			return "", fmt.Errorf("%s Ensure Server is not labeled as master: %s", op, err)
-		}
-
-		if s.K8sDistribution == K8sDistributionK8s {
-			fmt.Printf("[%s] %s: Ensure Server is not tainted as master\n", s.ClusterNode.Name, op)
-			err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl taint nodes --all node-role.kubernetes.io/master-")
-			if err != nil {
-				return "", fmt.Errorf("%s Ensure Server is not tainted as master: %s", op, err)
-			}
-		}*/
 	fmt.Printf("[%s] %s: Download kubeconfig\n", s.ClusterNode.Name, op)
 
 	err = scp("ssh_key", fmt.Sprintf("root@%s:/root/.kube/config", s.ClusterNode.PublicNet.IPv4.IP.String()), "kubeconfig")
@@ -401,7 +391,7 @@ func (s *hcloudK8sSetup) deployCilium() error {
 	if err != nil {
 		return fmt.Errorf("%s: read cilium deployment file %s: %v", op, "templates/cilium.yml", err)
 	}
-	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("echo '%s' >> cilium.yml", deploymentFile))
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("cat <<EOF > cilium.yml\n%s\nEOF", deploymentFile))
 	if err != nil {
 		return fmt.Errorf("%s: Transfer cilium deployment: %s", op, err)
 	}
@@ -514,6 +504,14 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error) {
 	const op = "hcloudK8sSetup/getCloudInitConfig"
 
+	data := cloudInitTmpl{
+		K8sVersion:      s.K8sVersion,
+		HcloudToken:     s.HcloudToken,
+		HcloudNetwork:   s.network.Name,
+		IsClusterServer: isClusterServer,
+		JoinCMD:         s.clusterJoinCMD,
+		UseFlannel:      s.K8sDistribution == K8sDistributionK3s && !s.UseNetworks,
+	}
 	str, err := ioutil.ReadFile(fmt.Sprintf("templates/cloudinit_%s.txt.tpl", s.K8sDistribution))
 	if err != nil {
 		return "", fmt.Errorf("%s: read template file %s: %v", "templates/cloudinit.txt.tpl", op, err)
@@ -523,7 +521,7 @@ func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error
 		return "", fmt.Errorf("%s: parsing template file %s: %v", "templates/cloudinit.txt.tpl", op, err)
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, cloudInitTmpl{K8sVersion: s.K8sVersion, HcloudToken: s.HcloudToken, HcloudNetwork: s.network.Name, IsClusterServer: isClusterServer, JoinCMD: s.clusterJoinCMD}); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("%s: execute template: %v", op, err)
 	}
 	return buf.String(), nil
@@ -611,6 +609,7 @@ func RunCommandOnServer(privKey string, server *hcloud.Server, command string) e
 	return WithSSHSession(privKey, server.PublicNet.IPv4.IP.String(), func(session *ssh.Session) error {
 		if ok := os.Getenv("TEST_DEBUG_MODE"); ok != "" {
 			session.Stdout = os.Stdout
+			session.Stderr = os.Stderr
 		}
 		return session.Run(command)
 	})

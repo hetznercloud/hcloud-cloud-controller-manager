@@ -32,7 +32,7 @@ dockers:
       - "hetznercloud/hcloud-cloud-controller-manager:latest"
       - "hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
     dockerfile: Dockerfile
-    use_buildx: true
+    use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
 release:

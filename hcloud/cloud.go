@@ -165,6 +165,12 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 	return c.instances, true
 }
 
+func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
+	// TODO disable InstancesV2 for now. We first need to implement it and
+	// find out what to do about the Deprecation of Zones
+	return nil, false
+}
+
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
 	return c.zones, true
 }
@@ -236,13 +242,13 @@ func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, bool, erro
 // serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network
 // We use this measurement to protect users against some parts of misconfiguration, like configuring a master in a not attached
 // network.
-func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkId int) (bool, error) {
+func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int) (bool, error) {
 	const op = "serverIsAttachedToNetwork"
 	serverPrivateNetworks, err := metadataClient.PrivateNetworks()
 	if err != nil {
 		return false, fmt.Errorf("%s: %s", op, err)
 	}
-	return strings.Contains(serverPrivateNetworks, fmt.Sprintf("network_id: %d\n", networkId)), nil
+	return strings.Contains(serverPrivateNetworks, fmt.Sprintf("network_id: %d\n", networkID)), nil
 }
 
 // addressFamilyFromEnv returns the address family for the instance address from the environment
