@@ -4,3 +4,4 @@ dist/
 deploy/gen/
 .coverage.out
 .envrc
+hcloud-cloud-controller-manager

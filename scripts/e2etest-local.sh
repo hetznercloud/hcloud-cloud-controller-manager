@@ -30,7 +30,14 @@ if [[ -z "$HCLOUD_TOKEN" ]]; then
     exit 1
 fi
 
-K8S_VERSIONS=("k8s-1.19.10" "k8s-1.20.6" "k3s-v1.20.6+k3s1", "k8s-1.21.0")
+K8S_VERSIONS=(
+    "k8s-1.20.12"
+    "k3s-v1.20.12+k3s1"
+    "k8s-1.21.6"
+    "k3s-v1.21.6+k3s1"
+    "k8s-1.22.3"
+    "k3s-v1.22.3+k3s1"
+)
 for v in "${K8S_VERSIONS[@]}"; do
     test_k8s_version "$v"
 done

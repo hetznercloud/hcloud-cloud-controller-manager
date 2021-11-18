@@ -144,6 +144,7 @@ func (tc *TestCluster) initialize() error {
 		ImageName:       imageName,
 		HcloudToken:     token,
 		KeepOnFailure:   tc.KeepOnFailure,
+		UseNetworks:     tc.useNetworks,
 	}
 	fmt.Printf("%s: Setting up test env\n", op)
 
