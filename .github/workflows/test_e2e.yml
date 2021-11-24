@@ -1,8 +1,8 @@
 name: Run e2e tests
-on: [ push ]
+on: [ pull_request ]
 jobs:
   k8s:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         k8s: [ 1.20.12, 1.21.6, 1.22.3 ]
@@ -16,7 +16,6 @@ jobs:
       - name: Run tests
         env:
           K8S_VERSION: k8s-${{ matrix.k8s }}
-          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
           USE_NETWORKS: yes
         run: |
           export HCLOUD_TOKEN=$(./scripts/get-token.sh)
@@ -24,7 +23,7 @@ jobs:
           go test $(go list ./... | grep e2etests) -v -timeout 60m
           ./scripts/delete-token.sh $HCLOUD_TOKEN
   k3s:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         k3s: [ v1.20.12+k3s1, v1.21.6+k3s1, v1.22.3+k3s1 ]
@@ -38,7 +37,6 @@ jobs:
       - name: Run tests
         env:
           K8S_VERSION: k3s-${{ matrix.k3s }}
-          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
           USE_NETWORKS: yes
         run: |
           export HCLOUD_TOKEN=$(./scripts/get-token.sh)
