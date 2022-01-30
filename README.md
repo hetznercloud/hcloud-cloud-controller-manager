@@ -187,6 +187,19 @@ release.
 | 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.20       | v1.20.12+k3s1     | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 
+## Unit tests
+
+To run unit tests locally, execute
+
+```sh
+go test $(go list ./... | grep -v e2etests) -v
+```
+
+Check that your go version is up to date, tests might fail if it is not.
+
+If in doubt, check which go version the `test:unit` section in `.gitlab-ci.yml`
+has set in the `image: golang:$VERSION`.
+
 ## E2E Tests
 
 The Hetzner Cloud cloud controller manager was tested against all
