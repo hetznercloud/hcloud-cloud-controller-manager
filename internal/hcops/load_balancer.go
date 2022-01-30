@@ -43,6 +43,7 @@ type HCloudLoadBalancerClient interface {
 
 	ChangeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeAlgorithmOpts) (*hcloud.Action, *hcloud.Response, error)
 	ChangeType(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeTypeOpts) (*hcloud.Action, *hcloud.Response, error)
+	ChangeDNSPtr(ctx context.Context, lb *hcloud.LoadBalancer, ip string, ptr *string) (*hcloud.Action, *hcloud.Response, error)
 
 	AddServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServerTargetOpts) (*hcloud.Action, *hcloud.Response, error)
 	RemoveServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, server *hcloud.Server) (*hcloud.Action, *hcloud.Response, error)
@@ -254,6 +255,18 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 	}
 	changed = changed || labelSet
 
+	ipv4RDNSChanged, err := l.changeIPv4RDNS(ctx, lb, svc)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
+	changed = changed || ipv4RDNSChanged
+
+	ipv6RDNSChanged, err := l.changeIPv6RDNS(ctx, lb, svc)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
+	changed = changed || ipv6RDNSChanged
+
 	algorithmChanged, err := l.changeAlgorithm(ctx, lb, svc)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
@@ -328,6 +341,56 @@ func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBal
 	lb.Name = updated.Name
 	lb.Labels = updated.Labels
 
+	return true, nil
+}
+
+func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
+	const op = "hcops/LoadBalancerOps.changeIPv4RDNS"
+
+	rdns, ok := annotation.LBPublicIPv4RDNS.StringFromService(svc)
+	// If the annotation is not set, no changes are needed
+	if !ok {
+		return false, nil
+	}
+	// If the annotation and the actual value match, no changes are needed
+	if rdns == lb.PublicNet.IPv4.DNSPtr {
+		return false, nil
+	}
+
+	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, string(lb.PublicNet.IPv4.IP), &rdns)
+
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	err = WatchAction(ctx, l.ActionClient, action)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return true, nil
+}
+
+func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
+	const op = "hcops/LoadBalancerOps.changeIPv6RDNS"
+
+	rdns, ok := annotation.LBPublicIPv6RDNS.StringFromService(svc)
+	// If the annotation is not set, no changes are needed
+	if !ok {
+		return false, nil
+	}
+	// If the annotation and the actual value match, no changes are needed
+	if rdns == lb.PublicNet.IPv6.DNSPtr {
+		return false, nil
+	}
+
+	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, string(lb.PublicNet.IPv6.IP), &rdns)
+
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	err = WatchAction(ctx, l.ActionClient, action)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
 	return true, nil
 }
 

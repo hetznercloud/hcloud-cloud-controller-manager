@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"testing"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
@@ -731,6 +732,100 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
 				assert.NoError(t, err)
 				assert.False(t, changed)
+			},
+		},
+		{
+			name: "don't update correct IPv4 RNDS",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBPublicIPv4RDNS: "lb.example.com",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 6,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4: hcloud.LoadBalancerPublicNetIPv4{
+						DNSPtr: "lb.example.com",
+					},
+				},
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
+		{
+			name: "update incorrect IPv4 RNDS",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBPublicIPv4RDNS: "new-name-lb.example.com",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 6,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4: hcloud.LoadBalancerPublicNetIPv4{
+						DNSPtr: "lb.example.com",
+						IP:     net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				action := &hcloud.Action{ID: rand.Int()}
+				newRDNS := "new-name-lb.example.com"
+				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, string(net.ParseIP("1.2.3.4")), &newRDNS).Return(action, nil, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "don't update correct IPv6 RNDS",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBPublicIPv6RDNS: "lb.example.com",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 6,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv6: hcloud.LoadBalancerPublicNetIPv6{
+						DNSPtr: "lb.example.com",
+					},
+				},
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
+		{
+			name: "update incorrect IPv6 RNDS",
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBPublicIPv6RDNS: "new-name-lb.example.com",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 6,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv6: hcloud.LoadBalancerPublicNetIPv6{
+						DNSPtr: "lb.example.com",
+						IP:     net.ParseIP("fe80::1"),
+					},
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				action := &hcloud.Action{ID: rand.Int()}
+				newRDNS := "new-name-lb.example.com"
+				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, string(net.ParseIP("fe80::1")), &newRDNS).Return(action, nil, nil)
+				tt.fx.MockWatchProgress(action, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
 			},
 		},
 		{
