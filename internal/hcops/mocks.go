@@ -3,11 +3,10 @@ package hcops
 import (
 	"context"
 
-	"github.com/stretchr/testify/mock"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/stretchr/testify/mock"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/mocks"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type MockLoadBalancerOps struct {

@@ -25,11 +25,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
+	hrobot "github.com/syself/hrobot-go"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
 )
@@ -39,6 +40,10 @@ const (
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
+
+	robotUserNameENVVar = "ROBOT_USER_NAME"
+	robotPasswordENVVar = "ROBOT_PASSWORD"
+
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudNetworkRoutesEnabledENVVar         = "HCLOUD_NETWORK_ROUTES_ENABLED"
@@ -53,13 +58,17 @@ const (
 	hcloudMetricsAddress                     = ":8233"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
+	hostNamePrefixRobot                      = "bm-"
 )
+
+var errMissingRobotCredentials = errors.New("missing robot credentials - cannot connect to robot API")
 
 // providerVersion is set by the build process using -ldflags -X.
 var providerVersion = "unknown"
 
 type cloud struct {
 	client       *hcloud.Client
+	robotClient  hrobot.RobotClient
 	instances    *instances
 	routes       *routes
 	loadBalancer *loadBalancers
@@ -103,6 +112,14 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
 
+	robotUserName, foundRobotUserName := os.LookupEnv(robotUserNameENVVar)
+	robotPassword, foundRobotPassword := os.LookupEnv(robotPasswordENVVar)
+
+	var robotClient hrobot.RobotClient
+	if foundRobotUserName && foundRobotPassword {
+		robotClient = hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+	}
+
 	var networkID int
 	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
 		n, _, err := client.Network.Get(context.Background(), v)
@@ -145,11 +162,13 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	lbOpsDefaults.DisableIPv6 = lbDisableIPv6
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &client.LoadBalancer,
 		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
+		RobotClient:   robotClient,
 		NetworkID:     networkID,
 		Defaults:      lbOpsDefaults,
 	}
@@ -166,7 +185,8 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	return &cloud{
 		client:       client,
-		instances:    newInstances(client, instancesAddressFamily, networkID),
+		robotClient:  robotClient,
+		instances:    newInstances(client, robotClient, instancesAddressFamily, networkID),
 		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,

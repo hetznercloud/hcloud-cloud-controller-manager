@@ -3,10 +3,12 @@ package hcops
 import (
 	"context"
 	"math/rand"
+	"net"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/mocks"
+	"github.com/syself/hrobot-go/models"
 )
 
 type LoadBalancerOpsFixture struct {
@@ -16,6 +18,7 @@ type LoadBalancerOpsFixture struct {
 	CertClient    *mocks.CertificateClient
 	ActionClient  *mocks.ActionClient
 	NetworkClient *mocks.NetworkClient
+	RobotClient   *mocks.RobotClient
 
 	LBOps *LoadBalancerOps
 
@@ -29,6 +32,7 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 		LBClient:      &mocks.LoadBalancerClient{},
 		CertClient:    &mocks.CertificateClient{},
 		NetworkClient: &mocks.NetworkClient{},
+		RobotClient:   &mocks.RobotClient{},
 		T:             t,
 	}
 
@@ -36,12 +40,14 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 	fx.LBClient.Test(t)
 	fx.CertClient.Test(t)
 	fx.NetworkClient.Test(t)
+	fx.RobotClient.Test(t)
 
 	fx.LBOps = &LoadBalancerOps{
 		LBClient:      fx.LBClient,
 		CertOps:       &CertificateOps{CertClient: fx.CertClient},
 		ActionClient:  fx.ActionClient,
 		NetworkClient: fx.NetworkClient,
+		RobotClient:   fx.RobotClient,
 	}
 
 	return fx
@@ -96,6 +102,28 @@ func (fx *LoadBalancerOpsFixture) MockRemoveServerTarget(
 	action := &hcloud.Action{ID: rand.Int()}
 	fx.LBClient.On("RemoveServerTarget", fx.Ctx, lb, s).Return(action, nil, err)
 	return action
+}
+
+func (fx *LoadBalancerOpsFixture) MockAddIPTarget(
+	lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddIPTargetOpts, err error,
+) *hcloud.Action {
+	action := &hcloud.Action{ID: rand.Int()}
+	fx.LBClient.On("AddIPTarget", fx.Ctx, lb, opts).Return(action, nil, err)
+	return action
+}
+
+func (fx *LoadBalancerOpsFixture) MockRemoveIPTarget(
+	lb *hcloud.LoadBalancer, ip net.IP, err error,
+) *hcloud.Action {
+	action := &hcloud.Action{ID: rand.Int()}
+	fx.LBClient.On("RemoveIPTarget", fx.Ctx, lb, ip).Return(action, nil, err)
+	return action
+}
+
+func (fx *LoadBalancerOpsFixture) MockListRobotServers(
+	serverList []models.Server, err error,
+) {
+	fx.RobotClient.On("ServerGetList").Return(serverList, err)
 }
 
 func (fx *LoadBalancerOpsFixture) MockWatchProgress(a *hcloud.Action, err error) {

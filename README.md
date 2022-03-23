@@ -1,6 +1,6 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
 
-[![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
+[![GitHub Actions status](https://github.com/syself/hetzner-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/syself/hetzner-cloud-controller-manager/actions)
 
 The Hetzner Cloud controller manager integrates your Kubernetes cluster with the Hetzner Cloud API.
 
@@ -43,7 +43,7 @@ network agent. Feel free to adapt the steps to your preferred method of
 installing Kubernetes.
 
 These deployment instructions are designed to guide with the
-installation of the `hcloud-cloud-controller-manager` and are by no
+installation of the `hetzner-cloud-controller-manager` and are by no
 means an in depth tutorial of setting up Kubernetes clusters.
 **Previous knowledge about the involved components is required.**
 
@@ -59,47 +59,47 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
    accomplish this we add this systemd drop-in unit
    `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`:
 
-    ```
-    [Service]
-    Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
-    ```
+   ```
+   [Service]
+   Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
+   ```
 
    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
    will see a log message regarding this. For now (v1.26) it is still required.
 
 2. Now the control plane can be initialized:
 
-    ```sh
-    sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-    ```
+   ```sh
+   sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+   ```
 
 3. Configure kubectl to connect to the kube-apiserver:
 
-    ```sh
-    mkdir -p $HOME/.kube
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config
-    ```
+   ```sh
+   mkdir -p $HOME/.kube
+   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+   ```
 
 4. Deploy the flannel CNI plugin:
 
-    ```sh
-    kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
-    ```
+   ```sh
+   kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+   ```
 
 5. Patch the flannel deployment to tolerate the `uninitialized` taint:
 
-    ```sh
-    kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
-    ```
+   ```sh
+   kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+   ```
 
 6. Create a secret containing your Hetzner Cloud API token.
 
-    ```sh
-    kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
-    ```
+   ```sh
+   kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
+   ```
 
-7. Deploy `hcloud-cloud-controller-manager`
+7. Deploy the `hetzner-cloud-controller-manager`:
 
     **Using Helm (recommended):**
 
@@ -114,7 +114,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     **Legacy installation method**:
 
     ```sh
-    kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+    kubectl apply -f  https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
 
 ## Networks support
@@ -155,7 +155,7 @@ secret: `kubectl -n kube-system create secret generic hcloud --from-literal=toke
 If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the
 annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP.
 
-See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
+See https://github.com/syself/hetzner-cloud-controller-manager/issues/212
 
 ## Versioning policy
 
@@ -250,46 +250,57 @@ alias kgs="kubectl get services"
 ```
 
 ## Local test setup
+
 This repository provides [skaffold](https://skaffold.dev/) to easily deploy / debug this controller on demand
 
 ### Requirements
+
 1. Install [hcloud-cli](https://github.com/hetznercloud/cli)
 2. Install [k3sup](https://github.com/alexellis/k3sup)
 3. Install [cilium](https://github.com/cilium/cilium-cli)
 4. Install [docker](https://www.docker.com/)
 
 You will also need to set a `HCLOUD_TOKEN` in your shell session
+
 ### Manual Installation guide
+
 1. Create an SSH key
 
 Assuming you already have created an ssh key via `ssh-keygen`
+
 ```
-hcloud ssh-key create --name ssh-key-ccm-test --public-key-from-file ~/.ssh/id_rsa.pub 
+hcloud ssh-key create --name ssh-key-ccm-test --public-key-from-file ~/.ssh/id_rsa.pub
 ```
 
 2. Create a server
+
 ```
-hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-key-ccm-test --type cx11 
+hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-key-ccm-test --type cx11
 ```
 
 3. Setup k3s on this server
+
 ```
 k3sup install --ip $(hcloud server ip ccm-test-server) --local-path=/tmp/kubeconfig --cluster --k3s-channel=v1.23 --k3s-extra-args='--no-flannel --no-deploy=servicelb --no-deploy=traefik --disable-cloud-controller --disable-network-policy --kubelet-arg=cloud-provider=external'
 ```
+
 - The kubeconfig will be created under `/tmp/kubeconfig`
 - Kubernetes version can be configured via `--k3s-channel`
 
-4. Switch your kubeconfig to the test cluster. Very important: exporting this like 
+4. Switch your kubeconfig to the test cluster. Very important: exporting this like
+
 ```
 export KUBECONFIG=/tmp/kubeconfig
 ```
 
 5. Install cilium + test your cluster
+
 ```
 cilium install
 ```
 
 6. Add your secret to the cluster
+
 ```
 kubectl -n kube-system create secret generic hcloud --from-literal="token=$HCLOUD_TOKEN"
 ```
@@ -306,6 +317,89 @@ SKAFFOLD_DEFAULT_REPO=your_docker_hub_username skaffold dev
 On code change, Skaffold will repack the image & deploy it to your test cluster again. It will also stream logs from the hccm Deployment.
 
 *After setting this up, only the command from step 7 is required!*=
+
+### Bare-Metal Guide (Talos)
+
+Alltough this guide is specifically for [TalosOS](https://talos.dev), it should be easily adaptable to any k8s distribution.
+
+0. Setup Hetzner HCloud and Robot API Access
+
+In order for the provider integration hetzner to communicate with the Hetzner API ([HCloud API](https://docs.hetzner.cloud/) + [Robot API](https://robot.your-server.de/doc/webservice/en.html#preface)), we need to create a secret with the access data. The secret must be in the same namespace as the other CRs.
+
+```shell
+export HCLOUD_TOKEN="<YOUR-TOKEN>" \
+export HETZNER_ROBOT_USER="<YOUR-ROBOT-USER>" \
+export HETZNER_ROBOT_PASSWORD="<YOUR-ROBOT-PASSWORD>" \
+export HETZNER_SSH_PUB_PATH="<YOUR-SSH-PUBLIC-PATH>" \
+export HETZNER_SSH_PRIV_PATH="<YOUR-SSH-PRIVATE-PATH>" \
+```
+
+- HCLOUD_TOKEN: The project where your cluster will be placed to. You have to get a token from your HCloud Project.
+- HETZNER_ROBOT_USER: The User you have defined in robot under settings / Web
+- HETZNER_ROBOT_PASSWORD: The Robot Password you have set in robot under settings/web.
+- HETZNER_SSH_PUB_PATH: The Path to your generated Public SSH Key.
+- HETZNER_SSH_PRIV_PATH: The Path to your generated Private SSH Key. This is needed because CAPH uses this key to provision the node in Hetzner Dedicated.
+
+1. Make sure to name your root servers on Hetzner Robot with a `bm-` prefix, e.g. `bm-worker-1`
+2. Configure worker nodes to use the same name as hostname / node name
+
+worker.yaml
+
+```yaml
+machine:
+  network:
+    hostname: bm-worker-1
+```
+
+3. Enable External Cloud Provider
+
+worker.yaml
+
+```yaml
+externalCloudProvider:
+  enabled: true # Enable external cloud provider.
+  # A list of urls that point to additional manifests for an external cloud provider.
+  manifests:
+    - https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-bare-metal.yaml
+```
+
+5. Apply CCM Secrets
+
+```shell
+kubectl -n kube-system create secret generic hetzner --from-literal=hcloud=$HCLOUD_TOKEN --from-literal=robot-user=$HETZNER_ROBOT_USER --from-literal=robot-password=$HETZNER_ROBOT_PASSWORD
+
+kubectl -n kube-system create secret generic robot-ssh --from-literal=sshkey-name=cluster --from-file=ssh-privatekey=$HETZNER_SSH_PRIV_PATH --from-file=ssh-publickey=$HETZNER_SSH_PUB_PATH
+
+# Patch the created secret so it is automatically moved to the target cluster later.
+kubectl -n kube-system patch secret hetzner -p '{"metadata":{"labels":{"clusterctl.cluster.x-k8s.io/move":""}}}'
+```
+
+6. Check if CCM was configured successfully
+
+Get pod name:
+
+```shell
+kubectl -n kube-system get pods | grep ccm
+```
+
+Example output:
+
+```shell
+ccm-ccm-hetzner-86d4f578bb-hmzvm                1/1     Running   0             49m
+```
+
+Check logs:
+
+```shell
+kubectl -n kube-system logs pods/ccm-ccm-hetzner-86d4f578bb-hmzvm
+```
+
+You should see outputs like:
+
+```shell
+I1006 08:35:13.996304       1 event.go:294] "Event occurred" object="bm-worker-1" fieldPath="" kind="Node" apiVersion="v1" type="Normal" reason="Synced" message="Node synced successfully"
+I1006 08:35:14.554423       1 node_controller.go:465] Successfully initialized node bm-worker-3 with cloud provider
+```
 
 ## License
 

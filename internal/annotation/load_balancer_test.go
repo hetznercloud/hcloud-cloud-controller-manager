@@ -5,11 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/stretchr/testify/assert"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestLBToService_AddAnnotations(t *testing.T) {

@@ -25,7 +25,7 @@ env:
         fieldPath: spec.nodeName
 
 image:
-  repository: hetznercloud/hcloud-cloud-controller-manager
+  repository: quay.io/syself/hetzner-cloud-controller-manager
   tag: '{{ $.Chart.Version }}'
 
 monitoring:

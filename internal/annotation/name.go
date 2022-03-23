@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 

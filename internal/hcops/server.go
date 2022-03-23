@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 )
 
 // AllServersCache caches the result of the LoadFunc and provides random access

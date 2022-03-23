@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
@@ -263,6 +263,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	if _, err = l.lbOps.ReconcileHCLB(ctx, lb, svc); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, nodes); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

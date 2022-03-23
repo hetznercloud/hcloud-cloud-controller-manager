@@ -4,11 +4,11 @@ metadata:
   name: cloud-controller-manager
 build:
   artifacts:
-    - image: hetznercloud/hcloud-cloud-controller-manager
+    - image: syself/hetzner-cloud-controller-manager
       docker:
         dockerfile: hack/Dockerfile
         cacheFrom:
-          - hetznercloud/hcloud-cloud-controller-manager:buildcache
+          - syself/hetzner-cloud-controller-manager:buildcache
   local:
     useBuildkit: true
   insecureRegistries:
