@@ -17,37 +17,149 @@ limitations under the License.
 package hcloud
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
+	hrobot "github.com/syself/hrobot-go"
+	"github.com/syself/hrobot-go/models"
 	"k8s.io/klog/v2"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
-func providerIDToServerID(providerID string) (int, error) {
+func getHCloudServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
+	const op = "hcloud/getServerByName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	server, _, err := c.Server.GetByName(ctx, name)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return server, nil
+}
+
+func getHCloudServerByID(ctx context.Context, c *hcloud.Client, id int) (*hcloud.Server, error) {
+	const op = "hcloud/getServerByID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	server, _, err := c.Server.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return server, nil
+}
+
+func getRobotServerByName(c hrobot.RobotClient, name string) (server *models.Server, err error) {
+	const op = "robot/getServerByName"
+
+	if c == nil {
+		return nil, errMissingRobotCredentials
+	}
+
+	serverList, err := c.ServerGetList()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	for i, s := range serverList {
+		if s.Name == name {
+			server = &serverList[i]
+		}
+	}
+
+	return server, nil
+}
+
+func getRobotServerByID(c hrobot.RobotClient, id int) (*models.Server, error) {
+	const op = "robot/getServerByID"
+
+	if c == nil {
+		return nil, errMissingRobotCredentials
+	}
+
+	server, err := c.ServerGet(id)
+	if err != nil && !models.IsError(err, models.ErrorCodeServerNotFound) {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return server, nil
+}
+
+func providerIDToServerID(providerID string) (id int, isHCloudServer bool, err error) {
 	const op = "hcloud/providerIDToServerID"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	providerPrefix := providerName + "://"
-	if !strings.HasPrefix(providerID, providerPrefix) {
+	providerPrefixHCloud := providerName + "://"
+	providerPrefixRobot := providerName + "://" + hostNamePrefixRobot
+
+	if !strings.HasPrefix(providerID, providerPrefixHCloud) && !strings.HasPrefix(providerID, providerPrefixRobot) {
 		klog.Infof("%s: make sure your cluster configured for an external cloud provider", op)
-		return 0, fmt.Errorf("%s: missing prefix hcloud://: %s", op, providerID)
+		return 0, false, fmt.Errorf("%s: missing prefix %s or %s. %s", providerPrefixHCloud, providerPrefixRobot, op, providerID)
 	}
 
-	idString := strings.ReplaceAll(providerID, providerPrefix, "")
+	isHCloudServer = true
+	idString := providerID
+	if strings.HasPrefix(providerID, providerPrefixRobot) {
+		isHCloudServer = false
+		idString = strings.ReplaceAll(idString, providerPrefixRobot, "")
+	} else {
+		idString = strings.ReplaceAll(providerID, providerPrefixHCloud, "")
+	}
+
 	if idString == "" {
-		return 0, fmt.Errorf("%s: missing serverID: %s", op, providerID)
+		return 0, false, fmt.Errorf("%s: missing serverID: %s", op, providerID)
 	}
 
-	id, err := strconv.Atoi(idString)
+	id, err = strconv.Atoi(idString)
 	if err != nil {
-		return 0, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
+		return 0, false, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
 	}
-	return id, nil
+	return id, isHCloudServer, nil
 }
 
-func serverIDToProviderID(serverID int) string {
+func isHCloudServerByName(name string) bool {
+	return !strings.HasPrefix(name, hostNamePrefixRobot)
+}
+
+func serverIDToProviderIDRobot(serverID int) string {
+	return fmt.Sprintf("%s://%s%d", providerName, hostNamePrefixRobot, serverID)
+}
+
+func serverIDToProviderIDHCloud(serverID int) string {
 	return fmt.Sprintf("%s://%d", providerName, serverID)
+}
+
+func getInstanceTypeOfRobotServer(bmServer *models.Server) string {
+	if bmServer == nil {
+		panic("getInstanceTypeOfRobotServer called with nil server")
+	}
+	return strings.ReplaceAll(bmServer.Product, " ", "-")
+}
+
+func getZoneOfRobotServer(bmServer *models.Server) string {
+	if bmServer == nil {
+		panic("getZoneOfRobotServer called with nil server")
+	}
+	return strings.ToLower(bmServer.Dc[:4])
+}
+
+func getRegionOfRobotServer(bmServer *models.Server) string {
+	if bmServer == nil {
+		panic("getZoneOfRobotServer called with nil server")
+	}
+	zoneToRegionMap := map[string]string{
+		"nbg1": "eu-central",
+		"fsn1": "eu-central",
+		"hel1": "eu-central",
+		"ash":  "us-east",
+	}
+	zone := getZoneOfRobotServer(bmServer)
+	region, found := zoneToRegionMap[zone]
+	if !found {
+		panic("zoneToRegionMap: unknown zone")
+	}
+	return region
 }

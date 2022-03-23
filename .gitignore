@@ -4,6 +4,6 @@ dist/
 deploy/gen/
 .coverage.out
 .envrc
-hcloud-cloud-controller-manager
+hetzner-cloud-controller-manager
 *.tgz
 hack/.*

@@ -1,12 +1,12 @@
 ---
-# Source: hcloud-cloud-controller-manager/templates/serviceaccount.yaml
+# Source: hetzner-cloud-controller-manager/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cloud-controller-manager
   namespace: kube-system
 ---
-# Source: hcloud-cloud-controller-manager/templates/clusterrolebinding.yaml
+# Source: hetzner-cloud-controller-manager/templates/clusterrolebinding.yaml
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -20,22 +20,22 @@ subjects:
     name: cloud-controller-manager
     namespace: kube-system
 ---
-# Source: hcloud-cloud-controller-manager/templates/deployment.yaml
+# Source: hetzner-cloud-controller-manager/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hcloud-cloud-controller-manager
+  name: hetzner-cloud-controller-manager
   namespace: kube-system
 spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: hcloud-cloud-controller-manager
+      app: hetzner-cloud-controller-manager
   template:
     metadata:
       labels:
-        app: hcloud-cloud-controller-manager
+        app: hetzner-cloud-controller-manager
     spec:
       serviceAccountName: cloud-controller-manager
       dnsPolicy: Default
@@ -58,11 +58,11 @@ spec:
         - key: "node.kubernetes.io/not-ready"
           effect: "NoExecute"
       containers:
-        - name: hcloud-cloud-controller-manager
+        - name: hetzner-cloud-controller-manager
           command:
-            - "/bin/hcloud-cloud-controller-manager"
+            - "/bin/hetzner-cloud-controller-manager"
             - "--allow-untagged-cloud"
-            - "--cloud-provider=hcloud"
+            - "--cloud-provider=hetzner"
             - "--leader-elect=false"
             - "--route-reconciliation-period=30s"
           env:
@@ -75,7 +75,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: hetznercloud/hcloud-cloud-controller-manager:v1.13.2
+          image: quay.io/syself/hetzner-cloud-controller-manager:v1.9.1
           ports:
             - name: metrics
               containerPort: 8233

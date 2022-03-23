@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hcloud-cloud-controller-manager
+  name: hetzner-cloud-controller-manager
   namespace: kube-system
 spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 6 }}
+      {{- include "hetzner-cloud-controller-manager.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 8 }}
+        {{- include "hetzner-cloud-controller-manager.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: cloud-controller-manager
       dnsPolicy: Default
@@ -38,9 +38,9 @@ spec:
       hostNetwork: true
       {{- end }}
       containers:
-        - name: hcloud-cloud-controller-manager
+        - name: hetzner-cloud-controller-manager
           command:
-            - "/bin/hcloud-cloud-controller-manager"
+            - "/bin/hetzner-cloud-controller-manager"
             {{- range $key, $value := $.Values.args }}
             {{- if not (eq $value nil) }}
             - "--{{ $key }}{{ if $value }}={{ $value }}{{ end }}"

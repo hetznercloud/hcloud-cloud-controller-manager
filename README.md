@@ -1,6 +1,6 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
 
-[![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
+[![GitHub Actions status](https://github.com/syself/hetzner-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/syself/hetzner-cloud-controller-manager/actions)
 
 The Hetzner Cloud controller manager integrates your Kubernetes cluster with the Hetzner Cloud API.
 
@@ -43,7 +43,7 @@ network agent. Feel free to adapt the steps to your preferred method of
 installing Kubernetes.
 
 These deployment instructions are designed to guide with the
-installation of the `hcloud-cloud-controller-manager` and are by no
+installation of the `hetzner-cloud-controller-manager` and are by no
 means an in depth tutorial of setting up Kubernetes clusters.
 **Previous knowledge about the involved components is required.**
 
@@ -99,7 +99,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
     ```
 
-7. Deploy `hcloud-cloud-controller-manager`
+7. Deploy the `hetzner-cloud-controller-manager`:
 
     **Using Helm (recommended):**
 
@@ -114,7 +114,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     **Legacy installation method**:
 
     ```sh
-    kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+    kubectl apply -f  https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
 
 ## Networks support
@@ -155,7 +155,7 @@ secret: `kubectl -n kube-system create secret generic hcloud --from-literal=toke
 If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the
 annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP.
 
-See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
+See https://github.com/syself/hetzner-cloud-controller-manager/issues/212
 
 ## Versioning policy
 

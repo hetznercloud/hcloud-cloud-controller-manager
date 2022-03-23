@@ -8,15 +8,15 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
+	"github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 var errTestLbClient = errors.New("lb client failed")
@@ -595,6 +595,7 @@ type LBReconcilementTestCase struct {
 	servicePorts       []corev1.ServicePort
 	k8sNodes           []*corev1.Node
 	initialLB          *hcloud.LoadBalancer
+	robotServers       []models.Server
 	mock               func(t *testing.T, tt *LBReconcilementTestCase)
 	perform            func(t *testing.T, tt *LBReconcilementTestCase)
 
@@ -1127,9 +1128,23 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://bm-3"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://bm-4"}},
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
+			},
+			robotServers: []models.Server{
+				{
+					ServerNumber:  3,
+					ServerIP:      "1.2.3.4",
+					ServerIPv6Net: "2a01:f48:111:4221::",
+				},
+				{
+					ServerNumber:  4,
+					ServerIP:      "1.2.3.5",
+					ServerIPv6Net: "2a01:f48:111:4222::",
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(false)}
@@ -1139,12 +1154,31 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(false)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
+
+				optsIP := hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("1.2.3.4")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				optsIP = hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("2a01:f48:111:4221::1")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				optsIP = hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("1.2.3.5")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				optsIP = hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("2a01:f48:111:4222::1")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				tt.fx.MockListRobotServers(tt.robotServers, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
+			defaults: hcops.LoadBalancerDefaults{DisableIPv6: false},
 		},
 		{
 			name: "remove unused k8s nodes from hc Load Balancer",
@@ -1171,6 +1205,22 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 						Type:   hcloud.LoadBalancerTargetTypeServer,
 						Server: &hcloud.LoadBalancerTargetServer{Server: &hcloud.Server{ID: 4}},
 					},
+					{
+						Type: hcloud.LoadBalancerTargetTypeIP,
+						IP:   &hcloud.LoadBalancerTargetIP{IP: "1.2.3.4"},
+					},
+				},
+			},
+			robotServers: []models.Server{
+				{
+					ServerNumber:  5,
+					ServerIP:      "1.2.3.4",
+					ServerIPv6Net: "2a01:f48:111:4221::",
+				},
+				{
+					ServerNumber:  6,
+					ServerIP:      "1.2.3.5",
+					ServerIPv6Net: "2a01:f48:111:4222::",
 				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
@@ -1179,18 +1229,25 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 
 				action = tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 4}, nil)
 				tt.fx.MockWatchProgress(action, nil)
+
+				action = tt.fx.MockRemoveIPTarget(tt.initialLB, net.ParseIP("1.2.3.4"), nil)
+				tt.fx.MockWatchProgress(action, nil)
+
+				tt.fx.MockListRobotServers(tt.robotServers, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
+			defaults: hcops.LoadBalancerDefaults{DisableIPv6: true},
 		},
 		{
 			name: "enable use of private network via default",
 			defaults: hcops.LoadBalancerDefaults{
 				// Make sure the annotation overrides the default
 				UsePrivateIP: true,
+				DisableIPv6:  true,
 			},
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
@@ -1209,6 +1266,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(true)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
+
+				tt.fx.MockListRobotServers(nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
@@ -1221,6 +1280,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			defaults: hcops.LoadBalancerDefaults{
 				// Make sure the annotation overrides the default
 				UsePrivateIP: false,
+				DisableIPv6:  true,
 			},
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
@@ -1242,6 +1302,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(true)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
+
+				tt.fx.MockListRobotServers(nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
@@ -1254,6 +1316,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			defaults: hcops.LoadBalancerDefaults{
 				// Make sure the annotation overrides the default
 				UsePrivateIP: true,
+				DisableIPv6:  true,
 			},
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
@@ -1281,6 +1344,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
+
+				tt.fx.MockListRobotServers(nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
