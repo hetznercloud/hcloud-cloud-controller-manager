@@ -28,6 +28,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
+	hrobot "github.com/syself/hrobot-go"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 )
@@ -37,6 +38,10 @@ const (
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
+
+	robotUserNameENVVar = "ROBOT_USER_NAME"
+	robotPasswordENVVar = "ROBOT_PASSWORD"
+
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudInstancesAddressFamily             = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
@@ -48,11 +53,19 @@ const (
 	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
+	providerNameRobot                        = "hetzner"
 	providerVersion                          = "v1.9.1"
+	hostNamePrefixHCloud                     = "hcloud//"
+	hostNamePrefixRobot                      = "robot//"
+)
+
+var (
+	errMissingRobotCredentials = errors.New("missing robot credentials - cannot connect to robot API")
 )
 
 type cloud struct {
 	client       *hcloud.Client
+	robotClient  hrobot.RobotClient
 	instances    *instances
 	zones        *zones
 	routes       *routes
@@ -87,6 +100,14 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	}
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
+
+	robotUserName, foundRobotUserName := os.LookupEnv(robotUserNameENVVar)
+	robotPassword, foundRobotPassword := os.LookupEnv(robotPasswordENVVar)
+
+	var robotClient hrobot.RobotClient
+	if foundRobotUserName && foundRobotPassword {
+		robotClient = hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+	}
 
 	var networkID int
 	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
@@ -134,6 +155,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
+		RobotClient:   robotClient,
 		NetworkID:     networkID,
 		Defaults:      lbOpsDefaults,
 	}
@@ -150,8 +172,9 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 
 	return &cloud{
 		client:       client,
-		zones:        newZones(client, nodeName),
-		instances:    newInstances(client, instancesAddressFamily),
+		robotClient:  robotClient,
+		zones:        newZones(client, robotClient, nodeName),
+		instances:    newInstances(client, robotClient, instancesAddressFamily),
 		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,
