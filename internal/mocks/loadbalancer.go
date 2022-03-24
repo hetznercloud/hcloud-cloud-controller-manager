@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"net"
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/mock"
@@ -79,6 +80,18 @@ func (m *LoadBalancerClient) AddServerTarget(
 
 func (m *LoadBalancerClient) RemoveServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, server *hcloud.Server) (*hcloud.Action, *hcloud.Response, error) {
 	args := m.Called(ctx, lb, server)
+	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
+
+func (m *LoadBalancerClient) AddIPTarget(
+	ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddIPTargetOpts,
+) (*hcloud.Action, *hcloud.Response, error) {
+	args := m.Called(ctx, lb, opts)
+	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
+}
+
+func (m *LoadBalancerClient) RemoveIPTarget(ctx context.Context, lb *hcloud.LoadBalancer, ip net.IP) (*hcloud.Action, *hcloud.Response, error) {
+	args := m.Called(ctx, lb, ip)
 	return getActionPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
 }
 

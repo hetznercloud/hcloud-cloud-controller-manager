@@ -6,6 +6,7 @@ require (
 	github.com/hetznercloud/hcloud-go v1.33.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
+	github.com/syself/hrobot-go v0.2.4
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	k8s.io/api v0.20.13
 	k8s.io/apimachinery v0.20.13
