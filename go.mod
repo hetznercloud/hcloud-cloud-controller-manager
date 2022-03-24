@@ -1,4 +1,4 @@
-module github.com/hetznercloud/hcloud-cloud-controller-manager
+module github.com/syself/hetzner-cloud-controller-manager
 
 go 1.17
 

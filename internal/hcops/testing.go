@@ -6,8 +6,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/mocks"
 	"github.com/syself/hrobot-go/models"
 )
 

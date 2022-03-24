@@ -8,7 +8,7 @@ We assume, that you have knowledge about Kubernetes and the Hetzner Cloud.
 ## How to deploy
  1. Create a new Network via `hcloud-cli` (`hcloud network create --name my-network --ip-range=10.0.0.0/8`)or the [Hetzner Cloud Console](https://console.hetzner.cloud)
  2. Add each Node of the Cluster to the Hetzner Cloud Network
- 3. Download the latest deployment file with networks support from [Github](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest) to your local machine
+ 3. Download the latest deployment file with networks support from [Github](https://github.com/syself/hetzner-cloud-controller-manager/releases/latest) to your local machine
  4. Change the `--cluster-cidr=` flag in the deployment file to fit your pod range. Default is `10.244.0.0/16`.
  5. Create a new secret containing a Hetzner Cloud API Token and the name or the ID of the Network you want to use `kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token> --from-literal=network=<hcloud Network_ID_or_Name>`
  6. Deploy the deployment file `kubectl -n kube-system apply -f path/to/your/deployment.yaml`
