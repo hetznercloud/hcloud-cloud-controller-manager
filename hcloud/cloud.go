@@ -55,8 +55,8 @@ const (
 	providerName                             = "hcloud"
 	providerNameRobot                        = "hetzner"
 	providerVersion                          = "v1.9.1"
-	hostNamePrefixHCloud                     = "hcloud//"
-	hostNamePrefixRobot                      = "robot//"
+	hostNamePrefixHCloud                     = "hcloud-"
+	hostNamePrefixRobot                      = "robot-"
 )
 
 var (

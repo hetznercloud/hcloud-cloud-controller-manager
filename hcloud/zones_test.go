@@ -55,14 +55,14 @@ func TestGetZone(t *testing.T) {
 			{
 				Server: models.Server{
 					ServerNumber: 1,
-					Name:         "robot//server1",
+					Name:         "robot-server1",
 					Dc:           "FSN1-DC1",
 				},
 			},
 		})
 	})
 
-	zones := newZones(env.Client, env.RobotClient, "hcloud//node6")
+	zones := newZones(env.Client, env.RobotClient, "hcloud-node6")
 	zone, err := zones.GetZone(context.TODO())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -74,7 +74,7 @@ func TestGetZone(t *testing.T) {
 		t.Errorf("Unexpected zone.FailureDomain: %s", zone.FailureDomain)
 	}
 
-	zones = newZones(env.Client, env.RobotClient, "robot//server1")
+	zones = newZones(env.Client, env.RobotClient, "robot-server1")
 	zone, err = zones.GetZone(context.TODO())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -100,7 +100,7 @@ func TestGetZoneForServer(t *testing.T) {
 			Servers: []schema.Server{
 				{
 					ID:   1,
-					Name: "hcloud//node15",
+					Name: "hcloud-node15",
 					Datacenter: schema.Datacenter{
 						Name: "fsn1-dc8",
 						Location: schema.Location{
@@ -117,15 +117,15 @@ func TestGetZoneForServer(t *testing.T) {
 			{
 				Server: models.Server{
 					ServerNumber: 1,
-					Name:         "robot//server1",
+					Name:         "robot-server1",
 					Dc:           "FSN1-DC1",
 				},
 			},
 		})
 	})
 
-	zones := newZones(env.Client, env.RobotClient, "hcloud//node6")
-	zone, err := zones.GetZoneByNodeName(context.TODO(), "hcloud//node15")
+	zones := newZones(env.Client, env.RobotClient, "hcloud-node6")
+	zone, err := zones.GetZoneByNodeName(context.TODO(), "hcloud-node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestGetZoneForServer(t *testing.T) {
 		t.Errorf("Unexpected zone.FailureDomain: %s", zone.FailureDomain)
 	}
 
-	zone, err = zones.GetZoneByNodeName(context.TODO(), "robot//server1")
+	zone, err = zones.GetZoneByNodeName(context.TODO(), "robot-server1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -170,13 +170,13 @@ func TestGetZoneByProviderID(t *testing.T) {
 		json.NewEncoder(w).Encode(models.ServerResponse{
 			Server: models.Server{
 				ServerNumber: 1,
-				Name:         "robot//server1",
+				Name:         "robot-server1",
 				Dc:           "FSN1-DC1",
 			},
 		})
 	})
 
-	zones := newZones(env.Client, env.RobotClient, "hcloud//node6")
+	zones := newZones(env.Client, env.RobotClient, "hcloud-node6")
 	zone, err := zones.GetZoneByProviderID(context.TODO(), "hcloud://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

@@ -36,7 +36,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 		json.NewEncoder(w).Encode(schema.ServerGetResponse{
 			Server: schema.Server{
 				ID:   1,
-				Name: "hcloud//node15",
+				Name: "hcloud-node15",
 				PublicNet: schema.ServerPublicNet{
 					IPv6: schema.ServerPublicNetIPv6{
 						IP: "2001:db8:1234::/64",
@@ -55,7 +55,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 				ServerIP:      "123.123.123.123",
 				ServerIPv6Net: "2a01:f48:111:4221::",
 				ServerNumber:  321,
-				Name:          "robot//server1",
+				Name:          "robot-server1",
 			},
 		})
 	})
@@ -66,7 +66,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 2 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud//node15" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud-node15" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "131.232.99.1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
@@ -76,7 +76,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 2 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot//server1" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot-server1" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "123.123.123.123" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
@@ -93,7 +93,7 @@ func TestNodeAddresses(t *testing.T) {
 			Servers: []schema.Server{
 				{
 					ID:   1,
-					Name: "hcloud//node15",
+					Name: "hcloud-node15",
 					PublicNet: schema.ServerPublicNet{
 						IPv6: schema.ServerPublicNetIPv6{
 							IP: "2001:db8:1234::",
@@ -114,29 +114,29 @@ func TestNodeAddresses(t *testing.T) {
 					ServerIP:      "123.123.123.123",
 					ServerIPv6Net: "2a01:f48:111:4221::",
 					ServerNumber:  321,
-					Name:          "robot//server1",
+					Name:          "robot-server1",
 				},
 			},
 		})
 	})
 
 	instances := newInstances(env.Client, env.RobotClient, AddressFamilyIPv4)
-	addr, err := instances.NodeAddresses(context.TODO(), "hcloud//node15")
+	addr, err := instances.NodeAddresses(context.TODO(), "hcloud-node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 2 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud//node15" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud-node15" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "131.232.99.1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
 
-	addr, err = instances.NodeAddresses(context.TODO(), "robot//server1")
+	addr, err = instances.NodeAddresses(context.TODO(), "robot-server1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 2 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot//server1" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot-server1" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "123.123.123.123" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
@@ -153,7 +153,7 @@ func TestNodeAddressesIPv6(t *testing.T) {
 			Servers: []schema.Server{
 				{
 					ID:   1,
-					Name: "hcloud//node15",
+					Name: "hcloud-node15",
 					PublicNet: schema.ServerPublicNet{
 						IPv6: schema.ServerPublicNetIPv6{
 							IP: "2001:db8:1234::/64",
@@ -174,29 +174,29 @@ func TestNodeAddressesIPv6(t *testing.T) {
 					ServerIP:      "123.123.123.123",
 					ServerIPv6Net: "2a01:f48:111:4221::",
 					ServerNumber:  321,
-					Name:          "robot//server1",
+					Name:          "robot-server1",
 				},
 			},
 		})
 	})
 
 	instances := newInstances(env.Client, env.RobotClient, AddressFamilyIPv6)
-	addr, err := instances.NodeAddresses(context.TODO(), "hcloud//node15")
+	addr, err := instances.NodeAddresses(context.TODO(), "hcloud-node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 2 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud//node15" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud-node15" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2001:db8:1234::1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
 
-	addr, err = instances.NodeAddresses(context.TODO(), "robot//server1")
+	addr, err = instances.NodeAddresses(context.TODO(), "robot-server1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 2 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot//server1" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot-server1" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2a01:f48:111:4221::1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
@@ -213,7 +213,7 @@ func TestNodeAddressesDualStack(t *testing.T) {
 			Servers: []schema.Server{
 				{
 					ID:   1,
-					Name: "hcloud//node15",
+					Name: "hcloud-node15",
 					PublicNet: schema.ServerPublicNet{
 						IPv6: schema.ServerPublicNetIPv6{
 							IP: "2001:db8:1234::/64",
@@ -234,30 +234,30 @@ func TestNodeAddressesDualStack(t *testing.T) {
 					ServerIP:      "123.123.123.123",
 					ServerIPv6Net: "2a01:f48:111:4221::",
 					ServerNumber:  321,
-					Name:          "robot//server1",
+					Name:          "robot-server1",
 				},
 			},
 		})
 	})
 
 	instances := newInstances(env.Client, env.RobotClient, AddressFamilyDualStack)
-	addr, err := instances.NodeAddresses(context.TODO(), "hcloud//node15")
+	addr, err := instances.NodeAddresses(context.TODO(), "hcloud-node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 3 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud//node15" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "hcloud-node15" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2001:db8:1234::1" ||
 		addr[2].Type != v1.NodeExternalIP || addr[2].Address != "131.232.99.1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
 
-	addr, err = instances.NodeAddresses(context.TODO(), "robot//server1")
+	addr, err = instances.NodeAddresses(context.TODO(), "robot-server1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(addr) != 3 ||
-		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot//server1" ||
+		addr[0].Type != v1.NodeHostName || addr[0].Address != "robot-server1" ||
 		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2a01:f48:111:4221::1" ||
 		addr[2].Type != v1.NodeExternalIP || addr[2].Address != "123.123.123.123" {
 		t.Errorf("Unexpected node addresses: %v", addr)
@@ -285,14 +285,14 @@ func TestExternalID(t *testing.T) {
 			{
 				Server: models.Server{
 					ServerNumber: 1,
-					Name:         "robot//server1",
+					Name:         "robot-server1",
 				},
 			},
 		})
 	})
 
 	instances := newInstances(env.Client, env.RobotClient, AddressFamilyIPv4)
-	id, err := instances.ExternalID(context.TODO(), "hcloud//node15")
+	id, err := instances.ExternalID(context.TODO(), "hcloud-node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -300,7 +300,7 @@ func TestExternalID(t *testing.T) {
 		t.Errorf("Unexpected id: %v", id)
 	}
 
-	id, err = instances.ExternalID(context.TODO(), "robot//server1")
+	id, err = instances.ExternalID(context.TODO(), "robot-server1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -334,14 +334,14 @@ func TestInstanceType(t *testing.T) {
 				Server: models.Server{
 					ServerNumber: 1,
 					Product:      "dedicated_server",
-					Name:         "robot//server1",
+					Name:         "robot-server1",
 				},
 			},
 		})
 	})
 
 	instances := newInstances(env.Client, env.RobotClient, AddressFamilyIPv4)
-	serverType, err := instances.InstanceType(context.TODO(), "hcloud//node15")
+	serverType, err := instances.InstanceType(context.TODO(), "hcloud-node15")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestInstanceType(t *testing.T) {
 		t.Errorf("Unexpected server type: %v", serverType)
 	}
 
-	serverType, err = instances.InstanceType(context.TODO(), "robot//server1")
+	serverType, err = instances.InstanceType(context.TODO(), "robot-server1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -365,7 +365,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 		json.NewEncoder(w).Encode(schema.ServerGetResponse{
 			Server: schema.Server{
 				ID:   1,
-				Name: "hcloud//node15",
+				Name: "hcloud-node15",
 				ServerType: schema.ServerType{
 					Name: "cx11",
 				},
@@ -378,7 +378,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 			Server: models.Server{
 				ServerNumber: 1,
 				Product:      "dedicated_server",
-				Name:         "robot//server1",
+				Name:         "robot-server1",
 			},
 		})
 	})
@@ -409,7 +409,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 			json.NewEncoder(w).Encode(schema.ServerGetResponse{
 				Server: schema.Server{
 					ID:   1,
-					Name: "hcloud//node15",
+					Name: "hcloud-node15",
 					ServerType: schema.ServerType{
 						Name: "cx11",
 					},
@@ -422,7 +422,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 				Server: models.Server{
 					ServerNumber: 1,
 					Product:      "dedicated_server",
-					Name:         "robot//server1",
+					Name:         "robot-server1",
 				},
 			})
 		})
