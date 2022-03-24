@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"

@@ -354,7 +354,7 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	}
 
 	fmt.Printf("%s: Prepare deployment file and transfer it\n", op)
-	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), "hetznercloud/hcloud-cloud-controller-manager:latest", s.ImageName))
+	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), "quay.io/syself/hetzner-cloud-controller-manager:latest", s.ImageName))
 	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), " imagePullPolicy: Always", " imagePullPolicy: IfNotPresent"))
 
 	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("echo '%s' >> ccm.yml", deploymentFile))

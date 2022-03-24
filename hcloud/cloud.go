@@ -25,9 +25,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	hrobot "github.com/syself/hrobot-go"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"

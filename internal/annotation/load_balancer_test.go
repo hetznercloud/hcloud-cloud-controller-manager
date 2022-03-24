@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/assert"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
 	v1 "k8s.io/api/core/v1"
 )
 

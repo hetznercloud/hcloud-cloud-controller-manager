@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 	"github.com/stretchr/testify/assert"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	hrobot "github.com/syself/hrobot-go"
 )
 

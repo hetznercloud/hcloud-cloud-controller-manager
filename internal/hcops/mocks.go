@@ -3,9 +3,9 @@ package hcops
 import (
 	"context"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/mock"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/mocks"
 	v1 "k8s.io/api/core/v1"
 )
 

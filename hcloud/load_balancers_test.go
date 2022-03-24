@@ -5,10 +5,10 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/assert"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	v1 "k8s.io/api/core/v1"
 )
 

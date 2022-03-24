@@ -1,6 +1,6 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
 
-[![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
+[![GitHub Actions status](https://github.com/syself/hetzner-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/syself/hetzner-cloud-controller-manager/actions)
 
 The Hetzner Cloud cloud controller manager integrates your Kubernets
 cluster with the Hetzner Cloud API.  Read more about kubernetes cloud
@@ -127,7 +127,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
 7. Deploy the `hcloud-cloud-controller-manager`:
 
     ```
-    kubectl apply -f  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+    kubectl apply -f  https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
 
 ## Networks support
@@ -158,7 +158,7 @@ You also need to add the network name/ID to the secret: `kubectl -n kube-system 
 
 If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP.
 
-See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
+See https://github.com/syself/hetzner-cloud-controller-manager/issues/212
 
 ## Versioning policy
 
@@ -175,17 +175,17 @@ release.
 
 | Kubernetes | k3s               | Cloud Controller Manager | Deployment File                                                                                            |
 | ---------- | -----------------:| ------------------------:|-----------------------------------------------------------------------------------------------------------:|
-| 1.22       | v1.22.3+k3s1      | master                   | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.20       | v1.20.12+k3s2     | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.22       | v1.22.3+k3s1      | master                   | https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.20       | v1.20.12+k3s2     | 1.12.0, master           | https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 
 ### Without Networks support
 
 | Kubernetes | k3s               | Cloud Controller Manager | Deployment File                                                                                   |
 | ---------- | -----------------:| ------------------------:|--------------------------------------------------------------------------------------------------:|
-| 1.22       | v1.22.3+k3s1      | master                   | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.20       | v1.20.12+k3s1     | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.22       | v1.22.3+k3s1      | master                   | https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.20       | v1.20.12+k3s1     | 1.12.0, master           | https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml |
 
 ## E2E Tests
 
