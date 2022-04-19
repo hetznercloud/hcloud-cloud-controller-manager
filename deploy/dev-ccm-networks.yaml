@@ -34,8 +34,6 @@ spec:
     metadata:
       labels:
         app: hcloud-cloud-controller-manager
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       serviceAccountName: cloud-controller-manager
       dnsPolicy: Default
@@ -86,3 +84,4 @@ spec:
                 secretKeyRef:
                   name: hcloud
                   key: network
+      priorityClassName: system-cluster-critical
