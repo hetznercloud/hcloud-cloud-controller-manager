@@ -3,7 +3,7 @@
 [![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
 
 The Hetzner Cloud cloud controller manager integrates your Kubernets
-cluster with the Hetzner Cloud API.  Read more about kubernetes cloud
+cluster with the Hetzner Cloud API. Read more about kubernetes cloud
 controller managers in the [kubernetes
 documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 
@@ -20,7 +20,6 @@ documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud
   your pods traffic.
 * **Load Balancers**: allows to use Hetzner Cloud Load Balancers with
   Kubernetes Services
-
 
 ## Example
 
@@ -54,10 +53,10 @@ spec:
   providerID: hcloud://123456 # <-- Server ID
 status:
   addresses:
-  - address: master
-    type: Hostname
-  - address: 78.46.208.178 # <-- public ipv4
-    type: ExternalIP
+    - address: master
+      type: Hostname
+    - address: 78.46.208.178 # <-- public ipv4
+      type: ExternalIP
 ```
 
 ## Deployment
@@ -89,8 +88,8 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
     ```
 
-    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
-    will see a log message regarding this.
+   Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
+   will see a log message regarding this.
 
 2. Now the cluster master can be initialized:
 
@@ -132,15 +131,22 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
 
 ## Networks support
 
-When you use the Cloud Controller Manager with networks support, the CCM is in favor of allocating the IPs (& setup the routing) (Docs: https://kubernetes.io/docs/concepts/architecture/cloud-controller/#route-controller). The CNI plugin you use needs to support this k8s native functionality (Cilium does it, I don't know about Calico & WeaveNet), so basically you use the Hetzner Cloud Networks as the underlying networking stack.
+When you use the Cloud Controller Manager with networks support, the CCM is in favor of allocating the IPs (& setup the
+routing) (Docs: https://kubernetes.io/docs/concepts/architecture/cloud-controller/#route-controller). The CNI plugin you
+use needs to support this k8s native functionality (Cilium does it, I don't know about Calico & WeaveNet), so basically
+you use the Hetzner Cloud Networks as the underlying networking stack.
 
-When you use the CCM without Networks support it just disables the RouteController part, all other parts work completely the same. Then just the CNI is in charge of making all the networking stack things. Using the CCM with Networks support has the benefit that your node is connected to a private network so the node doesn't need to encrypt the connections and you have a bit less operational overhead as you don't need to manage the Network.
+When you use the CCM without Networks support it just disables the RouteController part, all other parts work completely
+the same. Then just the CNI is in charge of making all the networking stack things. Using the CCM with Networks support
+has the benefit that your node is connected to a private network so the node doesn't need to encrypt the connections and
+you have a bit less operational overhead as you don't need to manage the Network.
 
 If you want to use the Hetzner Cloud `Networks` Feature, head over to
 the [Deployment with Networks support
 documentation](./docs/deploy_with_networks.md).
 
-If you manage the network yourself it might still be required to let the CCM know about private networks. You can do this by adding the environment variable
+If you manage the network yourself it might still be required to let the CCM know about private networks. You can do
+this by adding the environment variable
 with the network name/ID in the CCM deployment.
 
 ```
@@ -152,11 +158,14 @@ with the network name/ID in the CCM deployment.
                   key: network
 ```
 
-You also need to add the network name/ID to the secret: `kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token> --from-literal=network=<hcloud Network_ID_or_Name>`.
+You also need to add the network name/ID to the
+secret: `kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token> --from-literal=network=<hcloud Network_ID_or_Name>`
+.
 
 ## Kube-proxy mode IPVS and HCloud LoadBalancer
 
-If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP.
+If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the
+annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP.
 
 See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
 
@@ -173,19 +182,17 @@ release.
 
 ### With Networks support
 
-| Kubernetes | k3s               | Cloud Controller Manager | Deployment File                                                                                            |
-| ---------- | -----------------:| ------------------------:|-----------------------------------------------------------------------------------------------------------:|
-| 1.22       | v1.22.3+k3s1      | master                   | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.20       | v1.20.12+k3s2     | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| Kubernetes |          k3s | Cloud Controller Manager |        Deployment File                                                                                     |
+|------------|-------------:|-------------------------:|-----------------------------------------------------------------------------------------------------------:|
+| 1.24       | v1.24.3+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.23       | v1.23.3+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 
 ### Without Networks support
 
-| Kubernetes | k3s               | Cloud Controller Manager | Deployment File                                                                                   |
-| ---------- | -----------------:| ------------------------:|--------------------------------------------------------------------------------------------------:|
-| 1.22       | v1.22.3+k3s1      | master                   | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.21       | v1.21.6+k3s1      | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.20       | v1.20.12+k3s1     | 1.12.0, master           | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| Kubernetes |           k3s | Cloud Controller Manager | Deployment File                                                                                   |
+|------------|--------------:|-------------------------:|--------------------------------------------------------------------------------------------------:|
+| 1.24       |  v1.24.3+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.23       |  v1.23.6+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 
 ## Unit tests
 
@@ -235,9 +242,13 @@ export KEEP_SERVER_ON_FAILURE=yes # Keep the test server after a test failure.
 ```bash
 go test $(go list ./... | grep e2etests) -v -timeout 60m
 ```
-The tests will now run and cleanup themselves afterwards. Sometimes it might happen that you need to clean up the project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or the [hcloud-cli](https://github.com/hetznercloud/cli) .
 
-For easier debugging on the server we always configure the latest version of the [hcloud-cli](https://github.com/hetznercloud/cli) with the given `HCLOUD_TOKEN` and a few bash aliases on the host:
+The tests will now run and cleanup themselves afterwards. Sometimes it might happen that you need to clean up the
+project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or
+the [hcloud-cli](https://github.com/hetznercloud/cli) .
+
+For easier debugging on the server we always configure the latest version of
+the [hcloud-cli](https://github.com/hetznercloud/cli) with the given `HCLOUD_TOKEN` and a few bash aliases on the host:
 
 ```bash
 alias k="kubectl"
