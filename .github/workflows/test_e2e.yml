@@ -5,7 +5,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        k8s: [ 1.20.12, 1.21.6, 1.22.3 ]
+        k8s: [ 1.23.8, 1.24.2 ]
       fail-fast: false
     name: k8s ${{ matrix.k8s }}
     steps:
@@ -26,7 +26,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        k3s: [ v1.20.12+k3s1, v1.21.6+k3s1, v1.22.3+k3s1 ]
+        k3s: [ v1.23.8+k3s1 ,v1.24.2+k3s1]
       fail-fast: false
     name: k3s ${{ matrix.k3s }}
     steps:
