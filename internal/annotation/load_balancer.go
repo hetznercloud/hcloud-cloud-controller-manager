@@ -3,6 +3,7 @@ package annotation
 import (
 	"fmt"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 )
@@ -199,6 +200,7 @@ const (
 // from lb.
 func LBToService(svc *v1.Service, lb *hcloud.LoadBalancer) error {
 	const op = "annotation/LBToService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	sa := &serviceAnnotator{Svc: svc}
 

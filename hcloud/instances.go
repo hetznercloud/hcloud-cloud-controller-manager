@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,6 +48,7 @@ func newInstances(client *hcloud.Client, addressFamily addressFamily) *instances
 
 func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
 	const op = "hcloud/instances.NodeAddressesByProviderID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
@@ -62,6 +64,7 @@ func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 
 func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
 	const op = "hcloud/instances.NodeAddresses"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
@@ -72,6 +75,7 @@ func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) 
 
 func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (string, error) {
 	const op = "hcloud/instances.ExternalID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	id, err := i.InstanceID(ctx, nodeName)
 	if err != nil {
@@ -82,6 +86,7 @@ func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (st
 
 func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
 	const op = "hcloud/instances.InstanceID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
@@ -92,6 +97,7 @@ func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (st
 
 func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
 	const op = "hcloud/instances.InstanceType"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, err := getServerByName(ctx, i.client, string(nodeName))
 	if err != nil {
@@ -102,6 +108,7 @@ func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (
 
 func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
 	const op = "hcloud/instances.InstanceTypeByProviderID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
@@ -125,6 +132,7 @@ func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types
 
 func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
 	const op = "hcloud/instances.InstanceExistsByProviderID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
@@ -140,6 +148,7 @@ func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID st
 
 func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
 	const op = "hcloud/instances.InstanceShutdownByProviderID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	id, err := providerIDToServerID(providerID)
 	if err != nil {

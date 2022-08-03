@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -22,6 +23,7 @@ type routes struct {
 
 func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
 	const op = "hcloud/newRoutes"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	networkObj, _, err := client.Network.GetByID(context.Background(), networkID)
 	if err != nil {
@@ -40,6 +42,7 @@ func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
 
 func (r *routes) reloadNetwork(ctx context.Context) error {
 	const op = "hcloud/reloadNetwork"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	networkObj, _, err := r.client.Network.GetByID(ctx, r.network.ID)
 	if err != nil {
@@ -55,6 +58,7 @@ func (r *routes) reloadNetwork(ctx context.Context) error {
 // ListRoutes lists all managed routes that belong to the specified clusterName
 func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudprovider.Route, error) {
 	const op = "hcloud/ListRoutes"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if err := r.reloadNetwork(ctx); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -88,6 +92,7 @@ func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudpr
 // to create a more user-meaningful name.
 func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint string, route *cloudprovider.Route) error {
 	const op = "hcloud/CreateRoute"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	srv, err := r.serverCache.ByName(string(route.TargetNode))
 	if err != nil {
@@ -150,6 +155,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 // Route should be as returned by ListRoutes
 func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *cloudprovider.Route) error {
 	const op = "hcloud/DeleteRoute"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	srv, err := r.serverCache.ByName(string(route.TargetNode))
 	if err != nil {
@@ -174,6 +180,8 @@ func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *clo
 
 func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip net.IP) error {
 	const op = "hcloud/deleteRouteFromHcloud"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	opts := hcloud.NetworkDeleteRouteOpts{
 		Route: hcloud.NetworkRoute{
 			Destination: cidr,
@@ -201,6 +209,7 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 
 func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.Route, error) {
 	const op = "hcloud/hcloudRouteToRoute"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
 	if err != nil {
@@ -217,6 +226,7 @@ func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.R
 
 func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprovider.Route) (bool, error) {
 	const op = "hcloud/checkIfRouteAlreadyExists"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if err := r.reloadNetwork(ctx); err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)

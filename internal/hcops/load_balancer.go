@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -87,6 +88,7 @@ type LoadBalancerDefaults struct {
 // found.
 func (l *LoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *v1.Service) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.GetByK8SServiceUID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	opts := hcloud.LoadBalancerListOpts{
 		ListOpts: hcloud.ListOpts{
@@ -113,6 +115,7 @@ func (l *LoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *v1.Servic
 // returned.
 func (l *LoadBalancerOps) GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.GetByName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	lb, _, err := l.LBClient.GetByName(ctx, name)
 	if err != nil {
@@ -133,6 +136,7 @@ func (l *LoadBalancerOps) GetByName(ctx context.Context, name string) (*hcloud.L
 // returned.
 func (l *LoadBalancerOps) GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.GetByName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	lb, _, err := l.LBClient.GetByID(ctx, id)
 	if err != nil {
@@ -154,6 +158,7 @@ func (l *LoadBalancerOps) Create(
 	ctx context.Context, lbName string, svc *v1.Service,
 ) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.Create"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	opts := hcloud.LoadBalancerCreateOpts{
 		Name:             lbName,
@@ -232,6 +237,7 @@ func (l *LoadBalancerOps) Create(
 // Delete removes a Hetzner Cloud load balancer from the backend.
 func (l *LoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) error {
 	const op = "hcops/LoadBalancerOps.Delete"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	_, err := l.LBClient.Delete(ctx, lb)
 	if hcloud.IsError(err, hcloud.ErrorCodeNotFound) {
@@ -247,6 +253,8 @@ func (l *LoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) e
 // defined for the K8S Load Balancer svc.
 func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLB"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var changed bool
 
 	labelSet, err := l.changeHCLBInfo(ctx, lb, svc)
@@ -308,6 +316,8 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 // requests should more than one change be necessary.
 func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeHCLBInfo"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var (
 		update bool
 		opts   hcloud.LoadBalancerUpdateOpts
@@ -346,6 +356,7 @@ func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBal
 
 func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeIPv4RDNS"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	rdns, ok := annotation.LBPublicIPv4RDNS.StringFromService(svc)
 	// If the annotation is not set, no changes are needed
@@ -371,6 +382,7 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 
 func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeIPv6RDNS"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	rdns, ok := annotation.LBPublicIPv6RDNS.StringFromService(svc)
 	// If the annotation is not set, no changes are needed
@@ -396,6 +408,7 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 
 func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeAlgorithm"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	at, err := annotation.LBAlgorithmType.LBAlgorithmTypeFromService(svc)
 	if errors.Is(err, annotation.ErrNotSet) {
@@ -422,6 +435,7 @@ func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBa
 
 func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeType"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	lt, ok := annotation.LBType.StringFromService(svc)
 	if !ok {
@@ -445,6 +459,8 @@ func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalance
 
 func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer) (bool, error) {
 	const op = "hcops/LoadBalancerOps.detachFromNetwork"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var changed bool
 
 	for _, lbpn := range lb.PrivateNet {
@@ -470,6 +486,7 @@ func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.Load
 
 func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer) (bool, error) {
 	const op = "hcops/LoadBalancerOps.attachToNetwork"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	// Don't attach the Load Balancer if network is not set, or the load
 	// balancer is already attached.
@@ -512,6 +529,8 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 
 func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.togglePublicInterface"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var a *hcloud.Action
 
 	disable, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
@@ -547,6 +566,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service, nodes []*v1.Node,
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLBTargets"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var (
 		// Set of all K8S server IDs currently assigned as nodes to this
 		// cluster.
@@ -656,6 +677,8 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service,
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLBServices"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var changed bool
 
 	if err := l.reconcileManagedCertificate(ctx, svc); err != nil {
@@ -733,6 +756,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 
 func (l *LoadBalancerOps) reconcileManagedCertificate(ctx context.Context, svc *v1.Service) error {
 	const op = "hcops/LoadBalancerOps.reconcileManagedCertificate"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if typ, ok := annotation.LBSvcHTTPCertificateType.StringFromService(svc); !ok || typ != string(hcloud.CertificateTypeManaged) {
 		return nil
@@ -803,6 +827,7 @@ type hclbServiceOptsBuilder struct {
 
 func (b *hclbServiceOptsBuilder) extract() {
 	const op = "hcops/hclbServiceOptsBuilder.extract"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	b.listenPort = int(b.Port.Port)
 	b.destinationPort = int(b.Port.NodePort)
@@ -928,6 +953,7 @@ func (b *hclbServiceOptsBuilder) extract() {
 
 func (b *hclbServiceOptsBuilder) resolveCertsByNameOrID(ctx context.Context, cs []*hcloud.Certificate) ([]*hcloud.Certificate, error) {
 	const op = "hcops/hclbServiceOptsBuilder.resolveCertsByNameOrID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	resolved := make([]*hcloud.Certificate, len(cs))
 	for i, c := range cs {
@@ -947,6 +973,7 @@ func (b *hclbServiceOptsBuilder) resolveCertsByNameOrID(ctx context.Context, cs 
 
 func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 	const op = "hcops/hclbServiceOptsBuilder.extractHealthCheck"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	b.do(func() error {
 		p, err := annotation.LBSvcHealthCheckProtocol.LBSvcProtocolFromService(b.Service)
@@ -1069,6 +1096,7 @@ func (b *hclbServiceOptsBuilder) do(f func() error) {
 
 func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddServiceOpts, error) {
 	const op = "hcops/hclbServiceOptsBuilder.buildAddServiceOpts"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if err := b.initialize(); err != nil {
 		return hcloud.LoadBalancerAddServiceOpts{}, fmt.Errorf("%s: %w", op, err)
@@ -1123,6 +1151,7 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 
 func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUpdateServiceOpts, error) {
 	const op = "hcops/hclbServiceOptsBuilder.buildUpdateServiceOpts"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if err := b.initialize(); err != nil {
 		return hcloud.LoadBalancerUpdateServiceOpts{}, fmt.Errorf("%s: %w", op, err)
@@ -1177,6 +1206,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 // TODO this is a copy of the function in hcloud/utils.go => refactor
 func providerIDToServerID(providerID string) (int, error) {
 	const op = "hcops/providerIDToServerID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	providerPrefix := "hcloud://"
 	if !strings.HasPrefix(providerID, providerPrefix) {

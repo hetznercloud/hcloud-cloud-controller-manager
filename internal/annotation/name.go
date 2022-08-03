@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
 )
@@ -23,6 +24,7 @@ type Name string
 // AnnotateService returns an error if converting v to a string fails.
 func (s Name) AnnotateService(svc *v1.Service, v interface{}) error {
 	const op = "annotation/Name.AnnotateService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if svc.ObjectMeta.Annotations == nil {
 		svc.ObjectMeta.Annotations = make(map[string]string)
@@ -80,6 +82,8 @@ func (s Name) StringFromService(svc *v1.Service) (string, bool) {
 // StringsFromService returns ErrNotSet annotation was not set.
 func (s Name) StringsFromService(svc *v1.Service) ([]string, error) {
 	const op = "annotation/Name.StringsFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var ss []string
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -98,6 +102,7 @@ func (s Name) StringsFromService(svc *v1.Service) ([]string, error) {
 // error wraps ErrNotSet.
 func (s Name) BoolFromService(svc *v1.Service) (bool, error) {
 	const op = "annotation/Name.BoolFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	v, ok := s.StringFromService(svc)
 	if !ok {
@@ -117,6 +122,7 @@ func (s Name) BoolFromService(svc *v1.Service) (bool, error) {
 // error wraps ErrNotSet.
 func (s Name) IntFromService(svc *v1.Service) (int, error) {
 	const op = "annotation/Name.IntFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	v, ok := s.StringFromService(svc)
 	if !ok {
@@ -137,6 +143,8 @@ func (s Name) IntFromService(svc *v1.Service) (int, error) {
 // error wraps ErrNotSet.
 func (s Name) IntsFromService(svc *v1.Service) ([]int, error) {
 	const op = "annotation/Name.IntsFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var is []int
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -164,6 +172,8 @@ func (s Name) IntsFromService(svc *v1.Service) ([]int, error) {
 // error wraps ErrNotSet.
 func (s Name) IPFromService(svc *v1.Service) (net.IP, error) {
 	const op = "annotation/Name.IPFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var ip net.IP
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -185,6 +195,8 @@ func (s Name) IPFromService(svc *v1.Service) (net.IP, error) {
 // value, the error wraps ErrNotSet.
 func (s Name) DurationFromService(svc *v1.Service) (time.Duration, error) {
 	const op = "annotation/Name.DurationFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var d time.Duration
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -205,6 +217,8 @@ func (s Name) DurationFromService(svc *v1.Service) (time.Duration, error) {
 // set. In the case of a missing value, the error wraps ErrNotSet.
 func (s Name) LBSvcProtocolFromService(svc *v1.Service) (hcloud.LoadBalancerServiceProtocol, error) {
 	const op = "annotation/Name.LBSvcProtocolFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var p hcloud.LoadBalancerServiceProtocol
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -225,6 +239,8 @@ func (s Name) LBSvcProtocolFromService(svc *v1.Service) (hcloud.LoadBalancerServ
 // set. In the case of a missing value, the error wraps ErrNotSet.
 func (s Name) LBAlgorithmTypeFromService(svc *v1.Service) (hcloud.LoadBalancerAlgorithmType, error) {
 	const op = "annotation/Name.LBAlgorithmTypeFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var alg hcloud.LoadBalancerAlgorithmType
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -243,6 +259,8 @@ func (s Name) LBAlgorithmTypeFromService(svc *v1.Service) (hcloud.LoadBalancerAl
 // NetworkZoneFromService returns ErrNotSet if the annotation was not set.
 func (s Name) NetworkZoneFromService(svc *v1.Service) (hcloud.NetworkZone, error) {
 	const op = "annotation/Name.NetworkZoneFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var nz hcloud.NetworkZone
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -261,6 +279,8 @@ func (s Name) NetworkZoneFromService(svc *v1.Service) (hcloud.NetworkZone, error
 // missing value, the error wraps ErrNotSet.
 func (s Name) CertificatesFromService(svc *v1.Service) ([]*hcloud.Certificate, error) {
 	const op = "annotation/Name.CertificatesFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var cs []*hcloud.Certificate
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -292,6 +312,8 @@ func (s Name) CertificatesFromService(svc *v1.Service) ([]*hcloud.Certificate, e
 // error wraps ErrNotSet.
 func (s Name) CertificateTypeFromService(svc *v1.Service) (hcloud.CertificateType, error) {
 	const op = "annotation/Name.CertificateTypeFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var ct hcloud.CertificateType
 
 	err := s.applyToValue(op, svc, func(v string) error {
@@ -322,6 +344,7 @@ func (s Name) applyToValue(op string, svc *v1.Service, f func(string) error) err
 
 func validateAlgorithmType(algorithmType string) (hcloud.LoadBalancerAlgorithmType, error) {
 	const op = "annotation/validateAlgorithmType"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	algorithmType = strings.ToLower(algorithmType) // Lowercase because all our protocols are lowercase
 	hcloudAlgorithmType := hcloud.LoadBalancerAlgorithmType(algorithmType)
@@ -338,6 +361,7 @@ func validateAlgorithmType(algorithmType string) (hcloud.LoadBalancerAlgorithmTy
 
 func validateServiceProtocol(protocol string) (hcloud.LoadBalancerServiceProtocol, error) {
 	const op = "annotation/validateServiceProtocol"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	protocol = strings.ToLower(protocol) // Lowercase because all our protocols are lowercase
 	hcloudProtocol := hcloud.LoadBalancerServiceProtocol(protocol)

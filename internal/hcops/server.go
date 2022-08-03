@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
@@ -35,6 +36,7 @@ type AllServersCache struct {
 // Furthermore modifying the returned server is not concurrency safe.
 func (c *AllServersCache) ByPrivateIP(ip net.IP) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.ByPrivateIP"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	srv, err := c.getCache(func() (*hcloud.Server, bool) {
 		srv, ok := c.byPrivIP[ip.String()]
@@ -54,6 +56,7 @@ func (c *AllServersCache) ByPrivateIP(ip net.IP) (*hcloud.Server, error) {
 // Furthermore modifying the returned server is not concurrency safe.
 func (c *AllServersCache) ByName(name string) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.ByName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	srv, err := c.getCache(func() (*hcloud.Server, bool) {
 		srv, ok := c.byName[name]
@@ -68,6 +71,7 @@ func (c *AllServersCache) ByName(name string) (*hcloud.Server, error) {
 
 func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.getCache"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
