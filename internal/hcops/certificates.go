@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
@@ -28,6 +29,7 @@ type CertificateOps struct {
 // If a certificate could not be found the returned error wraps ErrNotFound.
 func (co *CertificateOps) GetCertificateByNameOrID(ctx context.Context, idOrName string) (*hcloud.Certificate, error) {
 	const op = "hcops/CertificateOps.GetCertificateByNameOrID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	cert, _, err := co.CertClient.Get(ctx, idOrName)
 	if err != nil {
@@ -46,6 +48,8 @@ func (co *CertificateOps) GetCertificateByNameOrID(ctx context.Context, idOrName
 // returned.
 func (co *CertificateOps) GetCertificateByLabel(ctx context.Context, label string) (*hcloud.Certificate, error) {
 	const op = "hcops/CertificateOps.GetCertificateByLabel"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	opts := hcloud.CertificateListOpts{ListOpts: hcloud.ListOpts{LabelSelector: label}}
 	certs, err := co.CertClient.AllWithOpts(ctx, opts)
 	if err != nil {
@@ -69,6 +73,7 @@ func (co *CertificateOps) CreateManagedCertificate(
 	ctx context.Context, name string, domains []string, labels map[string]string,
 ) error {
 	const op = "hcops/CertificateOps.CreateManagedCertificate"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	opts := hcloud.CertificateCreateOpts{
 		Name:        name,

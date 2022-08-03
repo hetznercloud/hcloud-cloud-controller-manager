@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -36,6 +37,7 @@ func newZones(client *hcloud.Client, nodeName string) *zones {
 
 func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
 	const op = "hcloud/zones.GetZone"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, err := getServerByName(ctx, z.client, z.nodeName)
 	if err != nil {
@@ -46,6 +48,7 @@ func (z zones) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
 
 func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
 	const op = "hcloud/zones.GetZoneByProviderID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	id, err := providerIDToServerID(providerID)
 	if err != nil {
@@ -62,6 +65,7 @@ func (z zones) GetZoneByProviderID(ctx context.Context, providerID string) (clou
 
 func (z zones) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
 	const op = "hcloud/zones.GetZoneByNodeName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, err := getServerByName(ctx, z.client, string(nodeName))
 	if err != nil {

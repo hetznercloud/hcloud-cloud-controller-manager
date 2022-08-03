@@ -68,6 +68,7 @@ func TestNewCloud(t *testing.T) {
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"NODE_NAME", "test",
+		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
 	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +86,10 @@ func TestNewCloud(t *testing.T) {
 }
 
 func TestNewCloudWrongTokenSize(t *testing.T) {
-	resetEnv := Setenv(t, "HCLOUD_TOKEN", "0123456789abcdef")
+	resetEnv := Setenv(t,
+		"HCLOUD_TOKEN", "0123456789abcdef",
+		"HCLOUD_METRICS_ENABLED", "false",
+	)
 	defer resetEnv()
 
 	var config bytes.Buffer
@@ -100,6 +104,7 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 		"HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1",
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"NODE_NAME", "test",
+		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
 
@@ -116,6 +121,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"NODE_NAME", "test",
+		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
 	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
@@ -143,6 +149,7 @@ func TestCloud(t *testing.T) {
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"NODE_NAME", "test",
+		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
 	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +240,11 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("RoutesWithNetworks", func(t *testing.T) {
-		resetEnv := Setenv(t, "HCLOUD_NETWORK", "1", "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "true")
+		resetEnv := Setenv(t,
+			"HCLOUD_NETWORK", "1",
+			"HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "true",
+			"HCLOUD_METRICS_ENABLED", "false",
+		)
 		defer resetEnv()
 
 		c, err := newCloud(&bytes.Buffer{})

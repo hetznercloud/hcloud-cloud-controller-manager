@@ -24,12 +24,14 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
 func getServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
 	const op = "hcloud/getServerByName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, _, err := c.Server.GetByName(ctx, name)
 	if err != nil {
@@ -44,6 +46,7 @@ func getServerByName(ctx context.Context, c *hcloud.Client, name string) (*hclou
 
 func getServerByID(ctx context.Context, c *hcloud.Client, id int) (*hcloud.Server, error) {
 	const op = "hcloud/getServerByName"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	server, _, err := c.Server.GetByID(ctx, id)
 	if err != nil {
@@ -57,6 +60,7 @@ func getServerByID(ctx context.Context, c *hcloud.Client, id int) (*hcloud.Serve
 
 func providerIDToServerID(providerID string) (int, error) {
 	const op = "hcloud/providerIDToServerID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	providerPrefix := providerName + "://"
 	if !strings.HasPrefix(providerID, providerPrefix) {

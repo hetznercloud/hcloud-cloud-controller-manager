@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
 	cloudprovider "k8s.io/cloud-provider"
@@ -46,6 +47,8 @@ const (
 	hcloudLoadBalancersDisablePrivateIngress = "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS"
 	hcloudLoadBalancersUsePrivateIP          = "HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP"
 	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
+	hcloudMetricsEnabledENVVar               = "HCLOUD_METRICS_ENABLED"
+	hcloudMetricsAddress                     = ":8233"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
 	providerVersion                          = "v1.9.1"
@@ -62,6 +65,7 @@ type cloud struct {
 
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	token := os.Getenv(hcloudTokenENVVar)
 	if token == "" {
@@ -79,6 +83,14 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		hcloud.WithToken(token),
 		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
 	}
+
+	// start metrics server if enabled (enabled by default)
+	if os.Getenv(hcloudMetricsEnabledENVVar) != "false" {
+		go metrics.Serve(hcloudMetricsAddress)
+
+		opts = append(opts, hcloud.WithInstrumentation(metrics.GetRegistry()))
+	}
+
 	if os.Getenv(hcloudDebugENVVar) == "true" {
 		opts = append(opts, hcloud.WithDebugWriter(os.Stderr))
 	}
@@ -244,6 +256,8 @@ func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, bool, erro
 // network.
 func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int) (bool, error) {
 	const op = "serverIsAttachedToNetwork"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	serverPrivateNetworks, err := metadataClient.PrivateNetworks()
 	if err != nil {
 		return false, fmt.Errorf("%s: %s", op, err)
