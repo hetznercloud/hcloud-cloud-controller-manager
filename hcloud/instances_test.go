@@ -165,8 +165,8 @@ func TestNodeAddressesDualStack(t *testing.T) {
 	}
 	if len(addr) != 3 ||
 		addr[0].Type != v1.NodeHostName || addr[0].Address != "node15" ||
-		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "2001:db8:1234::1" ||
-		addr[2].Type != v1.NodeExternalIP || addr[2].Address != "131.232.99.1" {
+		addr[1].Type != v1.NodeExternalIP || addr[1].Address != "131.232.99.1" ||
+		addr[2].Type != v1.NodeExternalIP || addr[2].Address != "2001:db8:1234::1" {
 		t.Errorf("Unexpected node addresses: %v", addr)
 	}
 }
