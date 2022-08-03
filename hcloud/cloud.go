@@ -40,6 +40,7 @@ const (
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
+	hcloudNetworkRoutesEnabledENVVar         = "HCLOUD_NETWORK_ROUTES_ENABLED"
 	hcloudInstancesAddressFamily             = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 	hcloudLoadBalancersEnabledENVVar         = "HCLOUD_LOAD_BALANCERS_ENABLED"
 	hcloudLoadBalancersLocation              = "HCLOUD_LOAD_BALANCERS_LOCATION"
@@ -199,7 +200,7 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 }
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
-	if c.networkID > 0 {
+	if c.networkID > 0 && os.Getenv(hcloudNetworkRoutesEnabledENVVar) != "false" {
 		r, err := newRoutes(c.client, c.networkID)
 		if err != nil {
 			klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
