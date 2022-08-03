@@ -169,6 +169,15 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
 	)
 
+	if i.addressFamily == AddressFamilyIPv4 || i.addressFamily == AddressFamilyDualStack {
+		if !server.PublicNet.IPv4.IP.IsUnspecified() {
+			addresses = append(
+				addresses,
+				v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
+			)
+		}
+	}
+
 	if i.addressFamily == AddressFamilyIPv6 || i.addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv6.IP.IsUnspecified() {
 			// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
@@ -178,15 +187,6 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 			addresses = append(
 				addresses,
 				v1.NodeAddress{Type: v1.NodeExternalIP, Address: host_address.String()},
-			)
-		}
-	}
-
-	if i.addressFamily == AddressFamilyIPv4 || i.addressFamily == AddressFamilyDualStack {
-		if !server.PublicNet.IPv4.IP.IsUnspecified() {
-			addresses = append(
-				addresses,
-				v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
 			)
 		}
 	}
