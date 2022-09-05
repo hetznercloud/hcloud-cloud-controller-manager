@@ -85,7 +85,7 @@ func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hclou
 	// Reload from the backend API if we didn't find srv.
 	to := c.LoadTimeout
 	if to == 0 {
-		to = 5 * time.Second
+		to = 20 * time.Second
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), to)
 	defer cancel()
