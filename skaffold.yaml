@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta19
+kind: Config
+metadata:
+  name: cloud-controller-manager
+build:
+  artifacts:
+    - image: hetznercloud/hcloud-cloud-controller-manager
+      docker:
+        dockerfile: Dockerfile
+        cacheFrom:
+          - hetznercloud/hcloud-cloud-controller-manager:buildcache
+  local:
+    useBuildkit: true
+deploy:
+  kustomize:
+    paths: [hack/]

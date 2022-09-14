@@ -259,6 +259,69 @@ alias kgp="kubectl get pods"
 alias kgs="kubectl get services"
 ```
 
+## Local test setup
+This repository provides [skaffold](https://skaffold.dev/) to easily deploy / debug this controller on demand
+
+### Requirements
+1. Install [hcloud-cli](https://github.com/hetznercloud/cli)
+2. Install [k3sup](https://github.com/alexellis/k3sup)
+3. Install [cilium](https://github.com/cilium/cilium-cli)
+4. Install [docker](https://www.docker.com/)
+
+You will also need to set a `HCLOUD_TOKEN` in your shell session
+### Manual Installation guide
+1. Create an SSH key
+
+Assuming you already have created an ssh key via `ssh-keygen`
+```
+hcloud ssh-key create --name ssh-key-ccm-test --public-key-from-file ~/.ssh/id_rsa.pub 
+```
+
+2. Create a server
+```
+hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-key-ccm-test --type cx11 
+```
+
+3. Setup k3s on this server
+```
+k3sup install --ip $(hcloud server ip ccm-test-server) --local-path=/tmp/kubeconfig --cluster --k3s-channel=v1.23 --k3s-extra-args='--no-flannel --no-deploy=servicelb --no-deploy=traefik --disable-cloud-controller --disable-network-policy --kubelet-arg=cloud-provider=external'
+```
+- The kubeconfig will be created under `/tmp/kubeconfig`
+- Kubernetes version can be configured via `--k3s-channel`
+
+4. Switch your kubeconfig to the test cluster. Very important: exporting this like 
+```
+export KUBECONFIG=/tmp/kubeconfig
+```
+
+5. Install cilium + test your cluster
+```
+cilium install
+```
+
+6. Add your secret to the cluster
+```
+kubectl -n kube-system create secret generic hcloud --from-literal="token=$HCLOUD_TOKEN"
+```
+
+7. Install hcloud-cloud-controller-manager + test your cluster
+```
+kubectl apply -f  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+kubectl config set-context default
+kubectl get node -o wide
+```
+
+8. Deploy your CSI driver
+```
+SKAFFOLD_DEFAULT_REPO=naokiii skaffold dev
+```
+- `docker login` required
+- Skaffold is using your own dockerhub repo to push the CSI image.
+
+On code change, skaffold will repack the image & deploy it to your test cluster again. Also, it is printing all logs from csi components.
+
+*After setting this up, only the command from step 8 is required!*
+
 ## License
 
 Apache License, Version 2.0
