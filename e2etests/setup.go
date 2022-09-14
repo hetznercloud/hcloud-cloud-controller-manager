@@ -374,7 +374,7 @@ func (s *hcloudK8sSetup) deployFlannel() error {
 		return fmt.Errorf("%s: apply flannel deployment: %s", op, err)
 	}
 	fmt.Printf("%s: patch flannel deployment\n", op)
-	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{\"op\":\"add\",\"path\":\"/spec/template/spec/tolerations/-\",\"value\":{\"key\":\"node.cloudprovider.kubernetes.io/uninitialized\",\"value\":\"true\",\"effect\":\"NoSchedule\"}}]'")
+	err = RunCommandOnServer(s.privKey, s.ClusterNode, "KUBECONFIG=/root/.kube/config kubectl -n kube-flannel patch ds kube-flannel-ds --type json -p '[{\"op\":\"add\",\"path\":\"/spec/template/spec/tolerations/-\",\"value\":{\"key\":\"node.cloudprovider.kubernetes.io/uninitialized\",\"value\":\"true\",\"effect\":\"NoSchedule\"}}]'")
 	if err != nil {
 		return fmt.Errorf("%s: patch flannel deployment: %s", op, err)
 	}

@@ -1,8 +1,8 @@
 ---
 include:
-  - project: "hc/backend/deploy-tools"
+  - project: "cloud/backend/deploy-tools"
     file: "ci/build/image.yml"
-  - project: "hc/backend/deploy-tools"
+  - project: "cloud/backend/deploy-tools"
     file: "ci/release/image.yml"
 
 stages:
@@ -23,7 +23,7 @@ variables:
 
 test:lint:
   stage: test
-  image: golangci/golangci-lint:v1.27.0
+  image: golangci/golangci-lint:v1.49.0
   allow_failure: true
   script:
     - golangci-lint run -v
@@ -80,7 +80,7 @@ build:image:
   stage: e2e-test
   image: docker:git
   variables:
-    K8S_VERSION: k8s-1.19.10
+    K8S_VERSION: k8s-1.25.0
     CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   before_script:
     - apk add --no-cache git make musl-dev go openssh-client
@@ -89,50 +89,50 @@ build:image:
   tags:
     - hc-bladerunner-build
 
-k8s-1.20:
+k8s-1.23:
   <<: *testk8se2e
   stage: e2e-test-k8s
   variables:
-    K8S_VERSION: k8s-1.20.12
+    K8S_VERSION: k8s-1.23.8
 
-k8s-1.20-networks:
+k8s-1.23-networks:
   <<: *testk8se2e
   stage: e2e-test-k8s-networks
   variables:
-    K8S_VERSION: k8s-1.20.12
+    K8S_VERSION: k8s-1.23.8
     USE_NETWORKS: "yes"
 
-k8s-1.21:
+k8s-1.24:
   <<: *testk8se2e
   stage: e2e-test-k8s
   variables:
-    K8S_VERSION: k8s-1.21.6
+    K8S_VERSION: k8s-1.24.2
 
-k8s-1.21-networks:
+k8s-1.24-networks:
   <<: *testk8se2e
   stage: e2e-test-k8s-networks
   variables:
-    K8S_VERSION: k8s-1.21.6
+    K8S_VERSION: k8s-1.24.2
     USE_NETWORKS: "yes"
 
-k8s-1.22:
+k8s-1.25:
   <<: *testk8se2e
   stage: e2e-test-k8s
   variables:
-    K8S_VERSION: k8s-1.22.3
+    K8S_VERSION: k8s-1.25.0
 
-k8s-1.22-networks:
+k8s-1.25-networks:
   <<: *testk8se2e
   stage: e2e-test-k8s-networks
   variables:
-    K8S_VERSION: k8s-1.22.3
+    K8S_VERSION: k8s-1.25.0
     USE_NETWORKS: "yes"
 
 .e2e:k3s: &testk3se2e
   stage: e2e-test
   image: docker:git
   variables:
-    K8S_VERSION: k3s-1.20.12+k3s1
+    K8S_VERSION: k3s-1.25.0+k3s1
     CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   before_script:
     - apk add --no-cache git make musl-dev go openssh-client
@@ -141,43 +141,43 @@ k8s-1.22-networks:
   tags:
     - hc-bladerunner-build
 
-k3s-1.20:
+k3s-1.23:
   <<: *testk3se2e
   stage: e2e-test-k3s
   variables:
-    K8S_VERSION: k3s-1.20.12+k3s1
+    K8S_VERSION: k3s-1.23.8+k3s1
 
-k3s-1.20-networks:
+k3s-1.23-networks:
   <<: *testk3se2e
   stage: e2e-test-k3s-networks
   variables:
-    K8S_VERSION: k3s-1.20.12+k3s1
+    K8S_VERSION: k3s-1.23.8+k3s1
     USE_NETWORKS: "yes"
 
-k3s-1.21:
+k3s-1.24:
   <<: *testk3se2e
   stage: e2e-test-k3s
   variables:
-    K8S_VERSION: k3s-1.21.6+k3s1
+    K8S_VERSION: k3s-1.24.2+k3s1
 
-k3s-1.21-networks:
+k3s-1.24-networks:
   <<: *testk3se2e
   stage: e2e-test-k3s-networks
   variables:
-    K8S_VERSION: k3s-1.21.6+k3s1
+    K8S_VERSION: k3s-1.24.2+k3s1
     USE_NETWORKS: "yes"
 
-k3s-1.22:
+k3s-1.25:
   <<: *testk3se2e
   stage: e2e-test-k3s
   variables:
-    K8S_VERSION: k3s-1.22.3+k3s1
+    K8S_VERSION: k3s-1.25.0+k3s1
 
-k3s-1.22-networks:
+k3s-1.25-networks:
   <<: *testk3se2e
   stage: e2e-test-k3s-networks
   variables:
-    K8S_VERSION: k3s-1.22.3+k3s1
+    K8S_VERSION: k3s-1.25.0+k3s1
     USE_NETWORKS: "yes"
 
 release:image:
