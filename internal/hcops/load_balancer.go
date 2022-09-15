@@ -368,7 +368,7 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 		return false, nil
 	}
 
-	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, string(lb.PublicNet.IPv4.IP), &rdns)
+	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv4.IP.String(), &rdns)
 
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -394,7 +394,7 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 		return false, nil
 	}
 
-	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, string(lb.PublicNet.IPv6.IP), &rdns)
+	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv6.IP.String(), &rdns)
 
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
