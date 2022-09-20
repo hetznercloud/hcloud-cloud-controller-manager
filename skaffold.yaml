@@ -6,7 +6,7 @@ build:
   artifacts:
     - image: hetznercloud/hcloud-cloud-controller-manager
       docker:
-        dockerfile: Dockerfile
+        dockerfile: hack/Dockerfile
         cacheFrom:
           - hetznercloud/hcloud-cloud-controller-manager:buildcache
   local:
