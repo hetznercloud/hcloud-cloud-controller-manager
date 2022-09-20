@@ -772,7 +772,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				action := &hcloud.Action{ID: rand.Int()}
 				newRDNS := "new-name-lb.example.com"
-				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, string(net.ParseIP("1.2.3.4")), &newRDNS).Return(action, nil, nil)
+				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("1.2.3.4").String(), &newRDNS).Return(action, nil, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
@@ -819,7 +819,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				action := &hcloud.Action{ID: rand.Int()}
 				newRDNS := "new-name-lb.example.com"
-				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, string(net.ParseIP("fe80::1")), &newRDNS).Return(action, nil, nil)
+				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("fe80::1").String(), &newRDNS).Return(action, nil, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
