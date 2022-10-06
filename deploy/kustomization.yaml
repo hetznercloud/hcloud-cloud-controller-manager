@@ -1,6 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-# Toggle between ccm and ccm-networks for skaffold testing
+# Toggle between ccm, ccm-networks, and ccm-bare-metal for skaffold testing
 - ccm.yaml
 #- ccm-networks.yaml
+#- ccm-bare-metal.yaml
