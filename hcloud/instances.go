@@ -206,5 +206,6 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 
 		}
 	}
+
 	return addresses
 }

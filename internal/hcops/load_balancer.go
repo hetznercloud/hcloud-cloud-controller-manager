@@ -678,7 +678,6 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLBServices"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
-
 	var changed bool
 
 	if err := l.reconcileManagedCertificate(ctx, svc); err != nil {
@@ -1066,6 +1065,20 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		b.healthCheckOpts.httpOpts.TLS = &tls
+		return nil
+	})
+
+	b.do(func() error {
+		port, err := annotation.LBSvcHealthCheckTLSPort.IntFromService(b.Service)
+		if errors.Is(err, annotation.ErrNotSet) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		if b.listenPort == port {
+			b.healthCheckOpts.httpOpts.TLS = hcloud.Bool(true)
+		}
 		return nil
 	})
 
