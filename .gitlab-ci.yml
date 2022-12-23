@@ -10,10 +10,6 @@ stages:
   - build
   - build:image
   - e2e-test
-  - e2e-test-k8s
-  - e2e-test-k8s-networks
-  - e2e-test-k3s
-  - e2e-test-k3s-networks
   - release
   - release:image
 
@@ -51,7 +47,7 @@ test:unit:
   variables:
     GIT_DEPTH: 0
   after_script:
-    - cp dist/hcloud-cloud-controller-manager_linux_amd64/hcloud-cloud-controller-manager hcloud-cloud-controller-manager
+    - cp dist/hcloud-cloud-controller-manager_linux_amd64_v1/hcloud-cloud-controller-manager hcloud-cloud-controller-manager
   artifacts:
     paths:
       - hcloud-cloud-controller-manager
@@ -75,110 +71,32 @@ build:goreleaser:tags:
 
 build:image:
   stage: build:image
+  tags:
+    - cloud-integrations
 
-.e2e:k8s: &testk8se2e
+e2e:
   stage: e2e-test
   image: docker:git
   variables:
-    K8S_VERSION: k8s-1.25.0
     CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  parallel:
+    matrix:
+      - K8S_VERSION: [ k8s-1.23.15, k8s-1.24.9, k8s-1.25.5, k8s-1.26.0 ]
+        USE_NETWORKS: ["yes", "no"]
+      - K8S_VERSION: [ k3s-v1.23.15+k3s1, k3s-v1.24.9+k3s1, k3s-v1.25.5+k3s1, k3s-v1.26.0+k3s1 ]
+        USE_NETWORKS: ["yes", "no"]
   before_script:
     - apk add --no-cache git make musl-dev go openssh-client
+
+      # Make pre-built docker image available
+    - docker login $CI_REGISTRY --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD
+    - docker pull $CCM_IMAGE_NAME
   script:
     - go test $(go list ./... | grep e2etests) -v -timeout 60m
   tags:
     - hc-bladerunner-build
-
-k8s-1.23:
-  <<: *testk8se2e
-  stage: e2e-test-k8s
-  variables:
-    K8S_VERSION: k8s-1.23.8
-
-k8s-1.23-networks:
-  <<: *testk8se2e
-  stage: e2e-test-k8s-networks
-  variables:
-    K8S_VERSION: k8s-1.23.8
-    USE_NETWORKS: "yes"
-
-k8s-1.24:
-  <<: *testk8se2e
-  stage: e2e-test-k8s
-  variables:
-    K8S_VERSION: k8s-1.24.2
-
-k8s-1.24-networks:
-  <<: *testk8se2e
-  stage: e2e-test-k8s-networks
-  variables:
-    K8S_VERSION: k8s-1.24.2
-    USE_NETWORKS: "yes"
-
-k8s-1.25:
-  <<: *testk8se2e
-  stage: e2e-test-k8s
-  variables:
-    K8S_VERSION: k8s-1.25.0
-
-k8s-1.25-networks:
-  <<: *testk8se2e
-  stage: e2e-test-k8s-networks
-  variables:
-    K8S_VERSION: k8s-1.25.0
-    USE_NETWORKS: "yes"
-
-.e2e:k3s: &testk3se2e
-  stage: e2e-test
-  image: docker:git
-  variables:
-    K8S_VERSION: k3s-1.25.0+k3s1
-    CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-  before_script:
-    - apk add --no-cache git make musl-dev go openssh-client
-  script:
-    - go test $(go list ./... | grep e2etests) -v -timeout 60m
-  tags:
-    - hc-bladerunner-build
-
-k3s-1.23:
-  <<: *testk3se2e
-  stage: e2e-test-k3s
-  variables:
-    K8S_VERSION: k3s-1.23.8+k3s1
-
-k3s-1.23-networks:
-  <<: *testk3se2e
-  stage: e2e-test-k3s-networks
-  variables:
-    K8S_VERSION: k3s-1.23.8+k3s1
-    USE_NETWORKS: "yes"
-
-k3s-1.24:
-  <<: *testk3se2e
-  stage: e2e-test-k3s
-  variables:
-    K8S_VERSION: k3s-1.24.2+k3s1
-
-k3s-1.24-networks:
-  <<: *testk3se2e
-  stage: e2e-test-k3s-networks
-  variables:
-    K8S_VERSION: k3s-1.24.2+k3s1
-    USE_NETWORKS: "yes"
-
-k3s-1.25:
-  <<: *testk3se2e
-  stage: e2e-test-k3s
-  variables:
-    K8S_VERSION: k3s-1.25.0+k3s1
-
-k3s-1.25-networks:
-  <<: *testk3se2e
-  stage: e2e-test-k3s-networks
-  variables:
-    K8S_VERSION: k3s-1.25.0+k3s1
-    USE_NETWORKS: "yes"
 
 release:image:
   stage: release:image
+  tags:
+    - cloud-integrations
