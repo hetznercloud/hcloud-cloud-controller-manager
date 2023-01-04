@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	hrobot "github.com/syself/hrobot-go"
@@ -29,6 +30,46 @@ import (
 
 	"github.com/hetznercloud/hcloud-go/hcloud"
 )
+
+const rateLimitWaitingTime = 5 * time.Minute
+
+type rateLimit struct {
+	exceeded    bool
+	lastChecked time.Time
+}
+
+var (
+	robotRateLimitServerGetList rateLimit
+	robotRateLimitServerGet     rateLimit
+)
+
+func (rl *rateLimit) set() {
+	rl.exceeded = true
+	rl.lastChecked = time.Now()
+}
+
+func (rl *rateLimit) isExceeded() bool {
+	if !rl.exceeded {
+		return false
+	}
+
+	if time.Now().Before(rl.lastChecked.Add(rateLimitWaitingTime)) {
+		return true
+	} else {
+		// Waiting time is over. Should try again
+		rl.exceeded = false
+		rl.lastChecked = time.Time{}
+		return false
+	}
+}
+
+func (rl *rateLimit) timeOfNextPossibleAPICall() time.Time {
+	emptyTime := time.Time{}
+	if rl.lastChecked == emptyTime {
+		return emptyTime
+	}
+	return rl.lastChecked.Add(rateLimitWaitingTime)
+}
 
 func getHCloudServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
 	const op = "hcloud/getServerByName"
@@ -60,8 +101,16 @@ func getRobotServerByName(c hrobot.RobotClient, name string) (server *models.Ser
 		return nil, errMissingRobotCredentials
 	}
 
+	// Check for rate limit
+	if robotRateLimitServerGetList.isExceeded() {
+		return nil, fmt.Errorf("%s: rate limit exceeded. Next try at %v", op, robotRateLimitServerGetList.timeOfNextPossibleAPICall().String())
+	}
+
 	serverList, err := c.ServerGetList()
 	if err != nil {
+		if models.IsError(err, models.ErrorCodeRateLimitExceeded) {
+			robotRateLimitServerGetList.set()
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -81,10 +130,19 @@ func getRobotServerByID(c hrobot.RobotClient, id int) (*models.Server, error) {
 		return nil, errMissingRobotCredentials
 	}
 
+	// Check for rate limit
+	if robotRateLimitServerGet.isExceeded() {
+		return nil, fmt.Errorf("%s: rate limit exceeded. Next try at %v", op, robotRateLimitServerGet.timeOfNextPossibleAPICall().String())
+	}
+
 	server, err := c.ServerGet(id)
 	if err != nil && !models.IsError(err, models.ErrorCodeServerNotFound) {
+		if models.IsError(err, models.ErrorCodeRateLimitExceeded) {
+			robotRateLimitServerGet.set()
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return server, nil
 }
 
