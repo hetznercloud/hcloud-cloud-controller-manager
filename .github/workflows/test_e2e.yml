@@ -19,7 +19,6 @@ jobs:
           USE_NETWORKS: yes
         run: |
           export HCLOUD_TOKEN=$(./scripts/get-token.sh)
-          cat resp.json
           go test $(go list ./... | grep e2etests) -v -timeout 60m
           ./scripts/delete-token.sh $HCLOUD_TOKEN
   k3s:
