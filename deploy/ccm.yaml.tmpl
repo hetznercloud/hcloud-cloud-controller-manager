@@ -52,7 +52,7 @@ spec:
         - key: "node-role.kubernetes.io/control-plane"
           effect: NoSchedule
         - key: "node.kubernetes.io/not-ready"
-          effect: "NoSchedule"
+          effect: "NoExecute"
       containers:
         - image: hetznercloud/hcloud-cloud-controller-manager:__VERSION__
           name: hcloud-cloud-controller-manager

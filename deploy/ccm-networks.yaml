@@ -53,7 +53,7 @@ spec:
           effect: NoSchedule
           operator: Exists
         - key: "node.kubernetes.io/not-ready"
-          effect: "NoSchedule"
+          effect: "NoExecute"
       hostNetwork: true
       containers:
         - image: hetznercloud/hcloud-cloud-controller-manager:v1.9.1
