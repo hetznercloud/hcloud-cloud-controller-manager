@@ -306,23 +306,18 @@ cilium install
 kubectl -n kube-system create secret generic hcloud --from-literal="token=$HCLOUD_TOKEN"
 ```
 
-7. Install hcloud-cloud-controller-manager + test your cluster
+7. Deploy the hcloud-cloud-controller-manager
 ```
-kubectl apply -f  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
-kubectl config set-context default
-kubectl get node -o wide
+SKAFFOLD_DEFAULT_REPO=your_docker_hub_username skaffold dev
 ```
 
-8. Deploy your CSI driver
-```
-SKAFFOLD_DEFAULT_REPO=naokiii skaffold dev
-```
 - `docker login` required
-- Skaffold is using your own dockerhub repo to push the CSI image.
+- Skaffold is using your own dockerhub repo to push the HCCM image.
+- After the first run, you might need to set the image to "public" on hub.docker.com
 
-On code change, skaffold will repack the image & deploy it to your test cluster again. Also, it is printing all logs from csi components.
+On code change, skaffold will repack the image & deploy it to your test cluster again. Also, it is printing all logs from hccm components.
 
-*After setting this up, only the command from step 8 is required!*
+*After setting this up, only the command from step 7 is required!*=
 
 ## License
 
