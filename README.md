@@ -286,7 +286,7 @@ hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-k
 
 3. Setup k3s on this server
 ```
-k3sup install --ip $(hcloud server ip ccm-test-server) --local-path=/tmp/kubeconfig --cluster --k3s-channel=v1.23 --k3s-extra-args='--no-flannel --no-deploy=servicelb --no-deploy=traefik --disable-cloud-controller --disable-network-policy --kubelet-arg=cloud-provider=external'
+k3sup install --ip $(hcloud server ip ccm-test-server) --local-path=/tmp/kubeconfig --cluster --k3s-channel=v1.26 --k3s-extra-args='--disable servicelb,traefik --disable-cloud-controller --disable-network-policy --flannel-backend=none --kubelet-arg=cloud-provider=external'
 ```
 - The kubeconfig will be created under `/tmp/kubeconfig`
 - Kubernetes version can be configured via `--k3s-channel`
