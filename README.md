@@ -77,9 +77,9 @@ which these instructions are meant to argument and the [kubeadm
 documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
 1. The cloud controller manager adds its labels when a node is added to
-   the cluster. For Kubernetes versions prior to 1.23, this means we
+   the cluster. For current Kubernetes versions, this means we
    have to add the `--cloud-provider=external` flag to the `kubelet`
-   before initializing the cluster master with `kubeadm init`. To do
+   before initializing the control plane with `kubeadm init`. To do
    accomplish this we add this systemd drop-in unit
    `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`:
 
@@ -89,9 +89,9 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     ```
 
    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
-   will see a log message regarding this.
+   will see a log message regarding this. For now (v1.26) it is still required.
 
-2. Now the cluster master can be initialized:
+2. Now the control plane can be initialized:
 
     ```sh
     sudo kubeadm init --pod-network-cidr=10.244.0.0/16
