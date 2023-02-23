@@ -224,7 +224,7 @@ func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, add
 	res, _, err := s.Hcloud.Server.Create(ctx, hcloud.ServerCreateOpts{
 		Name:       fmt.Sprintf("srv-%s-%s", name, s.TestIdentifier),
 		ServerType: &hcloud.ServerType{Name: typ},
-		Image:      &hcloud.Image{Name: "ubuntu-20.04"},
+		Image:      &hcloud.Image{Name: "ubuntu-22.04"},
 		SSHKeys:    sshKeys,
 		UserData:   userData,
 		Labels:     s.testLabels,
