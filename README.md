@@ -182,21 +182,21 @@ release.
 
 ### With Networks support
 
-| Kubernetes |           k3s | Cloud Controller Manager |        Deployment File                                                                                     |
-|------------|--------------:|-------------------------:|-----------------------------------------------------------------------------------------------------------:|
-| 1.26       |  v1.26.0+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.25       |  v1.25.5+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.24       |  v1.24.9+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.23       | v1.23.15+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| Kubernetes |           k3s | Cloud Controller Manager |                                                                                             Deployment File |
+|------------|--------------:|-------------------------:|------------------------------------------------------------------------------------------------------------:|
+| 1.26       |  v1.26.1+k3s1 |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.25       |  v1.25.6+k3s1 |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.24       | v1.24.10+k3s1 |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.23       | v1.23.15+k3s1 |                  v1.13.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm-networks.yaml |
 
 ### Without Networks support
 
-| Kubernetes |           k3s | Cloud Controller Manager | Deployment File                                                                                   |
-|------------|--------------:|-------------------------:|--------------------------------------------------------------------------------------------------:|
-| 1.26       |  v1.26.0+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.25       |  v1.25.5+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.24       |  v1.24.9+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.23       | v1.23.15+k3s1 |                     main | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| Kubernetes |           k3s | Cloud Controller Manager |                                                                                    Deployment File |
+|------------|--------------:|-------------------------:|---------------------------------------------------------------------------------------------------:|
+| 1.26       |  v1.26.1+k3s1 |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.25       |  v1.25.6+k3s1 |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.24       | v1.24.10+k3s1 |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.23       | v1.23.15+k3s1 |                  v1.13.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm.yaml |
 
 ## Unit tests
 
