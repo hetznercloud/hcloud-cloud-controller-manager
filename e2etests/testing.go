@@ -576,10 +576,16 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 			return false, nil
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// Success
+			return true, nil
+		case http.StatusServiceUnavailable:
+			// Health checks are still evaluating
+			return false, nil
+		default:
 			return false, fmt.Errorf("%s: got HTTP Code %d instead of 200", op, resp.StatusCode)
 		}
-		return true, nil
 	})
 	if err != nil {
 		t.Errorf("%s: not available via client.Get: %s", op, err)
