@@ -9,7 +9,7 @@ ARG SKAFFOLD_GO_GCFLAGS
 RUN CGO_ENABLED=0 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o hcloud-cloud-controller-manager.bin github.com/hetznercloud/hcloud-cloud-controller-manager
 
 
-FROM alpine:3.12
+FROM alpine:3.17
 RUN apk add --no-cache ca-certificates bash
 COPY --from=builder /hccm/hcloud-cloud-controller-manager.bin /bin/hcloud-cloud-controller-manager
 ENTRYPOINT ["/bin/hcloud-cloud-controller-manager"]
