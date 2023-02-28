@@ -3,7 +3,7 @@ module github.com/hetznercloud/hcloud-cloud-controller-manager
 go 1.19
 
 require (
-	github.com/hetznercloud/hcloud-go v1.35.3
+	github.com/hetznercloud/hcloud-go v1.40.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
