@@ -312,10 +312,10 @@ SKAFFOLD_DEFAULT_REPO=your_docker_hub_username skaffold dev
 ```
 
 - `docker login` required
-- Skaffold is using your own dockerhub repo to push the HCCM image.
+- Skaffold is using your own Docker Hub repo to push the HCCM image.
 - After the first run, you might need to set the image to "public" on hub.docker.com
 
-On code change, skaffold will repack the image & deploy it to your test cluster again. Also, it is printing all logs from hccm components.
+On code change, Skaffold will repack the image & deploy it to your test cluster again. It will also stream logs from the hccm Deployment.
 
 *After setting this up, only the command from step 7 is required!*=
 
