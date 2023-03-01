@@ -27,7 +27,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Run GoReleaser for snapshot
         if: "!startsWith(github.ref, 'refs/tags/')"
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v4
         with:
           version: latest
           args: release --snapshot --rm-dist
@@ -42,7 +42,7 @@ jobs:
            docker push hetznercloud/hcloud-cloud-controller-manager:latest
       - name: Run GoReleaser for tag
         if: "startsWith(github.ref, 'refs/tags/')"
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v4
         with:
           version: latest
           args: release --rm-dist
