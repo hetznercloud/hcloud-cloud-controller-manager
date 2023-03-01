@@ -1,12 +1,12 @@
-# NOTE: this release was tested against kubernetes v1.18.x
-
 ---
+# Source: hcloud-cloud-controller-manager/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cloud-controller-manager
   namespace: kube-system
 ---
+# Source: hcloud-cloud-controller-manager/templates/clusterrolebinding.yaml
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -20,6 +20,7 @@ subjects:
     name: cloud-controller-manager
     namespace: kube-system
 ---
+# Source: hcloud-cloud-controller-manager/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,7 +57,7 @@ spec:
         - key: "node.kubernetes.io/not-ready"
           effect: "NoExecute"
       containers:
-        - image: hetznercloud/hcloud-cloud-controller-manager:v1.9.1
+        - image: hetznercloud/hcloud-cloud-controller-manager:v1.13.2
           name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"

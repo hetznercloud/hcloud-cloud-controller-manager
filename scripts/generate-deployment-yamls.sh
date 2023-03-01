@@ -9,6 +9,9 @@ if [[ -z $VERSION ]]; then
     exit 1
 fi
 
+cat chart/Chart.yaml | sed -e "s/version: .*/version: $VERSION/" > chart/Chart.yaml.new && mv chart/Chart.yaml{.new,}
+helm template chart > deploy/ccm.yaml
+
 for x in "$TEMPLATES_DIR"/*.yaml.tmpl; do
     outdir="$(command dirname "$x")"/gen
     file="$(command basename "$x")"
