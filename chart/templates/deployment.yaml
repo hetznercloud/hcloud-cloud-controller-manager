@@ -33,6 +33,9 @@ spec:
           operator: Exists
         - key: "node.kubernetes.io/not-ready"
           effect: "NoExecute"
+      {{- if $.Values.networking.enabled }}
+      hostNetwork: true
+      {{- end }}
       containers:
         - image: hetznercloud/hcloud-cloud-controller-manager:{{ .Chart.Version }}
           name: hcloud-cloud-controller-manager
@@ -41,6 +44,10 @@ spec:
             - "--cloud-provider=hcloud"
             - "--leader-elect=false"
             - "--allow-untagged-cloud"
+            {{- if $.Values.networking.enabled }}
+            - "--allocate-node-cidrs=true"
+            - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
+            {{- end }}
           resources:
             requests:
               cpu: 100m
@@ -55,4 +62,11 @@ spec:
                 secretKeyRef:
                   name: hcloud
                   key: token
+            {{- if $.Values.networking.enabled }}
+            - name: HCLOUD_NETWORK
+              valueFrom:
+                secretKeyRef:
+                  name: hcloud
+                  key: network
+            {{- end }}
       priorityClassName: system-cluster-critical

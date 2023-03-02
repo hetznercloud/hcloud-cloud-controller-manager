@@ -11,11 +11,5 @@ fi
 
 cat chart/Chart.yaml | sed -e "s/version: .*/version: $VERSION/" > chart/Chart.yaml.new && mv chart/Chart.yaml{.new,}
 helm template chart > deploy/ccm.yaml
+helm template chart --set networking.enabled=true > deploy/ccm-networks.yaml
 
-for x in "$TEMPLATES_DIR"/*.yaml.tmpl; do
-    outdir="$(command dirname "$x")"/gen
-    file="$(command basename "$x")"
-
-    command mkdir -p "$outdir"
-    command sed "s/__VERSION__/$VERSION/" "$x" > "$outdir"/"${file%%.tmpl}"
-done
