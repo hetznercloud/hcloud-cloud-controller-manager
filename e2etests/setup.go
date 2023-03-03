@@ -14,6 +14,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -27,9 +28,14 @@ type K8sDistribution string
 const (
 	K8sDistributionK8s K8sDistribution = "k8s"
 	K8sDistributionK3s K8sDistribution = "k3s"
+
+	imageName = "hetznercloud/hcloud-cloud-controller-manager"
 )
 
-var instanceType = "cpx21"
+var (
+	imageRegexp  = regexp.MustCompilePOSIX(fmt.Sprintf("%s\\:.*$", imageName))
+	instanceType = "cpx21"
+)
 
 type hcloudK8sSetup struct {
 	Hcloud          *hcloud.Client
@@ -344,9 +350,9 @@ func runCmd(name string, argv []string, env []string) error {
 func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	const op = "hcloudK8sSetup/prepareCCMDeploymentFile"
 	fmt.Printf("%s: Read master deployment file\n", op)
-	var deploymentFilePath = "../deploy/dev-ccm.yaml"
+	var deploymentFilePath = "../deploy/ccm.yaml"
 	if networks {
-		deploymentFilePath = "../deploy/dev-ccm-networks.yaml"
+		deploymentFilePath = "../deploy/ccm-networks.yaml"
 	}
 	deploymentFile, err := ioutil.ReadFile(deploymentFilePath)
 	if err != nil {
@@ -354,7 +360,7 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	}
 
 	fmt.Printf("%s: Prepare deployment file and transfer it\n", op)
-	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), "hetznercloud/hcloud-cloud-controller-manager:latest", s.ImageName))
+	deploymentFile = imageRegexp.ReplaceAll(deploymentFile, []byte(s.ImageName))
 	deploymentFile = []byte(strings.ReplaceAll(string(deploymentFile), " imagePullPolicy: Always", " imagePullPolicy: IfNotPresent"))
 
 	err = RunCommandOnServer(s.privKey, s.ClusterNode, fmt.Sprintf("echo '%s' >> ccm.yml", deploymentFile))
@@ -527,7 +533,7 @@ func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error
 	return buf.String(), nil
 }
 
-//getSSHKey create and get the Hetzner Cloud SSH Key for the test
+// getSSHKey create and get the Hetzner Cloud SSH Key for the test
 func (s *hcloudK8sSetup) getSSHKey(ctx context.Context) error {
 	const op = "hcloudK8sSetup/getSSHKey"
 	pubKey, privKey, err := makeSSHKeyPair()
