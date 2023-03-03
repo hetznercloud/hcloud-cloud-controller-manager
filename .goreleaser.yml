@@ -43,3 +43,7 @@ release:
   extra_files:
     - glob: "./deploy/gen/ccm*.yaml"
     - glob: "./hcloud-cloud-controller-manager-*.tgz"
+
+publishers:
+  - name: helm-chart-repo
+    cmd: ./scripts/publish-helm-chart.sh hcloud-cloud-controller-manager-{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}.tgz
