@@ -25,7 +25,7 @@ test:lint:
     - golangci-lint run -v
   except:
     - tags
-    - master
+    - main
   tags:
     - hc-bladerunner
 
