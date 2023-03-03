@@ -13,3 +13,4 @@ cat chart/Chart.yaml | sed -e "s/version: .*/version: $VERSION/" > chart/Chart.y
 helm template chart > deploy/ccm.yaml
 helm template chart --set networking.enabled=true > deploy/ccm-networks.yaml
 
+helm package chart

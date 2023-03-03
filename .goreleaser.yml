@@ -4,6 +4,8 @@
 before:
   hooks:
     - go mod tidy
+    - ./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+
 builds:
   - id: hcloud-cloud-controller-manager
     env:
@@ -15,8 +17,7 @@ builds:
     binary: hcloud-cloud-controller-manager
     ldflags:
       - "-s -w -X hcloud.providerVersion={{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
-    hooks:
-      post: "./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
+
 archives:
   - id: deployment-yamls
     # builds: [""]
@@ -35,8 +36,10 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
+
 release:
   ids: [""]
   draft: true
   extra_files:
     - glob: "./deploy/gen/ccm*.yaml"
+    - glob: "./hcloud-cloud-controller-manager-*.tgz"
