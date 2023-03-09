@@ -131,6 +131,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		klog.Infof("%s: %s empty", op, hcloudNetworkENVVar)
 	}
 
+	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
 	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -164,7 +165,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 
 	return &cloud{
 		client:       client,
-		instances:    newInstances(client, instancesAddressFamily),
+		instances:    newInstances(client, instancesAddressFamily, networkID),
 		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,

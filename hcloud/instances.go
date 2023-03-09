@@ -19,7 +19,6 @@ package hcloud
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
@@ -38,10 +37,11 @@ const (
 type instances struct {
 	client        *hcloud.Client
 	addressFamily addressFamily
+	networkID     int
 }
 
-func newInstances(client *hcloud.Client, addressFamily addressFamily) *instances {
-	return &instances{client, addressFamily}
+func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID int) *instances {
+	return &instances{client, addressFamily, networkID}
 }
 
 // lookupServer attempts to locate the corresponding hcloud.Server for a given v1.Node
@@ -140,19 +140,15 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 		}
 	}
 
-	n := os.Getenv(hcloudNetworkENVVar)
-	if len(n) > 0 {
-		network, _, _ := i.client.Network.Get(ctx, n)
-		if network != nil {
-			for _, privateNet := range server.PrivateNet {
-				if privateNet.Network.ID == network.ID {
-					addresses = append(
-						addresses,
-						v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
-					)
-				}
+	// Add private IP from network if network is specified
+	if i.networkID > 0 {
+		for _, privateNet := range server.PrivateNet {
+			if privateNet.Network.ID == i.networkID {
+				addresses = append(
+					addresses,
+					v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
+				)
 			}
-
 		}
 	}
 	return addresses
