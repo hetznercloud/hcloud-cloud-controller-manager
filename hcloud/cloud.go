@@ -58,7 +58,6 @@ const (
 type cloud struct {
 	client       *hcloud.Client
 	instances    *instances
-	zones        *zones
 	routes       *routes
 	loadBalancer *loadBalancers
 	networkID    int
@@ -163,7 +162,6 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 
 	return &cloud{
 		client:       client,
-		zones:        newZones(client, nodeName),
 		instances:    newInstances(client, instancesAddressFamily),
 		loadBalancer: loadBalancers,
 		routes:       nil,
@@ -175,7 +173,8 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 }
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
-	return c.instances, true
+	// Replaced by InstancesV2
+	return nil, false
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
@@ -183,7 +182,8 @@ func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
-	return c.zones, true
+	// Replaced by InstancesV2
+	return nil, false
 }
 
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {

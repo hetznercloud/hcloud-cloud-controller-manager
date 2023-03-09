@@ -20,12 +20,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
@@ -113,122 +111,6 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloud
 	}, nil
 }
 
-func (i *instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
-	const op = "hcloud/instances.NodeAddressesByProviderID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	id, err := providerIDToServerID(providerID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	server, err := getServerByID(ctx, i.client, id)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return i.nodeAddresses(ctx, server), nil
-}
-
-func (i *instances) NodeAddresses(ctx context.Context, nodeName types.NodeName) ([]v1.NodeAddress, error) {
-	const op = "hcloud/instances.NodeAddresses"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, err := getServerByName(ctx, i.client, string(nodeName))
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return i.nodeAddresses(ctx, server), nil
-}
-
-func (i *instances) ExternalID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	const op = "hcloud/instances.ExternalID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	id, err := i.InstanceID(ctx, nodeName)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-	return id, nil
-}
-
-func (i *instances) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	const op = "hcloud/instances.InstanceID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, err := getServerByName(ctx, i.client, string(nodeName))
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-	return strconv.Itoa(server.ID), nil
-}
-
-func (i *instances) InstanceType(ctx context.Context, nodeName types.NodeName) (string, error) {
-	const op = "hcloud/instances.InstanceType"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, err := getServerByName(ctx, i.client, string(nodeName))
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-	return server.ServerType.Name, nil
-}
-
-func (i *instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
-	const op = "hcloud/instances.InstanceTypeByProviderID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	id, err := providerIDToServerID(providerID)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-
-	server, err := getServerByID(ctx, i.client, id)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
-	}
-	return server.ServerType.Name, nil
-}
-
-func (i *instances) AddSSHKeyToAllInstances(ctx context.Context, user string, keyData []byte) error {
-	return cloudprovider.NotImplemented
-}
-
-func (i *instances) CurrentNodeName(ctx context.Context, hostname string) (types.NodeName, error) {
-	return types.NodeName(hostname), nil
-}
-
-func (i instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
-	const op = "hcloud/instances.InstanceExistsByProviderID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	id, err := providerIDToServerID(providerID)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
-	server, _, err := i.client.Server.GetByID(ctx, id)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-	return server != nil, nil
-}
-
-func (i instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
-	const op = "hcloud/instances.InstanceShutdownByProviderID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	id, err := providerIDToServerID(providerID)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
-	server, _, err := i.client.Server.GetByID(ctx, id)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-	return server != nil && server.Status == hcloud.ServerStatusOff, nil
-}
-
 func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []v1.NodeAddress {
 	var addresses []v1.NodeAddress
 	addresses = append(
@@ -248,12 +130,12 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 	if i.addressFamily == AddressFamilyIPv6 || i.addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv6.IP.IsUnspecified() {
 			// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
-			host_address := server.PublicNet.IPv6.IP
-			host_address[len(host_address)-1] |= 0x01
+			hostAddress := server.PublicNet.IPv6.IP
+			hostAddress[len(hostAddress)-1] |= 0x01
 
 			addresses = append(
 				addresses,
-				v1.NodeAddress{Type: v1.NodeExternalIP, Address: host_address.String()},
+				v1.NodeAddress{Type: v1.NodeExternalIP, Address: hostAddress.String()},
 			)
 		}
 	}
