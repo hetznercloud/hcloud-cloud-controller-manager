@@ -206,15 +206,22 @@ func TestCloud(t *testing.T) {
 
 	t.Run("Instances", func(t *testing.T) {
 		_, supported := cloud.Instances()
-		if !supported {
-			t.Error("Instances interface should be supported")
+		if supported {
+			t.Error("Instances interface should not be supported")
 		}
 	})
 
 	t.Run("Zones", func(t *testing.T) {
 		_, supported := cloud.Zones()
+		if supported {
+			t.Error("Zones interface should not be supported")
+		}
+	})
+
+	t.Run("InstancesV2", func(t *testing.T) {
+		_, supported := cloud.InstancesV2()
 		if !supported {
-			t.Error("Zones interface should be supported")
+			t.Error("InstancesV2 interface should be supported")
 		}
 	})
 

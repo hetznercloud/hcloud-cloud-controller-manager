@@ -79,3 +79,7 @@ func providerIDToServerID(providerID string) (int, error) {
 	}
 	return id, nil
 }
+
+func serverIDToProviderID(serverID int) string {
+	return fmt.Sprintf("%s://%d", providerName, serverID)
+}
