@@ -207,7 +207,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 	}
 }
 
-func TestInstances_nodeAddresses(t *testing.T) {
+func TestNodeAddresses(t *testing.T) {
 	tests := []struct {
 		name           string
 		addressFamily  addressFamily
@@ -368,16 +368,12 @@ func TestInstances_nodeAddresses(t *testing.T) {
 		},
 	}
 
-	env := newTestEnv()
-	defer env.Teardown()
-
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			instances := newInstances(env.Client, test.addressFamily, test.privateNetwork)
-			addresses := instances.nodeAddresses(context.TODO(), test.server)
+			addresses := nodeAddresses(test.addressFamily, test.privateNetwork, test.server)
 
 			if !reflect.DeepEqual(addresses, test.expected) {
-				t.Fatalf("Expected nodeAddresses %+v but got %+v", test.expected, addresses)
+				t.Fatalf("Expected addresses %+v but got %+v", test.expected, addresses)
 			}
 		})
 	}

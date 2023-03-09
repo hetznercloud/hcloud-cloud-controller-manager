@@ -105,20 +105,20 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloud
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    serverIDToProviderID(server.ID),
 		InstanceType:  server.ServerType.Name,
-		NodeAddresses: i.nodeAddresses(ctx, server),
+		NodeAddresses: nodeAddresses(i.addressFamily, i.networkID, server),
 		Zone:          server.Datacenter.Name,
 		Region:        server.Datacenter.Location.Name,
 	}, nil
 }
 
-func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []v1.NodeAddress {
+func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Server) []v1.NodeAddress {
 	var addresses []v1.NodeAddress
 	addresses = append(
 		addresses,
 		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
 	)
 
-	if i.addressFamily == AddressFamilyIPv4 || i.addressFamily == AddressFamilyDualStack {
+	if addressFamily == AddressFamilyIPv4 || addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv4.IsUnspecified() {
 			addresses = append(
 				addresses,
@@ -127,7 +127,7 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 		}
 	}
 
-	if i.addressFamily == AddressFamilyIPv6 || i.addressFamily == AddressFamilyDualStack {
+	if addressFamily == AddressFamilyIPv6 || addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv6.IsUnspecified() {
 			// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
 			hostAddress := server.PublicNet.IPv6.IP
@@ -141,9 +141,9 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 	}
 
 	// Add private IP from network if network is specified
-	if i.networkID > 0 {
+	if networkID > 0 {
 		for _, privateNet := range server.PrivateNet {
-			if privateNet.Network.ID == i.networkID {
+			if privateNet.Network.ID == networkID {
 				addresses = append(
 					addresses,
 					v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
