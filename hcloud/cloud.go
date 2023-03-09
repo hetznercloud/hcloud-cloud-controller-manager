@@ -52,8 +52,10 @@ const (
 	hcloudMetricsAddress                     = ":8233"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
-	providerVersion                          = "v1.9.1"
 )
+
+// providerVersion is set by the build process using -ldflags -X
+var providerVersion = "unknown"
 
 type cloud struct {
 	client       *hcloud.Client
