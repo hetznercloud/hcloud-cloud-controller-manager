@@ -19,7 +19,9 @@ package hcloud
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"testing"
 
@@ -203,5 +205,197 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 
 	if !reflect.DeepEqual(metadata, expectedMetadata) {
 		t.Fatalf("Expected metadata %+v but got %+v", *expectedMetadata, *metadata)
+	}
+}
+
+func TestInstances_nodeAddresses(t *testing.T) {
+	tests := []struct {
+		name           string
+		addressFamily  addressFamily
+		server         *hcloud.Server
+		privateNetwork string
+		expected       []v1.NodeAddress
+	}{
+		{
+			name:          "hostname",
+			addressFamily: AddressFamilyIPv4,
+			server: &hcloud.Server{
+				Name: "foobar",
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+			},
+		},
+		{
+			name:          "public ipv4",
+			addressFamily: AddressFamilyIPv4,
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+				{Type: v1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
+		{
+			name:          "no public ipv4",
+			addressFamily: AddressFamilyIPv4,
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+			},
+		},
+		{
+			name:          "public ipv6",
+			addressFamily: AddressFamilyIPv6,
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+				{Type: v1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			},
+		},
+		{
+			name:          "no public ipv6",
+			addressFamily: AddressFamilyIPv6,
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+			},
+		},
+		{
+			name:          "public dual stack",
+			addressFamily: AddressFamilyDualStack,
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+				{Type: v1.NodeExternalIP, Address: "203.0.113.7"},
+				{Type: v1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			},
+		},
+
+		{
+			name:           "unknown private network",
+			addressFamily:  AddressFamilyIPv4,
+			privateNetwork: "unknown-network",
+			server: &hcloud.Server{
+				Name: "foobar",
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+			},
+		},
+		{
+			name:           "server attached to private network",
+			addressFamily:  AddressFamilyIPv4,
+			privateNetwork: "test-existing-nw",
+			server: &hcloud.Server{
+				Name: "foobar",
+				PrivateNet: []hcloud.ServerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   1,
+							Name: "test-existing-nw",
+						},
+						IP: net.ParseIP("10.0.0.2"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+				{Type: v1.NodeInternalIP, Address: "10.0.0.2"},
+			},
+		},
+		{
+			name:           "server not attached to private network",
+			addressFamily:  AddressFamilyIPv4,
+			privateNetwork: "test-existing-nw",
+			server: &hcloud.Server{
+				Name: "foobar",
+				PrivateNet: []hcloud.ServerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   2,
+							Name: "other-nw",
+						},
+						IP: net.ParseIP("10.0.0.2"),
+					},
+				},
+			},
+			expected: []v1.NodeAddress{
+				{Type: v1.NodeHostName, Address: "foobar"},
+			},
+		},
+	}
+
+	env := newTestEnv()
+	defer env.Teardown()
+
+	env.Mux.HandleFunc("/networks", func(w http.ResponseWriter, r *http.Request) {
+		var networks []schema.Network
+		if r.URL.RawQuery == "name=test-existing-nw" {
+			networks = append(networks, schema.Network{ID: 1, Name: "test-existing-nw"})
+		}
+		json.NewEncoder(w).Encode(schema.NetworkListResponse{Networks: networks})
+	})
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			instances := newInstances(env.Client, test.addressFamily)
+
+			// nodeAddresses reads from environment variables at the moment
+			if test.privateNetwork != "" {
+				previousValue := os.Getenv(hcloudNetworkENVVar)
+				os.Setenv(hcloudNetworkENVVar, test.privateNetwork)
+				defer os.Setenv(hcloudNetworkENVVar, previousValue)
+			}
+
+			nodeAddresses := instances.nodeAddresses(context.TODO(), test.server)
+
+			if !reflect.DeepEqual(nodeAddresses, test.expected) {
+				t.Fatalf("Expected nodeAddresses %+v but got %+v", test.expected, nodeAddresses)
+			}
+		})
 	}
 }
