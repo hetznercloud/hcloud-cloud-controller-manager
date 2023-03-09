@@ -2,7 +2,7 @@ name: Run e2e tests
 on: [ pull_request ]
 jobs:
   k8s:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         k8s: [ 1.24.10, 1.25.6, 1.26.1 ]
@@ -13,16 +13,31 @@ jobs:
         with:
           go-version: '1.19'
       - uses: actions/checkout@master
+      - name: HCLOUD_TOKEN
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
+        run: |
+          set -ueo pipefail
+          if [[ "${HCLOUD_TOKEN:-}" != "" ]]; then
+            echo "HCLOUD_TOKEN=$HCLOUD_TOKEN" >> "$GITHUB_ENV"
+          elif [[ "${TTS_TOKEN:-}" != "" ]]; then
+                    token="$(./scripts/get-token.sh)"
+                    echo "::add-mask::$token"
+                    echo "HCLOUD_TOKEN=$token" >> "$GITHUB_ENV"
+          else
+            echo "::error ::Couldn't determine HCLOUD_TOKEN. Check that repository secrets are setup correctly."
+            exit 1
+          fi
       - name: Run tests
         env:
           K8S_VERSION: k8s-${{ matrix.k8s }}
           USE_NETWORKS: yes
         run: |
-          export HCLOUD_TOKEN=$(./scripts/get-token.sh)
           go test $(go list ./... | grep e2etests) -v -timeout 60m
           ./scripts/delete-token.sh $HCLOUD_TOKEN
   k3s:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         k3s: [ v1.24.10+k3s1, v1.25.6+k3s1, v1.26.1+k3s1 ]
@@ -33,12 +48,26 @@ jobs:
         with:
           go-version: '1.19'
       - uses: actions/checkout@master
+      - name: HCLOUD_TOKEN
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
+        run: |
+          set -ueo pipefail
+          if [[ "${HCLOUD_TOKEN:-}" != "" ]]; then
+            echo "HCLOUD_TOKEN=$HCLOUD_TOKEN" >> "$GITHUB_ENV"
+          elif [[ "${TTS_TOKEN:-}" != "" ]]; then
+                    token="$(./scripts/get-token.sh)"
+                    echo "::add-mask::$token"
+                    echo "HCLOUD_TOKEN=$token" >> "$GITHUB_ENV"
+          else
+            echo "::error ::Couldn't determine HCLOUD_TOKEN. Check that repository secrets are setup correctly."
+            exit 1
+          fi
       - name: Run tests
         env:
           K8S_VERSION: k3s-${{ matrix.k3s }}
           USE_NETWORKS: yes
         run: |
-          export HCLOUD_TOKEN=$(./scripts/get-token.sh)
-          cat resp.json
           go test $(go list ./... | grep e2etests) -v -timeout 60m
           ./scripts/delete-token.sh $HCLOUD_TOKEN
