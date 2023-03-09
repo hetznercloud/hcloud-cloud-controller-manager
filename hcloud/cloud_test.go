@@ -218,6 +218,13 @@ func TestCloud(t *testing.T) {
 		}
 	})
 
+	t.Run("InstancesV2", func(t *testing.T) {
+		_, supported := cloud.InstancesV2()
+		if !supported {
+			t.Error("InstancesV2 interface should be supported")
+		}
+	})
+
 	t.Run("LoadBalancer", func(t *testing.T) {
 		_, supported := cloud.LoadBalancer()
 		if !supported {

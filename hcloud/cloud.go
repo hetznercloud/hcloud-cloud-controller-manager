@@ -179,9 +179,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	// TODO disable InstancesV2 for now. We first need to implement it and
-	// find out what to do about the Deprecation of Zones
-	return nil, false
+	return c.instances, true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
