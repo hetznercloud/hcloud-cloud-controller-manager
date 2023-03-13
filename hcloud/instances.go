@@ -19,7 +19,6 @@ package hcloud
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
@@ -38,10 +37,11 @@ const (
 type instances struct {
 	client        *hcloud.Client
 	addressFamily addressFamily
+	networkID     int
 }
 
-func newInstances(client *hcloud.Client, addressFamily addressFamily) *instances {
-	return &instances{client, addressFamily}
+func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID int) *instances {
+	return &instances{client, addressFamily, networkID}
 }
 
 // lookupServer attempts to locate the corresponding hcloud.Server for a given v1.Node
@@ -105,20 +105,20 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloud
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    serverIDToProviderID(server.ID),
 		InstanceType:  server.ServerType.Name,
-		NodeAddresses: i.nodeAddresses(ctx, server),
+		NodeAddresses: nodeAddresses(i.addressFamily, i.networkID, server),
 		Zone:          server.Datacenter.Name,
 		Region:        server.Datacenter.Location.Name,
 	}, nil
 }
 
-func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []v1.NodeAddress {
+func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Server) []v1.NodeAddress {
 	var addresses []v1.NodeAddress
 	addresses = append(
 		addresses,
 		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
 	)
 
-	if i.addressFamily == AddressFamilyIPv4 || i.addressFamily == AddressFamilyDualStack {
+	if addressFamily == AddressFamilyIPv4 || addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv4.IsUnspecified() {
 			addresses = append(
 				addresses,
@@ -127,7 +127,7 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 		}
 	}
 
-	if i.addressFamily == AddressFamilyIPv6 || i.addressFamily == AddressFamilyDualStack {
+	if addressFamily == AddressFamilyIPv6 || addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv6.IsUnspecified() {
 			// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
 			hostAddress := server.PublicNet.IPv6.IP
@@ -140,19 +140,15 @@ func (i *instances) nodeAddresses(ctx context.Context, server *hcloud.Server) []
 		}
 	}
 
-	n := os.Getenv(hcloudNetworkENVVar)
-	if len(n) > 0 {
-		network, _, _ := i.client.Network.Get(ctx, n)
-		if network != nil {
-			for _, privateNet := range server.PrivateNet {
-				if privateNet.Network.ID == network.ID {
-					addresses = append(
-						addresses,
-						v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
-					)
-				}
+	// Add private IP from network if network is specified
+	if networkID > 0 {
+		for _, privateNet := range server.PrivateNet {
+			if privateNet.Network.ID == networkID {
+				addresses = append(
+					addresses,
+					v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
+				)
 			}
-
 		}
 	}
 	return addresses

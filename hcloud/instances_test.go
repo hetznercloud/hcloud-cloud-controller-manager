@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"os"
 	"reflect"
 	"testing"
 
@@ -57,7 +56,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 		json.NewEncoder(w).Encode(schema.ServerListResponse{Servers: servers})
 	})
 
-	instances := newInstances(env.Client, AddressFamilyIPv4)
+	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
 
 	tests := []struct {
 		name     string
@@ -126,7 +125,7 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, AddressFamilyIPv4)
+	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
 
 	tests := []struct {
 		name     string
@@ -183,7 +182,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, AddressFamilyIPv4)
+	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &v1.Node{
 		Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
@@ -208,12 +207,12 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 	}
 }
 
-func TestInstances_nodeAddresses(t *testing.T) {
+func TestNodeAddresses(t *testing.T) {
 	tests := []struct {
 		name           string
 		addressFamily  addressFamily
 		server         *hcloud.Server
-		privateNetwork string
+		privateNetwork int
 		expected       []v1.NodeAddress
 	}{
 		{
@@ -318,7 +317,7 @@ func TestInstances_nodeAddresses(t *testing.T) {
 		{
 			name:           "unknown private network",
 			addressFamily:  AddressFamilyIPv4,
-			privateNetwork: "unknown-network",
+			privateNetwork: 1,
 			server: &hcloud.Server{
 				Name: "foobar",
 			},
@@ -329,7 +328,7 @@ func TestInstances_nodeAddresses(t *testing.T) {
 		{
 			name:           "server attached to private network",
 			addressFamily:  AddressFamilyIPv4,
-			privateNetwork: "test-existing-nw",
+			privateNetwork: 1,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PrivateNet: []hcloud.ServerPrivateNet{
@@ -350,7 +349,7 @@ func TestInstances_nodeAddresses(t *testing.T) {
 		{
 			name:           "server not attached to private network",
 			addressFamily:  AddressFamilyIPv4,
-			privateNetwork: "test-existing-nw",
+			privateNetwork: 1,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PrivateNet: []hcloud.ServerPrivateNet{
@@ -369,32 +368,12 @@ func TestInstances_nodeAddresses(t *testing.T) {
 		},
 	}
 
-	env := newTestEnv()
-	defer env.Teardown()
-
-	env.Mux.HandleFunc("/networks", func(w http.ResponseWriter, r *http.Request) {
-		var networks []schema.Network
-		if r.URL.RawQuery == "name=test-existing-nw" {
-			networks = append(networks, schema.Network{ID: 1, Name: "test-existing-nw"})
-		}
-		json.NewEncoder(w).Encode(schema.NetworkListResponse{Networks: networks})
-	})
-
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			instances := newInstances(env.Client, test.addressFamily)
+			addresses := nodeAddresses(test.addressFamily, test.privateNetwork, test.server)
 
-			// nodeAddresses reads from environment variables at the moment
-			if test.privateNetwork != "" {
-				previousValue := os.Getenv(hcloudNetworkENVVar)
-				os.Setenv(hcloudNetworkENVVar, test.privateNetwork)
-				defer os.Setenv(hcloudNetworkENVVar, previousValue)
-			}
-
-			nodeAddresses := instances.nodeAddresses(context.TODO(), test.server)
-
-			if !reflect.DeepEqual(nodeAddresses, test.expected) {
-				t.Fatalf("Expected nodeAddresses %+v but got %+v", test.expected, nodeAddresses)
+			if !reflect.DeepEqual(addresses, test.expected) {
+				t.Fatalf("Expected addresses %+v but got %+v", test.expected, addresses)
 			}
 		})
 	}
