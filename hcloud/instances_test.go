@@ -27,6 +27,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cloudprovider "k8s.io/cloud-provider"
 )
 
@@ -72,21 +73,25 @@ func TestInstances_InstanceExists(t *testing.T) {
 		}, {
 			name: "missing server by id",
 			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
+				Spec: v1.NodeSpec{ProviderID: "hcloud://2"},
 			},
-			expected: true,
+			expected: false,
 		}, {
 			name: "existing server by name",
 			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "foobar",
+				},
 			},
 			expected: true,
 		}, {
 			name: "missing server by name",
 			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "barfoo",
+				},
 			},
-			expected: true,
+			expected: false,
 		},
 	}
 
