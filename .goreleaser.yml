@@ -39,7 +39,6 @@ dockers:
 
 release:
   ids: [""]
-  draft: true
   extra_files:
     - glob: "./deploy/ccm*.yaml"
     - glob: "./hcloud-cloud-controller-manager-*.tgz"
