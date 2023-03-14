@@ -17,15 +17,26 @@ TMP_DIR=$(mktemp --directory hccm-chart-repo.XXXXX)
 
 git clone --depth 1 -b "${CHART_REPO_BRANCH}" "${CHART_REPO_REMOTE}" "${TMP_DIR}"
 
-cp "${CHART_FILE}" "${TMP_DIR}/"
+mkdir "${TMP_DIR}"/new-chart
+cp "${CHART_FILE}" "${TMP_DIR}/new-chart"
 
+pushd "${TMP_DIR}/new-chart"
+
+# Update index
+# We use --merge to not update any of the other existing entries in the index file,
+# this requires us to put our new chart in a separate dir that only includes the new chart.
+helm repo index --merge ../index.yaml .
+# Move chart and merged index to root dir
+mv -f -- * ..
+
+popd
 pushd "${TMP_DIR}"
 
 # Setup git-lfs
 git lfs install --local
 
 # commit & push
-git add "${CHART_FILE}"
+git add -- index.yaml "${CHART_FILE}"
 git commit -m "feat: add ${CHART_FILE}"
 git push
 
