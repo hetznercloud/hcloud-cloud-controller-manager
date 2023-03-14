@@ -41,7 +41,7 @@ release:
   ids: [""]
   draft: true
   extra_files:
-    - glob: "./deploy/gen/ccm*.yaml"
+    - glob: "./deploy/ccm*.yaml"
     - glob: "./hcloud-cloud-controller-manager-*.tgz"
 
 publishers:
