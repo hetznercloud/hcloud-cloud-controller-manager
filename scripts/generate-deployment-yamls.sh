@@ -9,8 +9,12 @@ if [[ -z $VERSION ]]; then
     exit 1
 fi
 
-cat chart/Chart.yaml | sed -e "s/version: .*/version: $VERSION/" > chart/Chart.yaml.new && mv chart/Chart.yaml{.new,}
+# Update version
+sed -e "s/version: .*/version: $VERSION/" --in-place chart/Chart.yaml
+
+# Template the chart with pre-built values to get the legacy deployment files
 helm template chart > deploy/ccm.yaml
 helm template chart --set networking.enabled=true > deploy/ccm-networks.yaml
 
+# Package the chart for publishing
 helm package chart
