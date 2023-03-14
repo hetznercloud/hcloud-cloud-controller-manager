@@ -58,6 +58,8 @@ jobs:
           version: latest
           args: release --rm-dist
         env:
+          # https://github.com/goreleaser/goreleaser/blob/3345f8c9c5b287198a29d3db228388148b788c5e/www/docs/customization/builds.md?plain=1#L416-L418
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHART_REPO_REMOTE: "https://${{ secrets.HCLOUD_BOT_TOKEN }}@github.com/hetznercloud/helm-charts"
 
