@@ -46,4 +46,8 @@ release:
 
 publishers:
   - name: helm-chart-repo
+    ids: # make sure that this is only executed once by filtering for *one arbitrary* artifact ID
+      - deployment-yamls
     cmd: ./scripts/publish-helm-chart.sh hcloud-cloud-controller-manager-{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}.tgz
+    env:
+      - CHART_REPO_REMOTE={{ .Env.CHART_REPO_REMOTE }}
