@@ -1,0 +1,13 @@
+{{ if (and $.Values.monitoring.enabled $.Values.monitoring.podMonitor.enabled) }}
+{{ if $.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/PodMonitor" }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: hcloud-cloud-controller-manager
+spec:
+  {{- tpl (toYaml $.Values.monitoring.podMonitor.spec) $ | nindent 2 }}
+  selector:
+    matchLabels:
+      {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 6 }}
+{{ end }}
+{{ end }}
