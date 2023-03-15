@@ -37,7 +37,7 @@ spec:
       hostNetwork: true
       {{- end }}
       containers:
-        - image: hetznercloud/hcloud-cloud-controller-manager:{{ .Chart.Version }}
+        - image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }}
           name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"
