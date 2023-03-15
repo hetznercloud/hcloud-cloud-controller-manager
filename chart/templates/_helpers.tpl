@@ -1,5 +1,5 @@
 {{- define "hcloud-cloud-controller-manager.name" -}}
-{{- default $.Chart.Name $.Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- $.Values.nameOverride | default $.Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{- define "hcloud-cloud-controller-manager.selectorLabels" -}}
