@@ -17,20 +17,21 @@ spec:
       serviceAccountName: cloud-controller-manager
       dnsPolicy: Default
       tolerations:
-        # this taint is set by all kubelets running `--cloud-provider=external`
-        # so we should tolerate it to schedule the cloud controller manager
+        # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
         - key: "node.cloudprovider.kubernetes.io/uninitialized"
           value: "true"
           effect: "NoSchedule"
         - key: "CriticalAddonsOnly"
           operator: "Exists"
-        # cloud controller manages should be able to run on masters
+
+        # Allow HCCM to schedule on control plane nodes.
         - key: "node-role.kubernetes.io/master"
           effect: NoSchedule
           operator: Exists
         - key: "node-role.kubernetes.io/control-plane"
           effect: NoSchedule
           operator: Exists
+
         - key: "node.kubernetes.io/not-ready"
           effect: "NoExecute"
       {{- if $.Values.networking.enabled }}

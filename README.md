@@ -2,24 +2,16 @@
 
 [![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
 
-The Hetzner Cloud cloud controller manager integrates your Kubernets
-cluster with the Hetzner Cloud API. Read more about kubernetes cloud
-controller managers in the [kubernetes
-documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
+The Hetzner Cloud controller manager integrates your Kubernetes cluster with the Hetzner Cloud API.
 
 ## Features
 
-* **instances interface**: adds the server type to the
-  `beta.kubernetes.io/instance-type` label, sets the external ipv4 and
-  ipv6 addresses and deletes nodes from Kubernetes that were deleted
-  from the Hetzner Cloud.
-* **zones interface**: makes Kubernetes aware of the failure domain of
-  the server by setting the `failure-domain.beta.kubernetes.io/region`
-  and `failure-domain.beta.kubernetes.io/zone` labels on the node.
-* **Private Networks**: allows to use Hetzner Cloud Private Networks for
-  your pods traffic.
-* **Load Balancers**: allows to use Hetzner Cloud Load Balancers with
-  Kubernetes Services
+* **instances interface**: adds the server type to the `node.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
+* **zones interface**: makes Kubernetes aware of the failure domain of the server by setting the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels on the node.
+* **Private Networks**: allows to use Hetzner Cloud Private Networks for your pods traffic.
+* **Load Balancers**: allows to use Hetzner Cloud Load Balancers with Kubernetes Services
+
+Read more about cloud controllers in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 
 ## Example
 
@@ -27,35 +19,19 @@ documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud
 apiVersion: v1
 kind: Node
 metadata:
-  annotations:
-    flannel.alpha.coreos.com/backend-data: '{"VtepMAC":"06:b3:ee:88:92:36"}'
-    flannel.alpha.coreos.com/backend-type: vxlan
-    flannel.alpha.coreos.com/kube-subnet-manager: "true"
-    flannel.alpha.coreos.com/public-ip: 78.46.208.178
-    node.alpha.kubernetes.io/ttl: "0"
-    volumes.kubernetes.io/controller-managed-attach-detach: "true"
-  creationTimestamp: 2018-01-24T15:59:45Z
   labels:
-    beta.kubernetes.io/arch: amd64
-    beta.kubernetes.io/instance-type: cx11 # <-- server type
-    beta.kubernetes.io/os: linux
-    topology.kubernetes.io/region: fsn1 # <-- location
-    topology.kubernetes.io/zone: fsn1-dc8 # <-- datacenter
-    kubernetes.io/hostname: master
-    node-role.kubernetes.io/master: ""
-  name: master
-  resourceVersion: "183932"
-  selfLink: /api/v1/nodes/master
-  uid: 98acdedc-011f-11e8-9ed3-9600000780bf
+    node.kubernetes.io/instance-type: cx11
+    topology.kubernetes.io/region: fsn1
+    topology.kubernetes.io/zone: fsn1-dc8
+  name: node
 spec:
-  externalID: master
   podCIDR: 10.244.0.0/24
-  providerID: hcloud://123456 # <-- Server ID
+  providerID: hcloud://123456 # <-- Hetzner Cloud Server ID
 status:
   addresses:
-    - address: master
+    - address: node
       type: Hostname
-    - address: 78.46.208.178 # <-- public ipv4
+    - address: 1.2.3.4 # <-- Hetzner Cloud Server public ipv4
       type: ExternalIP
 ```
 
