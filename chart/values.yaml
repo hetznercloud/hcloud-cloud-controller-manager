@@ -2,12 +2,28 @@ image:
   repository: hetznercloud/hcloud-cloud-controller-manager
   tag: '{{ $.Chart.Version }}'
 
+monitoring:
+  # When enabled, the hccm Pod will serve metrics on port :8233
+  enabled: true
+  podMonitor:
+    # When enabled (and metrics.enabled=true), a PodMonitor will be deployed to scrape metrics.
+    # The PodMonitor [1] CRD must already exist in the target cluster.
+    enabled: false
+    # PodMonitorSpec to be deployed. The "selector" field is set elsewhere and should *not* be used here.
+    # https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PodMonitorSpec
+    spec:
+      podMetricsEndpoints:
+        - port: metrics
+
+nameOverride: ~
+
 networking:
   # If enabled, hcloud-ccm will be deployed with networking support.
   enabled: false
   # If networking is enabled, clusterCIDR must match the PodCIDR subnet your cluster has been configured with.
   # The default "10.244.0.0/16" assumes you're using Flannel with default configuration.
   clusterCIDR: 10.244.0.0/16
+
 # Resource requests for the deployed hccm Pod.
 resources:
   requests:

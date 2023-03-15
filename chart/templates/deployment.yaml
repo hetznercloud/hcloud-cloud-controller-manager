@@ -8,11 +8,11 @@ spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: hcloud-cloud-controller-manager
+      {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: hcloud-cloud-controller-manager
+        {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: cloud-controller-manager
       dnsPolicy: Default
@@ -37,8 +37,7 @@ spec:
       hostNetwork: true
       {{- end }}
       containers:
-        - image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }}
-          name: hcloud-cloud-controller-manager
+        - name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"
             - "--cloud-provider=hcloud"
@@ -48,8 +47,6 @@ spec:
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
             {{- end }}
-          resources:
-            {{- toYaml $.Values.resources | nindent 12 }}
           env:
             - name: NODE_NAME
               valueFrom:
@@ -67,4 +64,16 @@ spec:
                   name: hcloud
                   key: network
             {{- end }}
+            {{- if not $.Values.monitoring.enabled }}
+            - name: HCLOUD_METRICS_ENABLED
+              value: "false"
+            {{- end }}
+          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }}
+          ports:
+            {{- if $.Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: 8233
+            {{- end }}
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
       priorityClassName: system-cluster-critical
