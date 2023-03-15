@@ -1,3 +1,7 @@
+image:
+  repository: hetznercloud/hcloud-cloud-controller-manager
+  tag: '{{ $.Chart.Version }}'
+
 networking:
   # If enabled, hcloud-ccm will be deployed with networking support.
   enabled: false
