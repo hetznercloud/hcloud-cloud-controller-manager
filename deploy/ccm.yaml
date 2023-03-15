@@ -57,17 +57,12 @@ spec:
         - key: "node.kubernetes.io/not-ready"
           effect: "NoExecute"
       containers:
-        - image: hetznercloud/hcloud-cloud-controller-manager:v1.13.2
-          name: hcloud-cloud-controller-manager
+        - name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"
             - "--cloud-provider=hcloud"
             - "--leader-elect=false"
             - "--allow-untagged-cloud"
-          resources:
-            requests:
-              cpu: 100m
-              memory: 50Mi
           env:
             - name: NODE_NAME
               valueFrom:
@@ -78,4 +73,12 @@ spec:
                 secretKeyRef:
                   name: hcloud
                   key: token
+          image: hetznercloud/hcloud-cloud-controller-manager:v1.13.2
+          ports:
+            - name: metrics
+              containerPort: 8233
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
       priorityClassName: system-cluster-critical
