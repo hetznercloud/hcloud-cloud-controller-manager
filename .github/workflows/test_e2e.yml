@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
     name: k8s ${{ matrix.k8s }}
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '1.19'
       - uses: actions/checkout@master
@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
     name: k3s ${{ matrix.k3s }}
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: '1.19'
       - uses: actions/checkout@master
