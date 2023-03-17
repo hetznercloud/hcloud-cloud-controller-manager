@@ -1,3 +1,10 @@
+# hccm program command line arguments.
+# The "--allocate-node-cidrs" + "--cluster-cidr" arguments are managed by the chart and should *not* be set directly here.
+args:
+  cloud-provider: hcloud
+  leader-elect: "false"
+  allow-untagged-cloud: ""
+
 image:
   repository: hetznercloud/hcloud-cloud-controller-manager
   tag: '{{ $.Chart.Version }}'
