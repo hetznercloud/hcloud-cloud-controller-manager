@@ -46,7 +46,7 @@ func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID 
 
 // lookupServer attempts to locate the corresponding hcloud.Server for a given v1.Node
 // It returns an error if the Node has an invalid provider ID or if API requests failed.
-// It can return a nil hcloud.Server if no
+// It can return a nil [*hcloud.Server] if neither the ProviderID nor the Name matches an existing server.
 func (i *instances) lookupServer(ctx context.Context, node *v1.Node) (*hcloud.Server, error) {
 	var server *hcloud.Server
 	if node.Spec.ProviderID != "" {
@@ -89,6 +89,9 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, 
 	if err != nil {
 		return false, err
 	}
+	if server == nil {
+		return false, fmt.Errorf("failed to find server status: no matching server found for node '%s'", node.Name)
+	}
 
 	return server.Status == hcloud.ServerStatusOff, nil
 }
@@ -100,6 +103,9 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloud
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
 		return nil, err
+	}
+	if server == nil {
+		return nil, fmt.Errorf("failed to get instance metadata: no matching server found for node '%s'", node.Name)
 	}
 
 	return &cloudprovider.InstanceMetadata{
