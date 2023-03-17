@@ -65,6 +65,7 @@ spec:
             - "--allow-untagged-cloud"
             - "--cloud-provider=hcloud"
             - "--leader-elect=false"
+            - "--route-reconciliation-period=30s"
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr=10.244.0.0/16"
           env:
