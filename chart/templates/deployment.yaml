@@ -41,9 +41,11 @@ spec:
         - name: hcloud-cloud-controller-manager
           command:
             - "/bin/hcloud-cloud-controller-manager"
-            - "--cloud-provider=hcloud"
-            - "--leader-elect=false"
-            - "--allow-untagged-cloud"
+            {{- range $key, $value := $.Values.args }}
+            {{- if not (eq $value nil) }}
+            - "--{{ $key }}{{ if $value }}={{ $value }}{{ end }}"
+            {{- end }}
+            {{- end }}
             {{- if $.Values.networking.enabled }}
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
