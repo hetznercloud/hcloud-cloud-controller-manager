@@ -51,15 +51,10 @@ spec:
             - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
             {{- end }}
           env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: HCLOUD_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: hcloud
-                  key: token
+            {{- range $key, $value := $.Values.env }}
+            - name: {{ $key }}
+              {{- tpl (toYaml $value) $ | nindent 14 }}
+            {{- end }}
             {{- if $.Values.networking.enabled }}
             - name: HCLOUD_NETWORK
               valueFrom:
