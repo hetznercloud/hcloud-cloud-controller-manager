@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	v1 "k8s.io/api/core/v1"
-	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/klog/v2"
 )
 
 // LoadBalancerOps defines the Load Balancer related operations required by
@@ -19,12 +20,12 @@ import (
 type LoadBalancerOps interface {
 	GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, error)
 	GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, error)
-	GetByK8SServiceUID(ctx context.Context, svc *v1.Service) (*hcloud.LoadBalancer, error)
-	Create(ctx context.Context, lbName string, service *v1.Service) (*hcloud.LoadBalancer, error)
+	GetByK8SServiceUID(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancer, error)
+	Create(ctx context.Context, lbName string, service *corev1.Service) (*hcloud.LoadBalancer, error)
 	Delete(ctx context.Context, lb *hcloud.LoadBalancer) error
-	ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error)
-	ReconcileHCLBTargets(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service, nodes []*v1.Node) (bool, error)
-	ReconcileHCLBServices(ctx context.Context, lb *hcloud.LoadBalancer, svc *v1.Service) (bool, error)
+	ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error)
+	ReconcileHCLBTargets(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, nodes []*corev1.Node) (bool, error)
+	ReconcileHCLBServices(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error)
 }
 
 type loadBalancers struct {
@@ -44,8 +45,8 @@ func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disabl
 }
 
 func (l *loadBalancers) GetLoadBalancer(
-	ctx context.Context, _ string, service *v1.Service,
-) (status *v1.LoadBalancerStatus, exists bool, err error) {
+	ctx context.Context, _ string, service *corev1.Service,
+) (status *corev1.LoadBalancerStatus, exists bool, err error) {
 	const op = "hcloud/loadBalancers.GetLoadBalancer"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -58,12 +59,12 @@ func (l *loadBalancers) GetLoadBalancer(
 	}
 
 	if v, ok := annotation.LBHostname.StringFromService(service); ok {
-		return &v1.LoadBalancerStatus{
-			Ingress: []v1.LoadBalancerIngress{{Hostname: v}},
+		return &corev1.LoadBalancerStatus{
+			Ingress: []corev1.LoadBalancerIngress{{Hostname: v}},
 		}, true, nil
 	}
 
-	ingresses := []v1.LoadBalancerIngress{
+	ingresses := []corev1.LoadBalancerIngress{
 		{
 			IP: lb.PublicNet.IPv4.IP.String(),
 		},
@@ -74,15 +75,15 @@ func (l *loadBalancers) GetLoadBalancer(
 		return nil, false, fmt.Errorf("%s: %v", op, err)
 	}
 	if !disableIPV6 {
-		ingresses = append(ingresses, v1.LoadBalancerIngress{
+		ingresses = append(ingresses, corev1.LoadBalancerIngress{
 			IP: lb.PublicNet.IPv6.IP.String(),
 		})
 	}
 
-	return &v1.LoadBalancerStatus{Ingress: ingresses}, true, nil
+	return &corev1.LoadBalancerStatus{Ingress: ingresses}, true, nil
 }
 
-func (l *loadBalancers) GetLoadBalancerName(ctx context.Context, clusterName string, service *v1.Service) string {
+func (l *loadBalancers) GetLoadBalancerName(_ context.Context, _ string, service *corev1.Service) string {
 	if v, ok := annotation.LBName.StringFromService(service); ok {
 		return v
 	}
@@ -90,8 +91,8 @@ func (l *loadBalancers) GetLoadBalancerName(ctx context.Context, clusterName str
 }
 
 func (l *loadBalancers) EnsureLoadBalancer(
-	ctx context.Context, clusterName string, svc *v1.Service, nodes []*v1.Node,
-) (*v1.LoadBalancerStatus, error) {
+	ctx context.Context, clusterName string, svc *corev1.Service, nodes []*corev1.Node,
+) (*corev1.LoadBalancerStatus, error) {
 	const op = "hcloud/loadBalancers.EnsureLoadBalancer"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -169,12 +170,12 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	// Either set the Hostname or the IPs (below).
 	// See: https://github.com/kubernetes/kubernetes/issues/66607
 	if v, ok := annotation.LBHostname.StringFromService(svc); ok {
-		return &v1.LoadBalancerStatus{
-			Ingress: []v1.LoadBalancerIngress{{Hostname: v}},
+		return &corev1.LoadBalancerStatus{
+			Ingress: []corev1.LoadBalancerIngress{{Hostname: v}},
 		}, nil
 	}
 
-	var ingress []v1.LoadBalancerIngress
+	var ingress []corev1.LoadBalancerIngress
 
 	disablePubNet, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
@@ -182,14 +183,14 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 
 	if !disablePubNet {
-		ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
+		ingress = append(ingress, corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
 
 		disableIPV6, err := l.getDisableIPv6(svc)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		if !disableIPV6 {
-			ingress = append(ingress, v1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
+			ingress = append(ingress, corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
 		}
 	}
 
@@ -199,14 +200,14 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 	if !disablePrivIngress {
 		for _, nw := range lb.PrivateNet {
-			ingress = append(ingress, v1.LoadBalancerIngress{IP: nw.IP.String()})
+			ingress = append(ingress, corev1.LoadBalancerIngress{IP: nw.IP.String()})
 		}
 	}
 
-	return &v1.LoadBalancerStatus{Ingress: ingress}, nil
+	return &corev1.LoadBalancerStatus{Ingress: ingress}, nil
 }
 
-func (l *loadBalancers) getDisablePrivateIngress(svc *v1.Service) (bool, error) {
+func (l *loadBalancers) getDisablePrivateIngress(svc *corev1.Service) (bool, error) {
 	disable, err := annotation.LBDisablePrivateIngress.BoolFromService(svc)
 	if err == nil {
 		return disable, nil
@@ -217,7 +218,7 @@ func (l *loadBalancers) getDisablePrivateIngress(svc *v1.Service) (bool, error) 
 	return false, err
 }
 
-func (l *loadBalancers) getDisableIPv6(svc *v1.Service) (bool, error) {
+func (l *loadBalancers) getDisableIPv6(svc *corev1.Service) (bool, error) {
 	disable, err := annotation.LBIPv6Disabled.BoolFromService(svc)
 	if err == nil {
 		return disable, nil
@@ -229,7 +230,7 @@ func (l *loadBalancers) getDisableIPv6(svc *v1.Service) (bool, error) {
 }
 
 func (l *loadBalancers) UpdateLoadBalancer(
-	ctx context.Context, clusterName string, svc *v1.Service, nodes []*v1.Node,
+	ctx context.Context, clusterName string, svc *corev1.Service, nodes []*corev1.Node,
 ) error {
 	const op = "hcloud/loadBalancers.UpdateLoadBalancer"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -271,7 +272,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	return nil
 }
 
-func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
+func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, _ string, service *corev1.Service) error {
 	const op = "hcloud/loadBalancers.EnsureLoadBalancerDeleted"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 

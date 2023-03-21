@@ -25,7 +25,6 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/hetznercloud/hcloud-cloud-controller-manager/hcloud"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
@@ -36,8 +35,9 @@ import (
 	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/metrics/prometheus/clientgo"
 	_ "k8s.io/component-base/metrics/prometheus/version"
-
 	"k8s.io/klog/v2"
+
+	_ "github.com/hetznercloud/hcloud-cloud-controller-manager/hcloud"
 )
 
 func main() {
@@ -56,7 +56,8 @@ func main() {
 	defer logs.FlushLogs()
 
 	if err := command.Execute(); err != nil {
-		os.Exit(1)
+		logs.FlushLogs()
+		os.Exit(1) //nolint:gocritic
 	}
 }
 

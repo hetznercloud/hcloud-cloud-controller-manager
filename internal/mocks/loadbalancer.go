@@ -3,8 +3,9 @@ package mocks
 import (
 	"context"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 type LoadBalancerClient struct {

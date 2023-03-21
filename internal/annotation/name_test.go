@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const ann annotation.Name = "some/annotation"
@@ -21,7 +22,7 @@ func TestName_AddToService(t *testing.T) {
 	tests := []struct {
 		name     string
 		value    interface{}
-		svc      v1.Service
+		svc      corev1.Service
 		err      error
 		expected map[string]string
 	}{
@@ -74,7 +75,7 @@ func TestName_AddToService(t *testing.T) {
 		{
 			name:  "does not overwrite unrelated annotations",
 			value: "some value",
-			svc: v1.Service{
+			svc: corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{"other/annotation": "other value"},
 				},
@@ -124,7 +125,7 @@ func TestName_StringFromService(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			var svc v1.Service
+			var svc corev1.Service
 
 			for k, v := range tt.svcAnnotations {
 				if err := k.AnnotateService(&svc, v); err != nil {
@@ -153,7 +154,7 @@ func TestName_StringsFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.StringsFromService(svc)
 	})
 }
@@ -183,7 +184,7 @@ func TestName_BoolFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.BoolFromService(svc)
 	})
 }
@@ -208,7 +209,7 @@ func TestName_IntFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.IntFromService(svc)
 	})
 }
@@ -233,7 +234,7 @@ func TestName_IntsFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.IntsFromService(svc)
 	})
 }
@@ -267,7 +268,7 @@ func TestName_IPFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.IPFromService(svc)
 	})
 }
@@ -294,7 +295,7 @@ func TestName_DurationFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.DurationFromService(svc)
 	})
 }
@@ -321,7 +322,7 @@ func TestName_LBSvcProtocolFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.LBSvcProtocolFromService(svc)
 	})
 }
@@ -348,7 +349,7 @@ func TestName_LBAlgorithmTypeFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.LBAlgorithmTypeFromService(svc)
 	})
 }
@@ -368,7 +369,7 @@ func TestName_NetworkZoneFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.NetworkZoneFromService(svc)
 	})
 }
@@ -395,7 +396,7 @@ func TestName_CertificatesFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.CertificatesFromService(svc)
 	})
 }
@@ -425,7 +426,7 @@ func TestName_CertificateTypeFromService(t *testing.T) {
 		},
 	}
 
-	runAllTypedAccessorTests(t, tests, func(svc *v1.Service) (interface{}, error) {
+	runAllTypedAccessorTests(t, tests, func(svc *corev1.Service) (interface{}, error) {
 		return ann.CertificateTypeFromService(svc)
 	})
 }
@@ -443,8 +444,8 @@ type typedAccessorTest struct {
 	expected       interface{}
 }
 
-func (tt *typedAccessorTest) run(t *testing.T, call func(svc *v1.Service) (interface{}, error)) {
-	var svc v1.Service
+func (tt *typedAccessorTest) run(t *testing.T, call func(svc *corev1.Service) (interface{}, error)) {
+	var svc corev1.Service
 
 	t.Helper()
 
@@ -472,7 +473,7 @@ func (tt *typedAccessorTest) run(t *testing.T, call func(svc *v1.Service) (inter
 }
 
 func runAllTypedAccessorTests(
-	t *testing.T, tests []typedAccessorTest, call func(svc *v1.Service) (interface{}, error),
+	t *testing.T, tests []typedAccessorTest, call func(svc *corev1.Service) (interface{}, error),
 ) {
 	t.Helper()
 

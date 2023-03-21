@@ -48,7 +48,8 @@ func Serve(address string) {
 	}
 
 	http.Handle("/metrics", promhttp.HandlerFor(gatherers, promhttp.HandlerOpts{}))
-	if err := http.ListenAndServe(address, nil); err != nil {
+	// TODO: Setup proper timeouts for metrics server and remove nolint:gosec
+	if err := http.ListenAndServe(address, nil); err != nil { //nolint:gosec
 		klog.ErrorS(err, "create metrics service")
 	}
 }

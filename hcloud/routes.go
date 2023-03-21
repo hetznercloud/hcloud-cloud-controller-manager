@@ -7,12 +7,13 @@ import (
 	"net"
 	"time"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
+
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 type routes struct {
@@ -55,8 +56,8 @@ func (r *routes) reloadNetwork(ctx context.Context) error {
 	return nil
 }
 
-// ListRoutes lists all managed routes that belong to the specified clusterName
-func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudprovider.Route, error) {
+// ListRoutes lists all managed routes that belong to the specified clusterName.
+func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Route, error) {
 	const op = "hcloud/ListRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -66,7 +67,7 @@ func (r *routes) ListRoutes(ctx context.Context, clusterName string) ([]*cloudpr
 
 	// We do not now the exact length here, as the network might have outdated routes with servers that do not exist
 	// anymore.
-	var routes []*cloudprovider.Route
+	var routes []*cloudprovider.Route //nolint:prealloc
 	for _, route := range r.network.Routes {
 		ro, err := r.hcloudRouteToRoute(route)
 		if err != nil {
@@ -152,8 +153,8 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 }
 
 // DeleteRoute deletes the specified managed route
-// Route should be as returned by ListRoutes
-func (r *routes) DeleteRoute(ctx context.Context, clusterName string, route *cloudprovider.Route) error {
+// Route should be as returned by ListRoutes.
+func (r *routes) DeleteRoute(ctx context.Context, _ string, route *cloudprovider.Route) error {
 	const op = "hcloud/DeleteRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 

@@ -8,12 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/stretchr/testify/assert"
-	typesv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var testCluster TestCluster
@@ -80,8 +81,7 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 	}
 
 	for _, address := range node.Status.Addresses {
-		switch address.Type {
-		case typesv1.NodeExternalIP:
+		if address.Type == corev1.NodeExternalIP {
 			expectedIP := testCluster.setup.ClusterNode.PublicNet.IPv4.IP.String()
 			if expectedIP != address.Address {
 				t.Errorf("Got %s as NodeExternalIP but expected %s", address.Address, expectedIP)
@@ -90,8 +90,7 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 	}
 	if testCluster.useNetworks {
 		for _, address := range node.Status.Addresses {
-			switch address.Type {
-			case typesv1.NodeInternalIP:
+			if address.Type == corev1.NodeInternalIP {
 				expectedIP := testCluster.setup.ClusterNode.PrivateNet[0].IP.String()
 				if expectedIP != address.Address {
 					t.Errorf("Got %s as NodeInternalIP but expected %s", address.Address, expectedIP)

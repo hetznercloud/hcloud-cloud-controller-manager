@@ -3,9 +3,10 @@ package annotation
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 	LBPublicIPv4 Name = "load-balancer.hetzner.cloud/ipv4"
 
 	// LBPublicIPv4RDNS is the reverse DNS record assigned to the IPv4 address of
-	// the Load Balancer
+	// the Load Balancer.
 	LBPublicIPv4RDNS Name = "load-balancer.hetzner.cloud/ipv4-rdns"
 
 	// LBPublicIPv6 is the public IPv6 address assigned to the Load Balancer by
@@ -26,14 +27,14 @@ const (
 	LBPublicIPv6 Name = "load-balancer.hetzner.cloud/ipv6"
 
 	// LBPublicIPv6RDNS is the reverse DNS record assigned to the IPv6 address of
-	// the Load Balancer
+	// the Load Balancer.
 	LBPublicIPv6RDNS Name = "load-balancer.hetzner.cloud/ipv6-rdns"
 
 	// LBIPv6Disabled disables the use of IPv6 for the Load Balancer.
 	//
 	// Set this annotation if you use external-dns.
 	//
-	// Default: false
+	// Default: false.
 	LBIPv6Disabled Name = "load-balancer.hetzner.cloud/ipv6-disabled"
 
 	// LBName is the name of the Load Balancer. The name will be visible in
@@ -71,7 +72,7 @@ const (
 
 	// LBType specifies the type of the Load Balancer.
 	//
-	// Default: lb11
+	// Default: lb11.
 	LBType Name = "load-balancer.hetzner.cloud/type"
 
 	// LBLocation specifies the location where the Load Balancer will be
@@ -100,7 +101,7 @@ const (
 	// LBSvcProxyProtocol specifies if the Load Balancer services should
 	// use the proxy protocol.
 	//
-	// Default: false
+	// Default: false.
 	LBSvcProxyProtocol Name = "load-balancer.hetzner.cloud/uses-proxyprotocol"
 
 	// LBSvcHTTPCookieName specifies the cookie name when using  HTTP or HTTPS
@@ -152,7 +153,7 @@ const (
 	// LBSvcHTTPStickySessions enables the sticky sessions feature of Hetzner
 	// Cloud HTTP Load Balancers.
 	//
-	// Default: false
+	// Default: false.
 	LBSvcHTTPStickySessions Name = "load-balancer.hetzner.cloud/http-sticky-sessions"
 
 	// LBSvcHealthCheckProtocol sets the protocol the health check should be
@@ -160,7 +161,7 @@ const (
 	//
 	// Possible values: tcp, http, https
 	//
-	// Default: tcp
+	// Default: tcp.
 	LBSvcHealthCheckProtocol Name = "load-balancer.hetzner.cloud/health-check-protocol"
 
 	// LBSvcHealthCheckPort specifies the port the health check is be performed
@@ -168,10 +169,10 @@ const (
 	LBSvcHealthCheckPort Name = "load-balancer.hetzner.cloud/health-check-port"
 
 	// LBSvcHealthCheckInterval specifies the interval in which time we perform
-	// a health check in seconds
+	// a health check in seconds.
 	LBSvcHealthCheckInterval Name = "load-balancer.hetzner.cloud/health-check-interval"
 
-	// LBSvcHealthCheckTimeout specifies the timeout of a single health check
+	// LBSvcHealthCheckTimeout specifies the timeout of a single health check.
 	LBSvcHealthCheckTimeout Name = "load-balancer.hetzner.cloud/health-check-timeout"
 
 	// LBSvcHealthCheckRetries specifies the number of time a health check is
@@ -198,7 +199,7 @@ const (
 
 // LBToService sets the relevant annotations on svc to their respective values
 // from lb.
-func LBToService(svc *v1.Service, lb *hcloud.LoadBalancer) error {
+func LBToService(svc *corev1.Service, lb *hcloud.LoadBalancer) error {
 	const op = "annotation/LBToService"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 

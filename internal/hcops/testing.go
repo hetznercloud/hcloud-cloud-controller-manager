@@ -99,7 +99,7 @@ func (fx *LoadBalancerOpsFixture) MockRemoveServerTarget(
 }
 
 func (fx *LoadBalancerOpsFixture) MockWatchProgress(a *hcloud.Action, err error) {
-	fx.ActionClient.MockWatchProgress(fx.Ctx, a, nil)
+	fx.ActionClient.MockWatchProgress(fx.Ctx, a, err)
 }
 
 func (fx *LoadBalancerOpsFixture) AssertExpectations() {

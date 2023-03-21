@@ -13,16 +13,16 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 var rng *rand.Rand
@@ -148,7 +148,7 @@ func (tc *TestCluster) initialize() error {
 	}
 	fmt.Printf("%s: Setting up test env\n", op)
 
-	kubeconfigPath, err := tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys, tc.useNetworks)
+	kubeconfigPath, err := tc.setup.PrepareTestEnv(context.Background(), additionalSSHKeys)
 	if err != nil {
 		return fmt.Errorf("%s: %s", op, err)
 	}
@@ -265,11 +265,6 @@ func (tc *TestCluster) ensurePodsReady() error {
 	return nil
 }
 
-func extractPodName(k8sName string) string {
-	parts := strings.Split(k8sName, "-")
-	return strings.Join(parts[0:len(parts)-2], "-")
-}
-
 // CreateTLSCertificate creates a TLS certificate used for testing and posts it
 // to the Hetzner Cloud backend.
 //
@@ -311,7 +306,7 @@ type lbTestHelper struct {
 }
 
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
-// and waits until it is "ready"
+// and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	const op = "lbTestHelper/DeployTestPod"
 
@@ -362,7 +357,7 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	return pod
 }
 
-// ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service)
+// ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service).
 func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string]string) *corev1.Service {
 	port := l.port
 	if port == 0 {
@@ -392,7 +387,7 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 }
 
 // CreateService creates a k8s service based on the given service definition
-// and waits until it is "ready"
+// and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
 	const op = "lbTestHelper/CreateService"
 	_, err := l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Create(context.Background(), lbSvc, metav1.CreateOptions{})
@@ -418,7 +413,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	return lbSvc, nil
 }
 
-// TearDown deletes the created pod and service
+// TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
 	const op = "lbTestHelper/TearDown"
 
@@ -474,7 +469,7 @@ type nwTestHelper struct {
 }
 
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
-// and waits until it is "ready"
+// and waits until it is "ready".
 func (n *nwTestHelper) DeployTestPod() *corev1.Pod {
 	const op = "nwTestHelper/DeployTestPod"
 	podName := fmt.Sprintf("pod-%s", n.podName)
@@ -528,7 +523,7 @@ func (n *nwTestHelper) DeployTestPod() *corev1.Pod {
 	return pod
 }
 
-// TearDown deletes the created pod
+// TearDown deletes the created pod.
 func (n *nwTestHelper) TearDown() {
 	const op = "nwTestHelper/TearDown"
 	podName := fmt.Sprintf("pod-%s", n.podName)
@@ -553,7 +548,7 @@ func (n *nwTestHelper) TearDown() {
 
 // WaitForHTTPAvailable tries to connect to the given IP via http
 // It tries it for 2 minutes, if after two minutes the connection
-// wasn't successful and it wasn't a HTTP 200 response it will fail
+// wasn't successful and it wasn't a HTTP 200 response it will fail.
 func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 	const op = "e2etests/WaitForHTTPAvailable"
 
@@ -595,7 +590,7 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 // WaitForHTTPOnServer tries to connect to the given IP using curl.
 //
 // It tries it for 2 minutes, if after two minutes the connection wasn't
-// successful or it was not a HTTP 200 response it will fail
+// successful or it was not a HTTP 200 response it will fail.
 func WaitForHTTPOnServer(t *testing.T, srv *hcloud.Server, privateKey, tgtIP string, useHTTPS bool) {
 	const op = "e2etests/WaitForHTTPOnServer"
 

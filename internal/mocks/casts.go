@@ -1,8 +1,9 @@
 package mocks
 
 import (
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 func getResponsePtr(args mock.Arguments, i int) *hcloud.Response {

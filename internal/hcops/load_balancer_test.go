@@ -8,14 +8,15 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var errTestLbClient = errors.New("lb client failed")
@@ -211,7 +212,7 @@ func TestGetByK8SServiceUID(t *testing.T) {
 				On("AllWithOpts", mock.Anything, opts).
 				Return(tt.lbs, tt.clientErr)
 
-			svc := &v1.Service{
+			svc := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID(tt.uid),
 				},
@@ -483,7 +484,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "lb-with-priv",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
-				PublicInterface:  hcloud.Bool(false),
+				PublicInterface:  hcloud.Ptr(false),
 				Network: &hcloud.Network{
 					ID:   4711,
 					Name: "some-network",
@@ -524,7 +525,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			}
 			tt.mock(t, &tt, fx)
 
-			service := &v1.Service{
+			service := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID(tt.createOpts.Labels[hcops.LabelServiceUID]),
 				},
@@ -591,14 +592,14 @@ type LBReconcilementTestCase struct {
 	defaults           hcops.LoadBalancerDefaults
 	serviceUID         string
 	serviceAnnotations map[annotation.Name]interface{}
-	servicePorts       []v1.ServicePort
-	k8sNodes           []*v1.Node
+	servicePorts       []corev1.ServicePort
+	k8sNodes           []*corev1.Node
 	initialLB          *hcloud.LoadBalancer
 	mock               func(t *testing.T, tt *LBReconcilementTestCase)
 	perform            func(t *testing.T, tt *LBReconcilementTestCase)
 
 	// set during test execution
-	service *v1.Service
+	service *corev1.Service
 	fx      *hcops.LoadBalancerOpsFixture
 }
 
@@ -609,8 +610,8 @@ func (tt *LBReconcilementTestCase) run(t *testing.T) {
 	tt.fx.LBOps.Defaults = tt.defaults
 
 	if tt.service == nil {
-		tt.service = &v1.Service{
-			Spec:       v1.ServiceSpec{Ports: tt.servicePorts},
+		tt.service = &corev1.Service{
+			Spec:       corev1.ServiceSpec{Ports: tt.servicePorts},
 			ObjectMeta: metav1.ObjectMeta{UID: types.UID(tt.serviceUID)},
 		}
 	}
@@ -1123,19 +1124,19 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 	tests := []LBReconcilementTestCase{
 		{
 			name: "add k8s nodes as hc Load Balancer targets",
-			k8sNodes: []*v1.Node{
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
-				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Bool(false)}
+				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(false)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
 
-				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Bool(false)}
+				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(false)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
@@ -1147,9 +1148,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 		},
 		{
 			name: "remove unused k8s nodes from hc Load Balancer",
-			k8sNodes: []*v1.Node{
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 2,
@@ -1191,9 +1192,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				// Make sure the annotation overrides the default
 				UsePrivateIP: true,
 			},
-			k8sNodes: []*v1.Node{
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
@@ -1201,11 +1202,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
 
-				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Bool(true)}
+				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
 
-				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Bool(true)}
+				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(true)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
@@ -1221,9 +1222,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				// Make sure the annotation overrides the default
 				UsePrivateIP: false,
 			},
-			k8sNodes: []*v1.Node{
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://2"}},
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBUsePrivateIP: "true",
@@ -1234,11 +1235,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
 
-				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Bool(true)}
+				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
 
-				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Bool(true)}
+				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(true)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
@@ -1254,8 +1255,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				// Make sure the annotation overrides the default
 				UsePrivateIP: true,
 			},
-			k8sNodes: []*v1.Node{
-				{Spec: v1.NodeSpec{ProviderID: "hcloud://1"}},
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBUsePrivateIP: "false",
@@ -1276,7 +1277,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 
 				opts := hcloud.LoadBalancerAddServerTargetOpts{
 					Server:       &hcloud.Server{ID: 1},
-					UsePrivateIP: hcloud.Bool(false),
+					UsePrivateIP: hcloud.Ptr(false),
 				}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -1299,7 +1300,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 	tests := []LBReconcilementTestCase{
 		{
 			name: "add services to hc Load Balancer",
-			servicePorts: []v1.ServicePort{
+			servicePorts: []corev1.ServicePort{
 				{Port: 80, NodePort: 8080},
 				{Port: 443, NodePort: 8443},
 			},
@@ -1309,11 +1310,11 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Int(80),
-					DestinationPort: hcloud.Int(8080),
+					ListenPort:      hcloud.Ptr(80),
+					DestinationPort: hcloud.Ptr(8080),
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8080),
+						Port:     hcloud.Ptr(8080),
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
@@ -1321,11 +1322,11 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts = hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Int(443),
-					DestinationPort: hcloud.Int(8443),
+					ListenPort:      hcloud.Ptr(443),
+					DestinationPort: hcloud.Ptr(8443),
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8443),
+						Port:     hcloud.Ptr(8443),
 					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
@@ -1339,7 +1340,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 		},
 		{
 			name: "reference TLS certificate by id",
-			servicePorts: []v1.ServicePort{
+			servicePorts: []corev1.ServicePort{
 				{Port: 443, NodePort: 8443},
 			},
 			initialLB: &hcloud.LoadBalancer{
@@ -1351,8 +1352,8 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Int(443),
-					DestinationPort: hcloud.Int(8443),
+					ListenPort:      hcloud.Ptr(443),
+					DestinationPort: hcloud.Ptr(8443),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 						Certificates: []*hcloud.Certificate{
 							{ID: 1},
@@ -1360,7 +1361,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8443),
+						Port:     hcloud.Ptr(8443),
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
@@ -1374,7 +1375,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 		},
 		{
 			name: "reference TLS certificate by name",
-			servicePorts: []v1.ServicePort{
+			servicePorts: []corev1.ServicePort{
 				{Port: 443, NodePort: 8443},
 			},
 			initialLB: &hcloud.LoadBalancer{
@@ -1388,14 +1389,14 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Int(443),
-					DestinationPort: hcloud.Int(8443),
+					ListenPort:      hcloud.Ptr(443),
+					DestinationPort: hcloud.Ptr(8443),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 						Certificates: []*hcloud.Certificate{cert},
 					},
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8443),
+						Port:     hcloud.Ptr(8443),
 					},
 				}
 				tt.fx.CertClient.
@@ -1412,7 +1413,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 		},
 		{
 			name:         "create managed certificate",
-			servicePorts: []v1.ServicePort{{Port: 443, NodePort: 8443}},
+			servicePorts: []corev1.ServicePort{{Port: 443, NodePort: 8443}},
 			initialLB:    &hcloud.LoadBalancer{ID: 11},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificateType:           hcloud.CertificateTypeManaged,
@@ -1444,14 +1445,14 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Int(443),
-					DestinationPort: hcloud.Int(8443),
+					ListenPort:      hcloud.Ptr(443),
+					DestinationPort: hcloud.Ptr(8443),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 						Certificates: []*hcloud.Certificate{cert},
 					},
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8443),
+						Port:     hcloud.Ptr(8443),
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
@@ -1468,7 +1469,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProtocol: string(hcloud.LoadBalancerServiceProtocolHTTP),
 			},
-			servicePorts: []v1.ServicePort{
+			servicePorts: []corev1.ServicePort{
 				{Port: 81, NodePort: 8081},
 				{Port: 444, NodePort: 8444},
 			},
@@ -1482,11 +1483,11 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
-					ListenPort:      hcloud.Int(81),
-					DestinationPort: hcloud.Int(8081),
+					ListenPort:      hcloud.Ptr(81),
+					DestinationPort: hcloud.Ptr(8081),
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8081),
+						Port:     hcloud.Ptr(8081),
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
@@ -1494,11 +1495,11 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts = hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
-					ListenPort:      hcloud.Int(444),
-					DestinationPort: hcloud.Int(8444),
+					ListenPort:      hcloud.Ptr(444),
+					DestinationPort: hcloud.Ptr(8444),
 					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8444),
+						Port:     hcloud.Ptr(8444),
 					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
@@ -1517,7 +1518,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 		},
 		{
 			name: "update already exposed ports with new hc Load Balancer services",
-			servicePorts: []v1.ServicePort{
+			servicePorts: []corev1.ServicePort{
 				{Port: 80, NodePort: 8081},
 				{Port: 443, NodePort: 8444},
 			},
@@ -1531,10 +1532,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					DestinationPort: hcloud.Int(8081),
+					DestinationPort: hcloud.Ptr(8081),
 					HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8081),
+						Port:     hcloud.Ptr(8081),
 					},
 				}
 				action := tt.fx.MockUpdateService(opts, tt.initialLB, 80, nil)
@@ -1542,10 +1543,10 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 				opts = hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					DestinationPort: hcloud.Int(8444),
+					DestinationPort: hcloud.Ptr(8444),
 					HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Int(8444),
+						Port:     hcloud.Ptr(8444),
 					},
 				}
 				action = tt.fx.MockUpdateService(opts, tt.initialLB, 443, nil)

@@ -24,11 +24,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/hetznercloud/hcloud-go/hcloud/schema"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cloudprovider "k8s.io/cloud-provider"
+
+	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 )
 
 // TestInstances_InstanceExists also tests [lookupServer]. The other tests
@@ -61,24 +62,24 @@ func TestInstances_InstanceExists(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		node     *v1.Node
+		node     *corev1.Node
 		expected bool
 	}{
 		{
 			name: "existing server by id",
-			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
+			node: &corev1.Node{
+				Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
 			},
 			expected: true,
 		}, {
 			name: "missing server by id",
-			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://2"},
+			node: &corev1.Node{
+				Spec: corev1.NodeSpec{ProviderID: "hcloud://2"},
 			},
 			expected: false,
 		}, {
 			name: "existing server by name",
-			node: &v1.Node{
+			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foobar",
 				},
@@ -86,7 +87,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 			expected: true,
 		}, {
 			name: "missing server by name",
-			node: &v1.Node{
+			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "barfoo",
 				},
@@ -134,19 +135,19 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		node     *v1.Node
+		node     *corev1.Node
 		expected bool
 	}{
 		{
 			name: "running server",
-			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
+			node: &corev1.Node{
+				Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
 			},
 			expected: false,
 		}, {
 			name: "shutdown server",
-			node: &v1.Node{
-				Spec: v1.NodeSpec{ProviderID: "hcloud://2"},
+			node: &corev1.Node{
+				Spec: corev1.NodeSpec{ProviderID: "hcloud://2"},
 			},
 			expected: true,
 		},
@@ -189,8 +190,8 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 
 	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
 
-	metadata, err := instances.InstanceMetadata(context.TODO(), &v1.Node{
-		Spec: v1.NodeSpec{ProviderID: "hcloud://1"},
+	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
+		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
 	})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -199,9 +200,9 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 	expectedMetadata := &cloudprovider.InstanceMetadata{
 		ProviderID:   "hcloud://1",
 		InstanceType: "asdf11",
-		NodeAddresses: []v1.NodeAddress{
-			{Type: v1.NodeHostName, Address: "foobar"},
-			{Type: v1.NodeExternalIP, Address: "203.0.113.7"},
+		NodeAddresses: []corev1.NodeAddress{
+			{Type: corev1.NodeHostName, Address: "foobar"},
+			{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 		},
 		Zone:   "Test DC",
 		Region: "Test Location",
@@ -218,7 +219,7 @@ func TestNodeAddresses(t *testing.T) {
 		addressFamily  addressFamily
 		server         *hcloud.Server
 		privateNetwork int
-		expected       []v1.NodeAddress
+		expected       []corev1.NodeAddress
 	}{
 		{
 			name:          "hostname",
@@ -226,8 +227,8 @@ func TestNodeAddresses(t *testing.T) {
 			server: &hcloud.Server{
 				Name: "foobar",
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
 		{
@@ -244,9 +245,9 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
-				{Type: v1.NodeExternalIP, Address: "203.0.113.7"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
 		},
 		{
@@ -260,8 +261,8 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
 		{
@@ -278,9 +279,9 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
-				{Type: v1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
 			},
 		},
 		{
@@ -294,8 +295,8 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
 		{
@@ -312,10 +313,10 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
-				{Type: v1.NodeExternalIP, Address: "203.0.113.7"},
-				{Type: v1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
 			},
 		},
 
@@ -326,8 +327,8 @@ func TestNodeAddresses(t *testing.T) {
 			server: &hcloud.Server{
 				Name: "foobar",
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
 		{
@@ -346,9 +347,9 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
-				{Type: v1.NodeInternalIP, Address: "10.0.0.2"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeInternalIP, Address: "10.0.0.2"},
 			},
 		},
 		{
@@ -367,8 +368,8 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expected: []v1.NodeAddress{
-				{Type: v1.NodeHostName, Address: "foobar"},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
 	}

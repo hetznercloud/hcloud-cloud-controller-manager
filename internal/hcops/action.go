@@ -12,8 +12,6 @@ type HCloudActionClient interface {
 
 func WatchAction(ctx context.Context, ac HCloudActionClient, a *hcloud.Action) error {
 	_, errCh := ac.WatchProgress(ctx, a)
-	if err := <-errCh; err != nil {
-		return err
-	}
-	return nil
+	err := <-errCh
+	return err
 }

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -19,8 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 type K8sDistribution string
@@ -68,8 +68,8 @@ type cloudInitTmpl struct {
 // PrepareTestEnv setups a test environment for the Cloud Controller Manager
 // This includes the creation of a Network, SSH Key and Server.
 // The server will be created with a Cloud Init UserData
-// The template can be found under e2etests/templates/cloudinit_<k8s-distribution>.ixt.tpl
-func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys []*hcloud.SSHKey, useNetworks bool) (string, error) {
+// The template can be found under e2etests/templates/cloudinit_<k8s-distribution>.ixt.tpl.
+func (s *hcloudK8sSetup) PrepareTestEnv(ctx context.Context, additionalSSHKeys []*hcloud.SSHKey) (string, error) {
 	const op = "hcloudK8sSetup/PrepareTestEnv"
 
 	s.testLabels = map[string]string{"K8sDistribution": string(s.K8sDistribution), "K8sVersion": strings.ReplaceAll(s.K8sVersion, "+", ""), "test": s.TestIdentifier}
@@ -180,7 +180,7 @@ func (s *hcloudK8sSetup) createClusterWorker(ctx context.Context, additionalSSHK
 
 // waitForCloudInit waits on cloud init on the server.
 // when cloud init is ready we can assume that the server
-// and the plain k8s installation is ready
+// and the plain k8s installation is ready.
 func (s *hcloudK8sSetup) getJoinCmd() (string, error) {
 	const op = "hcloudK8sSetup/getJoinCmd"
 	fmt.Printf("[%s] %s: Download join cmd\n", s.ClusterNode.Name, op)
@@ -189,7 +189,7 @@ func (s *hcloudK8sSetup) getJoinCmd() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("[%s] %s download join cmd: %s", s.ClusterNode.Name, op, err)
 		}
-		cmd, err := ioutil.ReadFile("join.txt")
+		cmd, err := os.ReadFile("join.txt")
 		if err != nil {
 			return "", fmt.Errorf("[%s] %s reading join cmd file: %s", s.ClusterNode.Name, op, err)
 		}
@@ -200,7 +200,10 @@ func (s *hcloudK8sSetup) getJoinCmd() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("[%s] %s download join cmd: %s", s.ClusterNode.Name, op, err)
 	}
-	token, err := ioutil.ReadFile("join.txt")
+	token, err := os.ReadFile("join.txt")
+	if err != nil {
+		return "", fmt.Errorf("[%s] %s read join cmd: %s", s.ClusterNode.Name, op, err)
+	}
 	return fmt.Sprintf("K3S_URL=https://%s:6443 K3S_TOKEN=%s", s.ClusterNode.PublicNet.IPv4.IP.String(), token), nil
 }
 
@@ -223,9 +226,7 @@ func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, add
 	const op = "e2etest/createServer"
 
 	sshKeys := []*hcloud.SSHKey{s.sshKey}
-	for _, additionalSSHKey := range additionalSSHKeys {
-		sshKeys = append(sshKeys, additionalSSHKey)
-	}
+	sshKeys = append(sshKeys, additionalSSHKeys...)
 
 	res, _, err := s.Hcloud.Server.Create(ctx, hcloud.ServerCreateOpts{
 		Name:       fmt.Sprintf("srv-%s-%s", name, s.TestIdentifier),
@@ -259,7 +260,7 @@ func (s *hcloudK8sSetup) createServer(ctx context.Context, name, typ string, add
 }
 
 // PrepareK8s patches an existing kubernetes cluster with a CNI and the correct
-// Cloud Controller Manager version from this test run
+// Cloud Controller Manager version from this test run.
 func (s *hcloudK8sSetup) PrepareK8s() (string, error) {
 	const op = "hcloudK8sSetup/PrepareK8s"
 
@@ -295,12 +296,12 @@ func (s *hcloudK8sSetup) PrepareK8s() (string, error) {
 	}
 
 	fmt.Printf("[%s] %s: Ensure correct server is set\n", s.ClusterNode.Name, op)
-	kubeconfigBefore, err := ioutil.ReadFile("kubeconfig")
+	kubeconfigBefore, err := os.ReadFile("kubeconfig")
 	if err != nil {
 		return "", fmt.Errorf("%s reading kubeconfig: %s", op, err)
 	}
-	kubeconfigAfterwards := strings.Replace(string(kubeconfigBefore), "127.0.0.1", s.ClusterNode.PublicNet.IPv4.IP.String(), -1)
-	err = ioutil.WriteFile("kubeconfig", []byte(kubeconfigAfterwards), 0)
+	kubeconfigAfterwards := strings.ReplaceAll(string(kubeconfigBefore), "127.0.0.1", s.ClusterNode.PublicNet.IPv4.IP.String())
+	err = os.WriteFile("kubeconfig", []byte(kubeconfigAfterwards), 0)
 	if err != nil {
 		return "", fmt.Errorf("%s writing kubeconfig: %s", op, err)
 	}
@@ -346,7 +347,7 @@ func runCmd(name string, argv []string, env []string) error {
 
 // prepareCCMDeploymentFile patches the Cloud Controller Deployment file
 // It replaces the used image and the pull policy to always use the local image
-// from this test run
+// from this test run.
 func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	const op = "hcloudK8sSetup/prepareCCMDeploymentFile"
 	fmt.Printf("%s: Read master deployment file\n", op)
@@ -354,7 +355,7 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 	if networks {
 		deploymentFilePath = "../deploy/ccm-networks.yaml"
 	}
-	deploymentFile, err := ioutil.ReadFile(deploymentFilePath)
+	deploymentFile, err := os.ReadFile(deploymentFilePath)
 	if err != nil {
 		return fmt.Errorf("%s: read ccm deployment file %s: %v", op, deploymentFilePath, err)
 	}
@@ -371,7 +372,7 @@ func (s *hcloudK8sSetup) prepareCCMDeploymentFile(networks bool) error {
 }
 
 // deployFlannel deploys Flannel as CNI. Flannel is used for all tests where
-// we don't use Hetzner Cloud Networks
+// we don't use Hetzner Cloud Networks.
 func (s *hcloudK8sSetup) deployFlannel() error {
 	const op = "hcloudK8sSetup/deployFlannel"
 	fmt.Printf("%s: apply flannel deployment\n", op)
@@ -393,7 +394,7 @@ func (s *hcloudK8sSetup) deployFlannel() error {
 func (s *hcloudK8sSetup) deployCilium() error {
 	const op = "hcloudK8sSetup/deployCilium"
 
-	deploymentFile, err := ioutil.ReadFile("templates/cilium.yml")
+	deploymentFile, err := os.ReadFile("templates/cilium.yml")
 	if err != nil {
 		return fmt.Errorf("%s: read cilium deployment file %s: %v", op, "templates/cilium.yml", err)
 	}
@@ -411,7 +412,7 @@ func (s *hcloudK8sSetup) deployCilium() error {
 	return nil
 }
 
-// transferDockerImage transfers the local build docker image tar via SCP
+// transferDockerImage transfers the local build docker image tar via SCP.
 func (s *hcloudK8sSetup) transferDockerImage(server *hcloud.Server) error {
 	const op = "hcloudK8sSetup/transferDockerImage"
 	fmt.Printf("[%s] %s: Transfer docker image\n", server.Name, op)
@@ -449,11 +450,11 @@ func (s *hcloudK8sSetup) transferDockerImage(server *hcloud.Server) error {
 
 // waitForCloudInit waits on cloud init on the server.
 // when cloud init is ready we can assume that the server
-// and the plain k8s installation is ready
+// and the plain k8s installation is ready.
 func (s *hcloudK8sSetup) waitForCloudInit(server *hcloud.Server) error {
 	const op = "hcloudK8sSetup/PrepareTestEnv"
 	fmt.Printf("[%s] %s: Wait for cloud-init\n", server.Name, op)
-	err := RunCommandOnServer(s.privKey, server, fmt.Sprintf("cloud-init status --wait > /dev/null"))
+	err := RunCommandOnServer(s.privKey, server, "cloud-init status --wait > /dev/null")
 	if err != nil {
 		return fmt.Errorf("%s: Wait for cloud-init: %s", op, err)
 	}
@@ -462,7 +463,7 @@ func (s *hcloudK8sSetup) waitForCloudInit(server *hcloud.Server) error {
 
 // TearDown deletes all created resources within the Hetzner Cloud
 // there is no need to "shutdown" the k8s cluster before
-// so we just delete all created resources
+// so we just delete all created resources.
 func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 	const op = "hcloudK8sSetup/TearDown"
 
@@ -474,20 +475,20 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 
 	ctx := context.Background()
 
-	_, err := s.Hcloud.Server.Delete(ctx, s.ClusterNode)
+	_, _, err := s.Hcloud.Server.DeleteWithResult(ctx, s.ClusterNode)
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.Server.Delete: %s", op, err)
 	}
 	s.ClusterNode = nil
 
 	for _, wn := range s.WorkerNodes {
-		_, err := s.Hcloud.Server.Delete(ctx, wn)
+		_, _, err := s.Hcloud.Server.DeleteWithResult(ctx, wn)
 		if err != nil {
 			return fmt.Errorf("[%s] %s Hcloud.Server.Delete: %s", wn.Name, op, err)
 		}
 	}
 
-	_, err = s.Hcloud.Server.Delete(ctx, s.ExtServer)
+	_, _, err = s.Hcloud.Server.DeleteWithResult(ctx, s.ExtServer)
 	if err != nil {
 		return fmt.Errorf("%s Hcloud.Server.Delete: %s", op, err)
 	}
@@ -506,7 +507,7 @@ func (s *hcloudK8sSetup) TearDown(testFailed bool) error {
 	return nil
 }
 
-// getCloudInitConfig returns the generated cloud init configuration
+// getCloudInitConfig returns the generated cloud init configuration.
 func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error) {
 	const op = "hcloudK8sSetup/getCloudInitConfig"
 
@@ -518,7 +519,7 @@ func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error
 		JoinCMD:         s.clusterJoinCMD,
 		UseFlannel:      s.K8sDistribution == K8sDistributionK3s && !s.UseNetworks,
 	}
-	str, err := ioutil.ReadFile(fmt.Sprintf("templates/cloudinit_%s.txt.tpl", s.K8sDistribution))
+	str, err := os.ReadFile(fmt.Sprintf("templates/cloudinit_%s.txt.tpl", s.K8sDistribution))
 	if err != nil {
 		return "", fmt.Errorf("%s: read template file %s: %v", "templates/cloudinit.txt.tpl", op, err)
 	}
@@ -533,7 +534,7 @@ func (s *hcloudK8sSetup) getCloudInitConfig(isClusterServer bool) (string, error
 	return buf.String(), nil
 }
 
-// getSSHKey create and get the Hetzner Cloud SSH Key for the test
+// getSSHKey create and get the Hetzner Cloud SSH Key for the test.
 func (s *hcloudK8sSetup) getSSHKey(ctx context.Context) error {
 	const op = "hcloudK8sSetup/getSSHKey"
 	pubKey, privKey, err := makeSSHKeyPair()
@@ -550,14 +551,14 @@ func (s *hcloudK8sSetup) getSSHKey(ctx context.Context) error {
 	}
 	s.privKey = privKey
 	s.sshKey = sshKey
-	err = ioutil.WriteFile("ssh_key", []byte(s.privKey), 0600)
+	err = os.WriteFile("ssh_key", []byte(s.privKey), 0600)
 	if err != nil {
 		return fmt.Errorf("%s: writing ssh key private key: %v", op, err)
 	}
 	return nil
 }
 
-// getNetwork create a Hetzner Cloud Network for this test
+// getNetwork create a Hetzner Cloud Network for this test.
 func (s *hcloudK8sSetup) getNetwork(ctx context.Context) error {
 	const op = "hcloudK8sSetup/getNetwork"
 	_, ipRange, _ := net.ParseCIDR("10.0.0.0/8")
@@ -584,7 +585,7 @@ func (s *hcloudK8sSetup) getNetwork(ctx context.Context) error {
 	return nil
 }
 
-// makeSSHKeyPair generate a SSH key pair
+// makeSSHKeyPair generate a SSH key pair.
 func makeSSHKeyPair() (string, string, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
