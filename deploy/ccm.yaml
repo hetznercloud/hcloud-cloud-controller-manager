@@ -66,15 +66,15 @@ spec:
             - "--leader-elect=false"
             - "--route-reconciliation-period=30s"
           env:
+            - name: HCLOUD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: hcloud
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            - name: HCLOUD_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: hcloud
-                  key: token
           image: hetznercloud/hcloud-cloud-controller-manager:v1.13.2
           ports:
             - name: metrics

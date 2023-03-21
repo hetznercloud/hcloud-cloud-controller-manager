@@ -9,6 +9,21 @@ args:
   # https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/395
   route-reconciliation-period: 30s
 
+# hccm environment variables
+env:
+  # The following two variables should *not* be set here:
+  # HCLOUD_METRICS_ENABLED - see monitoring.enabled
+  # HCLOUD_NETWORK - see networking.enabled
+  HCLOUD_TOKEN:
+    valueFrom:
+      secretKeyRef:
+        name: hcloud
+        key: token
+  NODE_NAME:
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+
 image:
   repository: hetznercloud/hcloud-cloud-controller-manager
   tag: '{{ $.Chart.Version }}'
