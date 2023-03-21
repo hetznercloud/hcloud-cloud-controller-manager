@@ -47,5 +47,5 @@ This chart aims to be highly flexible. Please review the [values.yaml](./values.
 If you've already deployed hccm using the `helm install` command above, you can easily change configuration values:
 
 ```sh
-helm upgrade hccm -n kube-system --set monitoring.podMonitor.enabled=true
+helm upgrade hccm hcloud/hcloud-cloud-controller-manager -n kube-system --set monitoring.podMonitor.enabled=true
 ```
