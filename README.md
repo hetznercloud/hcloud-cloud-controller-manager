@@ -99,10 +99,22 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
     ```
 
-7. Deploy the `hcloud-cloud-controller-manager`:
+7. Deploy `hcloud-cloud-controller-manager`
+
+    **Using Helm (recommended):**
 
     ```
-    kubectl apply -f  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+    helm repo add hcloud https://charts.hetzner.cloud
+    helm repo update hcloud
+    helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system
+    ```
+
+    See the [Helm chart README](./chart/README.md) for more info.
+
+    **Legacy installation method**:
+
+    ```sh
+    kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
 
 ## Networks support
