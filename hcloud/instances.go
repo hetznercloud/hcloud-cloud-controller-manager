@@ -20,10 +20,11 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	cloudprovider "k8s.io/cloud-provider"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	v1 "k8s.io/api/core/v1"
-	cloudprovider "k8s.io/cloud-provider"
 )
 
 type addressFamily int
@@ -44,10 +45,10 @@ func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID 
 	return &instances{client, addressFamily, networkID}
 }
 
-// lookupServer attempts to locate the corresponding hcloud.Server for a given v1.Node
+// lookupServer attempts to locate the corresponding hcloud.Server for a given corev1.Node
 // It returns an error if the Node has an invalid provider ID or if API requests failed.
 // It can return a nil [*hcloud.Server] if neither the ProviderID nor the Name matches an existing server.
-func (i *instances) lookupServer(ctx context.Context, node *v1.Node) (*hcloud.Server, error) {
+func (i *instances) lookupServer(ctx context.Context, node *corev1.Node) (*hcloud.Server, error) {
 	var server *hcloud.Server
 	if node.Spec.ProviderID != "" {
 		serverID, err := providerIDToServerID(node.Spec.ProviderID)
@@ -69,7 +70,7 @@ func (i *instances) lookupServer(ctx context.Context, node *v1.Node) (*hcloud.Se
 	return server, nil
 }
 
-func (i *instances) InstanceExists(ctx context.Context, node *v1.Node) (bool, error) {
+func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceExists"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -81,7 +82,7 @@ func (i *instances) InstanceExists(ctx context.Context, node *v1.Node) (bool, er
 	return server != nil, nil
 }
 
-func (i *instances) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, error) {
+func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceShutdown"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -96,7 +97,7 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, 
 	return server.Status == hcloud.ServerStatusOff, nil
 }
 
-func (i *instances) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
+func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
 	const op = "hcloud/instancesv2.InstanceMetadata"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -117,18 +118,18 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloud
 	}, nil
 }
 
-func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Server) []v1.NodeAddress {
-	var addresses []v1.NodeAddress
+func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Server) []corev1.NodeAddress {
+	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,
-		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
+		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
 	)
 
 	if addressFamily == AddressFamilyIPv4 || addressFamily == AddressFamilyDualStack {
 		if !server.PublicNet.IPv4.IsUnspecified() {
 			addresses = append(
 				addresses,
-				v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
+				corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
 			)
 		}
 	}
@@ -141,7 +142,7 @@ func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Se
 
 			addresses = append(
 				addresses,
-				v1.NodeAddress{Type: v1.NodeExternalIP, Address: hostAddress.String()},
+				corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress.String()},
 			)
 		}
 	}
@@ -152,7 +153,7 @@ func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Se
 			if privateNet.Network.ID == networkID {
 				addresses = append(
 					addresses,
-					v1.NodeAddress{Type: v1.NodeInternalIP, Address: privateNet.IP.String()},
+					corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: privateNet.IP.String()},
 				)
 			}
 		}

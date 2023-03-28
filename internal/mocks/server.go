@@ -4,11 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
-// ServerClient is a mock implementation of the hcloud.ServerClient
+// ServerClient is a mock implementation of the hcloud.ServerClient.
 type ServerClient struct {
 	mock.Mock
 	T *testing.T

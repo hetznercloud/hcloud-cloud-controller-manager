@@ -5,13 +5,14 @@ import (
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // Setenv prepares the environment for testing the
@@ -75,7 +76,7 @@ type LoadBalancerTestCase struct {
 	ServiceAnnotations           map[annotation.Name]interface{}
 	DisablePrivateIngressDefault bool
 	DisableIPv6Default           bool
-	Nodes                        []*v1.Node
+	Nodes                        []*corev1.Node
 	LB                           *hcloud.LoadBalancer
 	LBCreateResult               *hcloud.LoadBalancerCreateResult
 	Mock                         func(t *testing.T, tt *LoadBalancerTestCase)
@@ -90,7 +91,7 @@ type LoadBalancerTestCase struct {
 	LBClient      *mocks.LoadBalancerClient
 	ActionClient  *mocks.ActionClient
 	LoadBalancers *loadBalancers
-	Service       *v1.Service
+	Service       *corev1.Service
 }
 
 func (tt *LoadBalancerTestCase) run(t *testing.T) {
@@ -108,7 +109,7 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 	if tt.ClusterName == "" {
 		tt.ClusterName = "test-cluster"
 	}
-	tt.Service = &v1.Service{
+	tt.Service = &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{UID: types.UID(tt.ServiceUID)},
 	}
 	for k, v := range tt.ServiceAnnotations {

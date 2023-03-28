@@ -5,20 +5,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestHCLBServiceOptsBuilder(t *testing.T) {
 	type testCase struct {
 		name               string
-		servicePort        v1.ServicePort
+		servicePort        corev1.ServicePort
 		serviceUID         string
 		serviceAnnotations map[annotation.Name]interface{}
 		expectedAddOpts    hcloud.LoadBalancerAddServiceOpts
@@ -32,54 +33,54 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 	tests := []testCase{
 		{
 			name:        "defaults",
-			servicePort: v1.ServicePort{Port: 80, NodePort: 8080},
+			servicePort: corev1.ServicePort{Port: 80, NodePort: 8080},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(80),
-				DestinationPort: hcloud.Int(8080),
+				ListenPort:      hcloud.Ptr(80),
+				DestinationPort: hcloud.Ptr(8080),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8080),
+					Port:     hcloud.Ptr(8080),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8080),
+				DestinationPort: hcloud.Ptr(8080),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8080),
+					Port:     hcloud.Ptr(8080),
 				},
 			},
 		},
 		{
 			name:        "enable proxy protocol",
-			servicePort: v1.ServicePort{Port: 81, NodePort: 8081},
+			servicePort: corev1.ServicePort{Port: 81, NodePort: 8081},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProxyProtocol: true,
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(81),
-				DestinationPort: hcloud.Int(8081),
+				ListenPort:      hcloud.Ptr(81),
+				DestinationPort: hcloud.Ptr(8081),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(true),
+				Proxyprotocol:   hcloud.Ptr(true),
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8081),
+					Port:     hcloud.Ptr(8081),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8081),
+				DestinationPort: hcloud.Ptr(8081),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-				Proxyprotocol:   hcloud.Bool(true),
+				Proxyprotocol:   hcloud.Ptr(true),
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8081),
+					Port:     hcloud.Ptr(8081),
 				},
 			},
 		},
 		{
 			name:        "select HTTP protocol",
-			servicePort: v1.ServicePort{Port: 82, NodePort: 8082},
+			servicePort: corev1.ServicePort{Port: 82, NodePort: 8082},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProtocol:           hcloud.LoadBalancerServiceProtocolHTTP,
 				annotation.LBSvcHTTPCookieName:     "my-cookie",
@@ -89,40 +90,40 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHTTPStickySessions: true,
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(82),
-				DestinationPort: hcloud.Int(8082),
+				ListenPort:      hcloud.Ptr(82),
+				DestinationPort: hcloud.Ptr(8082),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
-					CookieName:     hcloud.String("my-cookie"),
-					CookieLifetime: hcloud.Duration(time.Hour),
+					CookieName:     hcloud.Ptr("my-cookie"),
+					CookieLifetime: hcloud.Ptr(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
-					RedirectHTTP:   hcloud.Bool(true),
-					StickySessions: hcloud.Bool(true),
+					RedirectHTTP:   hcloud.Ptr(true),
+					StickySessions: hcloud.Ptr(true),
 				},
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8082),
+					Port:     hcloud.Ptr(8082),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8082),
+				DestinationPort: hcloud.Ptr(8082),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
-					CookieName:     hcloud.String("my-cookie"),
-					CookieLifetime: hcloud.Duration(time.Hour),
+					CookieName:     hcloud.Ptr("my-cookie"),
+					CookieLifetime: hcloud.Ptr(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
-					RedirectHTTP:   hcloud.Bool(true),
-					StickySessions: hcloud.Bool(true),
+					RedirectHTTP:   hcloud.Ptr(true),
+					StickySessions: hcloud.Ptr(true),
 				},
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8082),
+					Port:     hcloud.Ptr(8082),
 				},
 			},
 		},
 		{
 			name:        "add certificates by name",
-			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
+			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProtocol:         hcloud.LoadBalancerServiceProtocolHTTPS,
 				annotation.LBSvcHTTPCertificates: []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
@@ -136,32 +137,32 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					Return(&hcloud.Certificate{ID: 2, Name: "cert-2"}, nil, nil)
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(83),
-				DestinationPort: hcloud.Int(8083),
+				ListenPort:      hcloud.Ptr(83),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
 				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 					Certificates: []*hcloud.Certificate{{ID: 1}, {ID: 2}},
 				},
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8083),
+					Port:     hcloud.Ptr(8083),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8083),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
 				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
 					Certificates: []*hcloud.Certificate{{ID: 1}, {ID: 2}},
 				},
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8083),
+					Port:     hcloud.Ptr(8083),
 				},
 			},
 		},
 		{
 			name:        "add managed certificate by service uid label",
-			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
+			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
 			serviceUID:  "some-service-uid",
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProtocol:                      hcloud.LoadBalancerServiceProtocolHTTPS,
@@ -178,57 +179,57 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					Return([]*hcloud.Certificate{{ID: 1}}, nil, nil)
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(83),
-				DestinationPort: hcloud.Int(8083),
+				ListenPort:      hcloud.Ptr(83),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
 				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 					Certificates: []*hcloud.Certificate{{ID: 1}},
 				},
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8083),
+					Port:     hcloud.Ptr(8083),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8083),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
 				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
 					Certificates: []*hcloud.Certificate{{ID: 1}},
 				},
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8083),
+					Port:     hcloud.Ptr(8083),
 				},
 			},
 		},
 		{
 			name:        "add health check with default protocol",
-			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
+			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcProtocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				annotation.LBSvcHealthCheckPort: 8084,
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(83),
-				DestinationPort: hcloud.Int(8083),
+				ListenPort:      hcloud.Ptr(83),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8084),
+					Port:     hcloud.Ptr(8084),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8083),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8084),
+					Port:     hcloud.Ptr(8084),
 				},
 			},
 		},
 		{
 			name:        "add TCP health check",
-			servicePort: v1.ServicePort{Port: 83, NodePort: 8083},
+			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHealthCheckProtocol: string(hcloud.LoadBalancerServiceProtocolTCP),
 				annotation.LBSvcHealthCheckPort:     8084,
@@ -237,32 +238,32 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHealthCheckRetries:  5,
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(83),
-				DestinationPort: hcloud.Int(8083),
+				ListenPort:      hcloud.Ptr(83),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8084),
-					Interval: hcloud.Duration(time.Hour),
-					Timeout:  hcloud.Duration(30 * time.Second),
-					Retries:  hcloud.Int(5),
+					Port:     hcloud.Ptr(8084),
+					Interval: hcloud.Ptr(time.Hour),
+					Timeout:  hcloud.Ptr(30 * time.Second),
+					Retries:  hcloud.Ptr(5),
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8083),
+				DestinationPort: hcloud.Ptr(8083),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-					Port:     hcloud.Int(8084),
-					Interval: hcloud.Duration(time.Hour),
-					Timeout:  hcloud.Duration(30 * time.Second),
-					Retries:  hcloud.Int(5),
+					Port:     hcloud.Ptr(8084),
+					Interval: hcloud.Ptr(time.Hour),
+					Timeout:  hcloud.Ptr(30 * time.Second),
+					Retries:  hcloud.Ptr(5),
 				},
 			},
 		},
 		{
 			name:        "add HTTP health check",
-			servicePort: v1.ServicePort{Port: 84, NodePort: 8084},
+			servicePort: corev1.ServicePort{Port: 84, NodePort: 8084},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHealthCheckProtocol:                hcloud.LoadBalancerServiceProtocolHTTP,
 				annotation.LBSvcHealthCheckPort:                    8085,
@@ -275,36 +276,36 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHealthCheckHTTPStatusCodes:         "200,202",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(84),
-				DestinationPort: hcloud.Int(8084),
+				ListenPort:      hcloud.Ptr(84),
+				DestinationPort: hcloud.Ptr(8084),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
-					Port:     hcloud.Int(8085),
-					Interval: hcloud.Duration(time.Hour),
-					Timeout:  hcloud.Duration(30 * time.Second),
-					Retries:  hcloud.Int(5),
+					Port:     hcloud.Ptr(8085),
+					Interval: hcloud.Ptr(time.Hour),
+					Timeout:  hcloud.Ptr(30 * time.Second),
+					Retries:  hcloud.Ptr(5),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHealthCheckHTTP{
-						Domain:      hcloud.String("example.com"),
-						Path:        hcloud.String("/internal/health"),
-						TLS:         hcloud.Bool(true),
+						Domain:      hcloud.Ptr("example.com"),
+						Path:        hcloud.Ptr("/internal/health"),
+						TLS:         hcloud.Ptr(true),
 						StatusCodes: []string{"200", "202"},
 					},
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8084),
+				DestinationPort: hcloud.Ptr(8084),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
-					Port:     hcloud.Int(8085),
-					Interval: hcloud.Duration(time.Hour),
-					Timeout:  hcloud.Duration(30 * time.Second),
-					Retries:  hcloud.Int(5),
+					Port:     hcloud.Ptr(8085),
+					Interval: hcloud.Ptr(time.Hour),
+					Timeout:  hcloud.Ptr(30 * time.Second),
+					Retries:  hcloud.Ptr(5),
 					HTTP: &hcloud.LoadBalancerUpdateServiceOptsHealthCheckHTTP{
-						Domain:      hcloud.String("example.com"),
-						Path:        hcloud.String("/internal/health"),
-						TLS:         hcloud.Bool(true),
+						Domain:      hcloud.Ptr("example.com"),
+						Path:        hcloud.Ptr("/internal/health"),
+						TLS:         hcloud.Ptr(true),
 						StatusCodes: []string{"200", "202"},
 					},
 				},
@@ -312,7 +313,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		},
 		{
 			name:        "health check port defaults to node port/destination Port if not specified",
-			servicePort: v1.ServicePort{Port: 84, NodePort: 8084},
+			servicePort: corev1.ServicePort{Port: 84, NodePort: 8084},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHealthCheckProtocol:                hcloud.LoadBalancerServiceProtocolHTTP,
 				annotation.LBSvcHealthCheckInterval:                time.Hour,
@@ -324,36 +325,36 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHealthCheckHTTPStatusCodes:         "200,202",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
-				ListenPort:      hcloud.Int(84),
-				DestinationPort: hcloud.Int(8084),
+				ListenPort:      hcloud.Ptr(84),
+				DestinationPort: hcloud.Ptr(8084),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
-					Port:     hcloud.Int(8084),
-					Interval: hcloud.Duration(time.Hour),
-					Timeout:  hcloud.Duration(30 * time.Second),
-					Retries:  hcloud.Int(5),
+					Port:     hcloud.Ptr(8084),
+					Interval: hcloud.Ptr(time.Hour),
+					Timeout:  hcloud.Ptr(30 * time.Second),
+					Retries:  hcloud.Ptr(5),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHealthCheckHTTP{
-						Domain:      hcloud.String("example.com"),
-						Path:        hcloud.String("/internal/health"),
-						TLS:         hcloud.Bool(true),
+						Domain:      hcloud.Ptr("example.com"),
+						Path:        hcloud.Ptr("/internal/health"),
+						TLS:         hcloud.Ptr(true),
 						StatusCodes: []string{"200", "202"},
 					},
 				},
 			},
 			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
-				DestinationPort: hcloud.Int(8084),
+				DestinationPort: hcloud.Ptr(8084),
 				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
-					Port:     hcloud.Int(8084),
-					Interval: hcloud.Duration(time.Hour),
-					Timeout:  hcloud.Duration(30 * time.Second),
-					Retries:  hcloud.Int(5),
+					Port:     hcloud.Ptr(8084),
+					Interval: hcloud.Ptr(time.Hour),
+					Timeout:  hcloud.Ptr(30 * time.Second),
+					Retries:  hcloud.Ptr(5),
 					HTTP: &hcloud.LoadBalancerUpdateServiceOptsHealthCheckHTTP{
-						Domain:      hcloud.String("example.com"),
-						Path:        hcloud.String("/internal/health"),
-						TLS:         hcloud.Bool(true),
+						Domain:      hcloud.Ptr("example.com"),
+						Path:        hcloud.Ptr("/internal/health"),
+						TLS:         hcloud.Ptr(true),
 						StatusCodes: []string{"200", "202"},
 					},
 				},
@@ -373,7 +374,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 
 			builder := &hclbServiceOptsBuilder{
 				Port: tt.servicePort,
-				Service: &v1.Service{
+				Service: &corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						UID: types.UID(tt.serviceUID),
 					},

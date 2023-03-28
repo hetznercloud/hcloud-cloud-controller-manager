@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 // AssertServiceAnnotated asserts that svc has been annotated with all
 // annotations in expected.
-func AssertServiceAnnotated(t *testing.T, svc *v1.Service, expected map[Name]interface{}) {
+func AssertServiceAnnotated(t *testing.T, svc *corev1.Service, expected map[Name]interface{}) {
 	t.Helper()
 	for ek, ev := range expected {
 		var (

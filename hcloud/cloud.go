@@ -25,12 +25,13 @@ import (
 	"strconv"
 	"strings"
 
+	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
-	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -54,7 +55,7 @@ const (
 	providerName                             = "hcloud"
 )
 
-// providerVersion is set by the build process using -ldflags -X
+// providerVersion is set by the build process using -ldflags -X.
 var providerVersion = "unknown"
 
 type cloud struct {
@@ -65,7 +66,7 @@ type cloud struct {
 	networkID    int
 }
 
-func newCloud(config io.Reader) (cloudprovider.Interface, error) {
+func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -172,7 +173,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	}, nil
 }
 
-func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+func (c *cloud) Initialize(_ cloudprovider.ControllerClientBuilder, _ <-chan struct{}) {
 }
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
@@ -214,10 +215,6 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 
 func (c *cloud) ProviderName() string {
 	return providerName
-}
-
-func (c *cloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []string) {
-	return nil, nil
 }
 
 func (c *cloud) HasClusterID() bool {
@@ -305,7 +302,5 @@ func getEnvBool(key string) (bool, error) {
 }
 
 func init() {
-	cloudprovider.RegisterCloudProvider(providerName, func(config io.Reader) (cloudprovider.Interface, error) {
-		return newCloud(config)
-	})
+	cloudprovider.RegisterCloudProvider(providerName, newCloud)
 }

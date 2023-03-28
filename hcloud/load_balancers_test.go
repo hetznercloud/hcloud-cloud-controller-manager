@@ -5,11 +5,12 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
 )
 
 func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
@@ -182,8 +183,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				setupSuccessMocks(tt, "pub-net-only-no-ipv6")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
-				expected := &v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
 					},
 				}
@@ -213,8 +214,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				setupSuccessMocks(tt, "pub-net-only")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
-				expected := &v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
 						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 					},
@@ -255,8 +256,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				setupSuccessMocks(tt, "with-priv-net")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
-				expected := &v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
 						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 						{IP: tt.LB.PrivateNet[0].IP.String()},
@@ -299,8 +300,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
-				expected := &v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
 						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 					},
@@ -342,8 +343,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
-				expected := &v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PublicNet.IPv4.IP.String()},
 						{IP: tt.LB.PublicNet.IPv6.IP.String()},
 					},
@@ -397,8 +398,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					Return(false, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
-				expected := &v1.LoadBalancerStatus{
-					Ingress: []v1.LoadBalancerIngress{
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PrivateNet[0].IP.String()},
 					},
 				}

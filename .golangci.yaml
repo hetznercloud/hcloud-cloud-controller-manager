@@ -2,8 +2,23 @@
 linters-settings:
   errcheck:
     exclude: ./.errcheck_excludes.txt
-  gocyclo:
-    min-complexity: 15
+  exhaustive:
+    default-signifies-exhaustive: true
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/hetznercloud)
+
+  importas:
+    no-unaliased: true
+    alias:
+      # Kubernetes
+      - pkg: k8s.io/api/core/v1
+        alias: corev1
+      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+        alias: metav1
+
   misspell:
     locale: "US"
 
@@ -11,37 +26,36 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - errcheck
+    - errname
+    - exhaustive
+    - exportloopref
+    - gci
     - gocritic
-    - gocyclo
+    - godot
     - goimports
-    - golint
+    - gomodguard
     - gosec
     - gosimple
     - govet
+    - importas
     - ineffassign
     - misspell
     - prealloc
-    - rowserrcheck
-    - scopelint
+    - revive
     - staticcheck
-    - structcheck
     - typecheck
     - unparam
     - unused
-    - varcheck
     - whitespace
 
 issues:
-  include:
-    - EXC0002 # disable excluding of issues about comments from golint
-
   exclude-rules:
-    - path: _test\.go
+    - path: (_test\.go|testing\.go|testsupport|e2etests)
       linters:
         - gosec
-    - linters:
-        - gosec
-      text: "G204:"
+        - errcheck
+    - path: internal/mocks
+      linters:
+        - unparam

@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
+	cloudprovider "k8s.io/cloud-provider"
+
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
-	cloudprovider "k8s.io/cloud-provider"
 )
 
 func TestRoutes_CreateRoute(t *testing.T) {

@@ -17,7 +17,6 @@ limitations under the License.
 package hcloud
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,38 +24,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/hcloud"
-	cloudprovider "k8s.io/cloud-provider"
 )
-
-func getServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
-	const op = "hcloud/getServerByName"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, _, err := c.Server.GetByName(ctx, name)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	if server == nil {
-		klog.Infof("%s: server with name %s not found, are the name in the Hetzner Cloud and the node name identical?", op, name)
-		return nil, cloudprovider.InstanceNotFound
-	}
-	return server, nil
-}
-
-func getServerByID(ctx context.Context, c *hcloud.Client, id int) (*hcloud.Server, error) {
-	const op = "hcloud/getServerByName"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, _, err := c.Server.GetByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	if server == nil {
-		return nil, cloudprovider.InstanceNotFound
-	}
-	return server, nil
-}
 
 func providerIDToServerID(providerID string) (int, error) {
 	const op = "hcloud/providerIDToServerID"
