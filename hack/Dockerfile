@@ -1,13 +1,12 @@
 FROM golang:1.20 as builder
 WORKDIR /hccm
-ADD ../go.mod go.sum /hccm/
+ADD go.mod go.sum /hccm/
 RUN go mod download
-ADD .. /hccm/
+ADD . /hccm/
 RUN ls -al
 # `skaffold debug` sets SKAFFOLD_GO_GCFLAGS to disable compiler optimizations
 ARG SKAFFOLD_GO_GCFLAGS
 RUN CGO_ENABLED=0 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o hcloud-cloud-controller-manager.bin github.com/hetznercloud/hcloud-cloud-controller-manager
-
 
 FROM alpine:3.17
 RUN apk add --no-cache ca-certificates bash

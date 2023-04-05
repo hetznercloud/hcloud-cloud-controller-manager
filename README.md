@@ -191,7 +191,7 @@ release.
 To run unit tests locally, execute
 
 ```sh
-go test $(go list ./... | grep -v e2etests) -v
+go test $(go list ./... | grep -v e2e) -v
 ```
 
 Check that your go version is up to date, tests might fail if it is not.
@@ -232,7 +232,7 @@ export KEEP_SERVER_ON_FAILURE=yes # Keep the test server after a test failure.
 2. Run the tests
 
 ```bash
-go test $(go list ./... | grep e2etests) -v -timeout 60m
+go test $(go list ./... | grep e2e) -v -timeout 60m
 ```
 
 The tests will now run and cleanup themselves afterwards. Sometimes it might happen that you need to clean up the

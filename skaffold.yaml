@@ -1,4 +1,4 @@
-apiVersion: skaffold/v2beta19
+apiVersion: skaffold/v4beta3
 kind: Config
 metadata:
   name: cloud-controller-manager
@@ -11,6 +11,12 @@ build:
           - hetznercloud/hcloud-cloud-controller-manager:buildcache
   local:
     useBuildkit: true
-deploy:
-  kustomize:
-    paths: [hack/]
+  insecureRegistries:
+    - localhost:30666
+manifests:
+  helm:
+    releases:
+      - name: hccm
+        chartPath: chart
+        setValues:
+          networking.enabled: true

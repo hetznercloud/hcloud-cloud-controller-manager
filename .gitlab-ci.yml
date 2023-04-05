@@ -35,7 +35,7 @@ test:unit:
   variables:
     NODE_NAME: "test"
   script:
-    - go test $(go list ./... | grep -v e2etests) -v
+    - go test $(go list ./... | grep -v e2e) -v
   tags:
     - hc-bladerunner
 
@@ -92,7 +92,7 @@ e2e:
     - docker login $CI_REGISTRY --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD
     - docker pull $CCM_IMAGE_NAME
   script:
-    - go test $(go list ./... | grep e2etests) -v -timeout 60m
+    - go test $(go list ./... | grep e2e) -v -timeout 60m
   tags:
     - hc-bladerunner-build
 

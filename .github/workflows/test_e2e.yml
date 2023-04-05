@@ -1,46 +1,11 @@
 name: Run e2e tests
 on: [ pull_request ]
 jobs:
-  k8s:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        k8s: [ 1.24.10, 1.25.6, 1.26.1 ]
-      fail-fast: false
-    name: k8s ${{ matrix.k8s }}
-    steps:
-      - uses: actions/setup-go@v4
-        with:
-          go-version: '1.19'
-      - uses: actions/checkout@master
-      - name: HCLOUD_TOKEN
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-        run: |
-          set -ueo pipefail
-          if [[ "${HCLOUD_TOKEN:-}" != "" ]]; then
-            echo "HCLOUD_TOKEN=$HCLOUD_TOKEN" >> "$GITHUB_ENV"
-          elif [[ "${TTS_TOKEN:-}" != "" ]]; then
-                    token="$(./scripts/get-token.sh)"
-                    echo "::add-mask::$token"
-                    echo "HCLOUD_TOKEN=$token" >> "$GITHUB_ENV"
-          else
-            echo "::error ::Couldn't determine HCLOUD_TOKEN. Check that repository secrets are setup correctly."
-            exit 1
-          fi
-      - name: Run tests
-        env:
-          K8S_VERSION: k8s-${{ matrix.k8s }}
-          USE_NETWORKS: yes
-        run: |
-          go test $(go list ./... | grep e2etests) -v -timeout 60m
-          ./scripts/delete-token.sh $HCLOUD_TOKEN
   k3s:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k3s: [ v1.24.10+k3s1, v1.25.6+k3s1, v1.26.1+k3s1 ]
+        k3s: [ v1.24, v1.25, v1.26 ]
       fail-fast: false
     name: k3s ${{ matrix.k3s }}
     steps:
@@ -64,10 +29,31 @@ jobs:
             echo "::error ::Couldn't determine HCLOUD_TOKEN. Check that repository secrets are setup correctly."
             exit 1
           fi
+
+      - uses: 3bit/setup-hcloud@v2
+      - uses: yokawasa/action-setup-kube-tools@v0.9.2
+        with:
+          setup-tools: |
+            helm
+            kubectl
+            skaffold
+          helm: v3.11.2
+          kubectl: v1.26.3
+          skaffold: v2.3.0
+
       - name: Run tests
         env:
-          K8S_VERSION: k3s-${{ matrix.k3s }}
+          K3S_CHANNEL: ${{ matrix.k3s }}
+          SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
+          SSH_KEYS: sam.day,julian.toelle
           USE_NETWORKS: yes
         run: |
-          go test $(go list ./... | grep e2etests) -v -timeout 60m
-          ./scripts/delete-token.sh $HCLOUD_TOKEN
+          curl -sLS https://get.k3sup.dev | sh
+
+          trap "cat hack/.reg*; hack/dev-down.sh; ./scripts/delete-token.sh $HCLOUD_TOKEN" EXIT
+          source <(hack/dev-up.sh)
+
+          skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
+          tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
+          skaffold deploy --images=hetznercloud/hcloud-cloud-controller-manager=$tag
+          go test ./tests/e2e -v -timeout 60m
