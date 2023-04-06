@@ -94,9 +94,12 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
 
       $ssh_command root@$ip 'mkdir -p /etc/rancher/k3s && cat > /etc/rancher/k3s/registries.yaml' < $SCRIPT_DIR/k3s-registries.yaml
 
+      private_ip=$(hcloud server describe $server_name -o format="{{ (index .PrivateNet 0).IP }}")
+      k3s_node_ip_opts="--node-external-ip ${ip} --node-ip ${private_ip}"
+
       if [[ "$num" == "1" ]]; then
         # First node is control plane.
-        k3sup install --print-config=false --ip $ip --k3s-channel $channel --k3s-extra-args "${k3s_server_opts} ${k3s_opts}" --local-path $KUBECONFIG --ssh-key $ssh_private_key
+        k3sup install --print-config=false --ip $ip --k3s-channel $channel --k3s-extra-args "${k3s_server_opts} ${k3s_opts} ${k3s_node_ip_opts}" --local-path $KUBECONFIG --ssh-key $ssh_private_key
       else
         # All subsequent nodes are initialized as workers.
 
@@ -105,7 +108,7 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
           sleep 1
         done
 
-        k3sup join --server-ip $(hcloud server ip $scope_name-1) --ip $ip --k3s-channel $channel --k3s-extra-args "${k3s_opts}" --ssh-key $ssh_private_key
+        k3sup join --server-ip $(hcloud server ip $scope_name-1) --ip $ip --k3s-channel $channel --k3s-extra-args "${k3s_opts} ${k3s_node_ip_opts}" --ssh-key $ssh_private_key
       fi
     ) &
 
