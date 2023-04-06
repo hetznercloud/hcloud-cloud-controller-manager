@@ -3,12 +3,13 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"math/rand"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
