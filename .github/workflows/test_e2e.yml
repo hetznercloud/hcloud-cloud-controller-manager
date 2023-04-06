@@ -45,12 +45,11 @@ jobs:
         env:
           K3S_CHANNEL: ${{ matrix.k3s }}
           SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
-          SSH_KEYS: sam.day,julian.toelle
           USE_NETWORKS: yes
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-          trap "cat hack/.reg*; hack/dev-down.sh; ./scripts/delete-token.sh $HCLOUD_TOKEN" EXIT
+          trap "hack/dev-down.sh; ./scripts/delete-token.sh $HCLOUD_TOKEN" EXIT
           source <(hack/dev-up.sh)
 
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
