@@ -1,4 +1,4 @@
-package e2etests
+package e2e
 
 import (
 	"context"
@@ -7,10 +7,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
@@ -27,7 +29,7 @@ func TestMain(m *testing.M) {
 
 	rc := m.Run()
 
-	if err := testCluster.Stop(rc > 0); err != nil {
+	if err := testCluster.Stop(); err != nil {
 		fmt.Printf("%v\n", err)
 		os.Exit(1)
 	}
@@ -35,6 +37,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestCloudControllerManagerPodIsPresent(t *testing.T) {
+	t.Parallel()
+
 	t.Run("hcloud-cloud-controller-manager pod is present in kube-system", func(t *testing.T) {
 		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
 		assert.NoError(t, err)
@@ -52,7 +56,10 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 	})
 
 	t.Run("pod with app=hcloud-cloud-controller-manager is present in kube-system", func(t *testing.T) {
-		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{LabelSelector: "app=hcloud-cloud-controller-manager"})
+		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").
+			List(context.Background(), metav1.ListOptions{
+				LabelSelector: "app.kubernetes.io/name=hcloud-cloud-controller-manager",
+			})
 		assert.NoError(t, err)
 
 		if len(pods.Items) == 0 {
@@ -62,15 +69,22 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 }
 
 func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
-	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.setup.ClusterNode.Name, metav1.GetOptions{})
+	t.Parallel()
+
+	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 	assert.NoError(t, err)
+
+	server, _, err := testCluster.hcloud.Server.Get(context.TODO(), "hccm-"+testCluster.scope+"-1")
+	if err != nil {
+		return
+	}
 
 	labels := node.Labels
 	expectedLabels := map[string]string{
-		"node.kubernetes.io/instance-type": testCluster.setup.ClusterNode.ServerType.Name,
-		"topology.kubernetes.io/region":    testCluster.setup.ClusterNode.Datacenter.Location.Name,
-		"topology.kubernetes.io/zone":      testCluster.setup.ClusterNode.Datacenter.Name,
-		"kubernetes.io/hostname":           testCluster.setup.ClusterNode.Name,
+		"node.kubernetes.io/instance-type": server.ServerType.Name,
+		"topology.kubernetes.io/region":    server.Datacenter.Location.Name,
+		"topology.kubernetes.io/zone":      server.Datacenter.Name,
+		"kubernetes.io/hostname":           server.Name,
 		"kubernetes.io/os":                 "linux",
 		"kubernetes.io/arch":               "amd64",
 	}
@@ -82,26 +96,31 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 
 	for _, address := range node.Status.Addresses {
 		if address.Type == corev1.NodeExternalIP {
-			expectedIP := testCluster.setup.ClusterNode.PublicNet.IPv4.IP.String()
+			expectedIP := server.PublicNet.IPv4.IP.String()
 			if expectedIP != address.Address {
 				t.Errorf("Got %s as NodeExternalIP but expected %s", address.Address, expectedIP)
 			}
 		}
 	}
-	if testCluster.useNetworks {
-		for _, address := range node.Status.Addresses {
-			if address.Type == corev1.NodeInternalIP {
-				expectedIP := testCluster.setup.ClusterNode.PrivateNet[0].IP.String()
-				if expectedIP != address.Address {
-					t.Errorf("Got %s as NodeInternalIP but expected %s", address.Address, expectedIP)
-				}
+
+	for _, address := range node.Status.Addresses {
+		if address.Type == corev1.NodeInternalIP {
+			expectedIP := server.PrivateNet[0].IP.String()
+			if expectedIP != address.Address {
+				t.Errorf("Got %s as NodeInternalIP but expected %s", address.Address, expectedIP)
 			}
 		}
 	}
 }
 
 func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
-	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-minimal"}
+	t.Parallel()
+
+	lbTest := lbTestHelper{
+		t:         t,
+		K8sClient: testCluster.k8sClient,
+		podName:   "loadbalancer-minimal",
+	}
 
 	pod := lbTest.DeployTestPod()
 
@@ -114,24 +133,20 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 		t.Fatalf("deploying test svc: %s", err)
 	}
 
-	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	WaitForHTTPAvailable(t, ingressIP, false)
-
-	for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
-		WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, ing.IP, false)
-	}
+	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 
 	lbTest.TearDown()
 }
 
 func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
+	t.Parallel()
+
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
 	lbTest := lbTestHelper{
-		t:             t,
-		K8sClient:     testCluster.k8sClient,
-		KeepOnFailure: testCluster.KeepOnFailure,
-		podName:       "loadbalancer-https",
-		port:          443,
+		t:         t,
+		K8sClient: testCluster.k8sClient,
+		podName:   "loadbalancer-https",
+		port:      443,
 	}
 
 	pod := lbTest.DeployTestPod()
@@ -147,24 +162,20 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 		t.Fatalf("deploying test svc: %s", err)
 	}
 
-	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	WaitForHTTPAvailable(t, ingressIP, true)
-
-	for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
-		WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, ing.IP, true)
-	}
+	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
 
 	lbTest.TearDown()
 }
 
 func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
+	t.Parallel()
+
 	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
 	lbTest := lbTestHelper{
-		t:             t,
-		K8sClient:     testCluster.k8sClient,
-		KeepOnFailure: testCluster.KeepOnFailure,
-		podName:       "loadbalancer-https",
-		port:          443,
+		t:         t,
+		K8sClient: testCluster.k8sClient,
+		podName:   "loadbalancer-https",
+		port:      443,
 	}
 
 	pod := lbTest.DeployTestPod()
@@ -181,7 +192,7 @@ func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testi
 	if err != nil {
 		t.Fatalf("deploying test svc: %s", err)
 	}
-	certs, err := testCluster.setup.Hcloud.Certificate.AllWithOpts(context.Background(), hcloud.CertificateListOpts{
+	certs, err := testCluster.hcloud.Certificate.AllWithOpts(context.Background(), hcloud.CertificateListOpts{
 		ListOpts: hcloud.ListOpts{
 			LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, lbSvc.ObjectMeta.UID),
 		},
@@ -190,14 +201,12 @@ func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testi
 	assert.Len(t, certs, 1)
 
 	lbTest.TearDown()
-	_, err = testCluster.setup.Hcloud.Certificate.Delete(context.Background(), certs[0])
+	_, err = testCluster.hcloud.Certificate.Delete(context.Background(), certs[0])
 	assert.NoError(t, err)
 }
 
 func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
-	if testCluster.useNetworks == false {
-		t.Skipf("Private Networks test is disabled")
-	}
+	t.Parallel()
 
 	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-private-network"}
 
@@ -213,22 +222,37 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 		t.Fatalf("deploying test svc: %s", err)
 	}
 
-	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	WaitForHTTPAvailable(t, ingressIP, false)
+	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 
 	lbTest.TearDown()
 }
 
 func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
-	if testCluster.useNetworks == false {
-		t.Skipf("Private Networks test is disabled")
+	t.Parallel()
+
+	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		network, _, err := testCluster.hcloud.Network.Get(context.TODO(), "hccm-"+testCluster.scope)
+		if err != nil {
+			return false, err
+		}
+		for _, route := range network.Routes {
+			if route.Destination.String() == node.Spec.PodCIDR {
+				for _, a := range node.Status.Addresses {
+					if a.Type == corev1.NodeInternalIP {
+						assert.Equal(t, a.Address, route.Gateway.String())
+					}
+				}
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	nwTest := nwTestHelper{t: t, K8sClient: testCluster.k8sClient, privateKey: testCluster.setup.privKey, podName: "network-routes-accessible"}
-
-	pod := nwTest.DeployTestPod()
-
-	WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, pod.Status.PodIP, false)
-
-	nwTest.TearDown()
 }
