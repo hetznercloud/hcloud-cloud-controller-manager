@@ -1,5 +1,8 @@
 name: Run e2e tests
-on: [ pull_request ]
+on:
+  pull_request: {}
+  push:
+    branches: [main]
 jobs:
   k3s:
     runs-on: ubuntu-latest
