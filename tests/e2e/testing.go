@@ -263,7 +263,7 @@ func (l *lbTestHelper) TearDown() {
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
-		return true, nil
+		return k8serrors.IsNotFound(err), nil
 	})
 	if err != nil {
 		panic(err)
@@ -305,6 +305,6 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 		}
 	})
 	if err != nil {
-		t.Errorf("not available via client.Get: %s", err)
+		t.Errorf("%s not available: %s", ingressIP, err)
 	}
 }

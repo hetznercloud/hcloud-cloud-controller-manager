@@ -142,7 +142,10 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
     # Install Cilium.
     ( trap error ERR
       if ! helm status -n kube-system cilium >/dev/null 2>&1; then
-        helm install cilium cilium --repo https://helm.cilium.io/ -n kube-system --version 1.13.1 --set tunnel=disabled --set ipv4NativeRoutingCIDR=$cluster_cidr
+        helm install cilium cilium --repo https://helm.cilium.io/ -n kube-system --version 1.13.1 \
+          --set tunnel=disabled \
+          --set ipv4NativeRoutingCIDR=$cluster_cidr \
+          --set ipam.mode=kubernetes
       fi) &
 
     # Create HCLOUD_TOKEN Secret for hcloud-cloud-controller-manager.

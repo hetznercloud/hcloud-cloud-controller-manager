@@ -3,10 +3,12 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"math/rand"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -228,19 +230,29 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 	t.Parallel()
 
-	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
-	if err != nil {
-		t.Error(err)
-	}
+	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
 
-	network, _, err := testCluster.hcloud.Network.Get(context.TODO(), "hccm-"+testCluster.scope)
+		network, _, err := testCluster.hcloud.Network.Get(context.TODO(), "hccm-"+testCluster.scope)
+		if err != nil {
+			return false, err
+		}
+		for _, route := range network.Routes {
+			if route.Destination.String() == node.Spec.PodCIDR {
+				for _, a := range node.Status.Addresses {
+					if a.Type == corev1.NodeInternalIP {
+						assert.Equal(t, a.Address, route.Gateway.String())
+					}
+				}
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, subnet := range network.Subnets {
-		if subnet.IPRange.String() == node.Spec.PodCIDR {
-			return
-		}
-	}
-	t.Fatal("did not find expected route table entry")
 }
