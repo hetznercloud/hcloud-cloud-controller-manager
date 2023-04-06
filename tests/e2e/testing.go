@@ -102,7 +102,6 @@ func (tc *TestCluster) Stop() error {
 // The baseName of the certificate gets a random number suffix attached.
 // baseName and suffix are separated by a single "-" character.
 func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hcloud.Certificate {
-
 	rndInt := rng.Int()
 	name := fmt.Sprintf("%s-%d", baseName, rndInt)
 
@@ -195,7 +194,7 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	return pod
 }
 
-// ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service)
+// ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service).
 func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string]string) *corev1.Service {
 	port := l.port
 	if port == 0 {
@@ -227,7 +226,6 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 // CreateService creates a k8s service based on the given service definition
 // and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
-
 	// Default is 15s interval, 10s timeout, 3 retries => 45 seconds until up
 	// With these changes it should be 1 seconds until up
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckInterval)] = "1s"
@@ -274,9 +272,8 @@ func (l *lbTestHelper) TearDown() {
 
 // WaitForHTTPAvailable tries to connect to the given IP via http
 // It tries it for 2 minutes, if after two minutes the connection
-// wasn't successful and it wasn't a HTTP 200 response it will fail
+// wasn't successful and it wasn't a HTTP 200 response it will fail.
 func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
-
 	client := &http.Client{
 		Timeout: 1 * time.Second,
 		Transport: &http.Transport{
