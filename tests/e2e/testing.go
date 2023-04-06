@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
+	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 var rng *rand.Rand
