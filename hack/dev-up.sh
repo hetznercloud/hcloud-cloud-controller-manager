@@ -8,6 +8,7 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
 {
   if ! hcloud version >/dev/null; then echo "ERROR: 'hcloud' CLI not found, please install it and make it available on your \$PATH"; exit 1; fi
   if ! k3sup version >/dev/null; then echo "ERROR: 'k3sup' not found, please install it and make it available on your \$PATH"; exit 1; fi
+  if ! helm version >/dev/null; then echo "ERROR: 'helm' not found, please install it and make it available on your \$PATH"; exit 1; fi
   if [[ "${HCLOUD_TOKEN:-}" == "" ]]; then echo "ERROR: please set \$HCLOUD_TOKEN"; exit 1; fi
 
   # We run a lot of subshells below for speed. If any encounter an error, we shut down the whole process group, pronto.
