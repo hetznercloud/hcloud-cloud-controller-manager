@@ -139,7 +139,6 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	t.Parallel()
 
-
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
 	lbTest := lbTestHelper{
 		t:         t,
@@ -161,20 +160,13 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 		t.Fatalf("deploying test svc: %s", err)
 	}
 
-	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	WaitForHTTPAvailable(t, ingressIP, true)
-
-	// TODO:
-	//for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
-	//	WaitForHTTPOnServer(t, testCluster.setup.ExtServer, testCluster.setup.privKey, ing.IP, true)
-	//}
+	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
 
 	lbTest.TearDown()
 }
 
 func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 	t.Parallel()
-
 
 	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
 	lbTest := lbTestHelper{
@@ -228,8 +220,7 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 		t.Fatalf("deploying test svc: %s", err)
 	}
 
-	ingressIP := lbSvc.Status.LoadBalancer.Ingress[0].IP // Index 0 is always the public IP of the LB
-	WaitForHTTPAvailable(t, ingressIP, false)
+	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 
 	lbTest.TearDown()
 }

@@ -260,14 +260,8 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 // TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
-	svcName := fmt.Sprintf("svc-%s", l.podName)
-	err := l.K8sClient.CoreV1().Services(l.namespace).Delete(context.Background(), svcName, metav1.DeleteOptions{})
-	if err != nil && !k8serrors.IsNotFound(err) {
-		l.t.Errorf("deleting test svc failed: %s", err)
-	}
-
-	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
-		err = l.K8sClient.CoreV1().Namespaces().Delete(context.Background(), l.namespace, metav1.DeleteOptions{})
+	err := wait.Poll(1*time.Second, 3*time.Minute, func() (bool, error) {
+		err := l.K8sClient.CoreV1().Namespaces().Delete(context.Background(), l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
