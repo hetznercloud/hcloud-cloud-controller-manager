@@ -37,7 +37,7 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
   k3s_opts=${K3S_OPTS:-"--kubelet-arg cloud-provider=external --disable=traefik --disable=servicelb --flannel-backend=none --disable=local-storage"}
   k3s_server_opts=${K3S_SERVER_OPTS:-"--disable-cloud-controller --cluster-cidr ${cluster_cidr}"}
 
-  echo "$HCLOUD_TOKEN" > "$SCRIPT_DIR/.token-$scope"
+  echo -n "$HCLOUD_TOKEN" > "$SCRIPT_DIR/.token-$scope"
 
   export KUBECONFIG="$SCRIPT_DIR/.kubeconfig-$scope"
 

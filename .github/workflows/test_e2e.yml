@@ -45,7 +45,6 @@ jobs:
         env:
           K3S_CHANNEL: ${{ matrix.k3s }}
           SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
-          USE_NETWORKS: yes
         run: |
           curl -sLS https://get.k3sup.dev | sh
 

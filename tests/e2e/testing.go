@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -63,7 +64,7 @@ func (tc *TestCluster) Start() error {
 	hcloudClient := hcloud.NewClient(opts...)
 	tc.hcloud = hcloudClient
 
-	err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-" + tc.scope)
+	err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-"+tc.scope)
 	if err != nil {
 		return err
 	}
@@ -101,7 +102,6 @@ func (tc *TestCluster) Stop() error {
 // The baseName of the certificate gets a random number suffix attached.
 // baseName and suffix are separated by a single "-" character.
 func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hcloud.Certificate {
-	const op = "e2e/TestCluster.CreateTLSCertificate"
 
 	rndInt := rng.Int()
 	name := fmt.Sprintf("%s-%d", baseName, rndInt)
@@ -114,10 +114,10 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 	}
 	cert, _, err := tc.hcloud.Certificate.Create(context.Background(), opts)
 	if err != nil {
-		t.Fatalf("%s: %s: %v", op, name, err)
+		t.Fatalf("%s: %v", name, err)
 	}
 	if cert == nil {
-		t.Fatalf("%s: no certificate created", op)
+		t.Fatalf("no certificate created")
 	}
 
 	tc.certificates = append(tc.certificates, cert)
@@ -136,8 +136,9 @@ type lbTestHelper struct {
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
 // and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
-	const op = "lbTestHelper/DeployTestPod"
-
+	if l.namespace == "" {
+		l.namespace = "hccm-test-" + strconv.Itoa(rand.Int())
+	}
 	_, err := l.K8sClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: l.namespace,
@@ -173,7 +174,7 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 
 	pod, err := l.K8sClient.CoreV1().Pods(l.namespace).Create(context.Background(), &testPod, metav1.CreateOptions{})
 	if err != nil {
-		l.t.Fatalf("%s: could not create test pod: %s", op, err)
+		l.t.Fatalf("could not create test pod: %s", err)
 	}
 	err = wait.Poll(1*time.Second, 1*time.Minute, func() (done bool, err error) {
 		p, err := l.K8sClient.CoreV1().Pods(l.namespace).Get(context.Background(), podName, metav1.GetOptions{})
@@ -189,7 +190,7 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 		return false, nil
 	})
 	if err != nil {
-		l.t.Fatalf("%s: pod %s did not come up after 1 minute: %s", op, podName, err)
+		l.t.Fatalf("pod %s did not come up after 1 minute: %s", podName, err)
 	}
 	return pod
 }
@@ -226,7 +227,6 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 // CreateService creates a k8s service based on the given service definition
 // and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
-	const op = "lbTestHelper/CreateService"
 
 	// Default is 15s interval, 10s timeout, 3 retries => 45 seconds until up
 	// With these changes it should be 1 seconds until up
@@ -237,7 +237,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 	_, err := l.K8sClient.CoreV1().Services(l.namespace).Create(context.Background(), lbSvc, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("%s: could not create service: %s", op, err)
+		return nil, fmt.Errorf("could not create service: %s", err)
 	}
 
 	err = wait.Poll(1*time.Second, 5*time.Minute, func() (done bool, err error) {
@@ -253,52 +253,28 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 		return false, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: test service (load balancer) did not come up after 5 minute: %s", op, err)
+		return nil, fmt.Errorf("test service (load balancer) did not come up after 5 minute: %s", err)
 	}
 	return lbSvc, nil
 }
 
 // TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
-	const op = "lbTestHelper/TearDown"
-
 	svcName := fmt.Sprintf("svc-%s", l.podName)
 	err := l.K8sClient.CoreV1().Services(l.namespace).Delete(context.Background(), svcName, metav1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
-		l.t.Errorf("%s: deleting test svc failed: %s", op, err)
+		l.t.Errorf("deleting test svc failed: %s", err)
 	}
 
 	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
-		_, err = l.K8sClient.CoreV1().Services(l.namespace).Get(context.Background(), svcName, metav1.GetOptions{})
-		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				return true, nil
-			}
+		err = l.K8sClient.CoreV1().Namespaces().Delete(context.Background(), l.namespace, metav1.DeleteOptions{})
+		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
-		return false, nil
+		return true, nil
 	})
 	if err != nil {
-		l.t.Errorf("%s: test service was not removed after 3 minutes: %s", op, err)
-	}
-
-	podName := fmt.Sprintf("pod-%s", l.podName)
-	err = l.K8sClient.CoreV1().Pods(l.namespace).Delete(context.Background(), podName, metav1.DeleteOptions{})
-	if err != nil && !k8serrors.IsNotFound(err) {
-		l.t.Errorf("%s: deleting test pod failed: %s", op, err)
-	}
-	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
-		_, err = l.K8sClient.CoreV1().Pods(l.namespace).Get(context.Background(), podName, metav1.GetOptions{})
-		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		return false, nil
-	})
-	if err != nil {
-		l.t.Errorf("%s: test pod not removed after 3 minutes: %s", op, err)
+		panic(err)
 	}
 }
 
@@ -306,7 +282,6 @@ func (l *lbTestHelper) TearDown() {
 // It tries it for 2 minutes, if after two minutes the connection
 // wasn't successful and it wasn't a HTTP 200 response it will fail
 func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
-	const op = "e2e/WaitForHTTPAvailable"
 
 	client := &http.Client{
 		Timeout: 1 * time.Second,
@@ -335,10 +310,10 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 			// Health checks are still evaluating
 			return false, nil
 		default:
-			return false, fmt.Errorf("%s: got HTTP Code %d instead of 200", op, resp.StatusCode)
+			return false, fmt.Errorf("got HTTP Code %d instead of 200", resp.StatusCode)
 		}
 	})
 	if err != nil {
-		t.Errorf("%s: not available via client.Get: %s", op, err)
+		t.Errorf("not available via client.Get: %s", err)
 	}
 }

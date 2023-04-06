@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -36,6 +35,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestCloudControllerManagerPodIsPresent(t *testing.T) {
+	t.Parallel()
+
 	t.Run("hcloud-cloud-controller-manager pod is present in kube-system", func(t *testing.T) {
 		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
 		assert.NoError(t, err)
@@ -66,6 +67,8 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 }
 
 func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
+	t.Parallel()
+
 	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 	assert.NoError(t, err)
 
@@ -109,11 +112,12 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 }
 
 func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
+	t.Parallel()
+
 	lbTest := lbTestHelper{
 		t:         t,
 		K8sClient: testCluster.k8sClient,
 		podName:   "loadbalancer-minimal",
-		namespace: "hccm-test-" + strconv.Itoa(rand.Int()),
 	}
 
 	pod := lbTest.DeployTestPod()
@@ -133,6 +137,9 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 }
 
 func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
+	t.Parallel()
+
+
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
 	lbTest := lbTestHelper{
 		t:         t,
@@ -166,6 +173,9 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 }
 
 func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
+	t.Parallel()
+
+
 	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
 	lbTest := lbTestHelper{
 		t:         t,
@@ -202,6 +212,8 @@ func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testi
 }
 
 func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
+	t.Parallel()
+
 	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-private-network"}
 
 	pod := lbTest.DeployTestPod()
@@ -223,6 +235,8 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 }
 
 func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
+	t.Parallel()
+
 	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 	if err != nil {
 		t.Error(err)
@@ -230,7 +244,7 @@ func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 
 	network, _, err := testCluster.hcloud.Network.Get(context.TODO(), "hccm-"+testCluster.scope)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	for _, subnet := range network.Subnets {
 		if subnet.IPRange.String() == node.Spec.PodCIDR {
