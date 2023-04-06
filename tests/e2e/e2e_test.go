@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 
 	rc := m.Run()
 
-	if err := testCluster.Stop(rc > 0); err != nil {
+	if err := testCluster.Stop(); err != nil {
 		fmt.Printf("%v\n", err)
 		os.Exit(1)
 	}
@@ -134,7 +134,6 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	lbTest := lbTestHelper{
 		t:             t,
 		K8sClient:     testCluster.k8sClient,
-		KeepOnFailure: testCluster.KeepOnFailure,
 		podName:       "loadbalancer-https",
 		port:          443,
 	}
@@ -168,7 +167,6 @@ func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testi
 	lbTest := lbTestHelper{
 		t:             t,
 		K8sClient:     testCluster.k8sClient,
-		KeepOnFailure: testCluster.KeepOnFailure,
 		podName:       "loadbalancer-https",
 		port:          443,
 	}
@@ -223,6 +221,9 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 
 func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.scope+"-1", metav1.GetOptions{})
+	if err != nil {
+		t.Error(err)
+	}
 
 	network, _, err := testCluster.hcloud.Network.Get(context.TODO(), testCluster.scope)
 	if err != nil {

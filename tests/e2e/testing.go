@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"sync"
 	"testing"
 	"time"
 
@@ -31,20 +30,13 @@ func init() {
 }
 
 type TestCluster struct {
-	KeepOnFailure bool
-	useNetworks   bool
 	hcloud        *hcloud.Client
 	k8sClient     *kubernetes.Clientset
 	certificates  []*hcloud.Certificate
 	scope         string
-	mu            sync.Mutex
 }
 
-func (tc *TestCluster) initialize() error {
-	const op = "e2tests/TestCluster.initialize"
-
-	fmt.Printf("%s: Starting CCM Testsuite\n", op)
-
+func (tc *TestCluster) Start() error {
 	tc.scope = os.Getenv("SCOPE")
 	if tc.scope == "" {
 		tc.scope = "dev"
@@ -52,16 +44,10 @@ func (tc *TestCluster) initialize() error {
 	tc.scope = scopeButcher.ReplaceAllString(tc.scope, "-")
 	tc.scope = "hccm-" + tc.scope
 
-	networksSupport := os.Getenv("USE_NETWORKS")
-	if networksSupport == "yes" {
-		tc.useNetworks = true
-	}
-
 	token := os.Getenv("HCLOUD_TOKEN")
 	if len(token) != 64 {
-		return fmt.Errorf("%s: No valid HCLOUD_TOKEN found", op)
+		return fmt.Errorf("no valid HCLOUD_TOKEN found")
 	}
-	tc.KeepOnFailure = os.Getenv("KEEP_SERVER_ON_FAILURE") == "yes"
 
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
@@ -70,46 +56,27 @@ func (tc *TestCluster) initialize() error {
 	hcloudClient := hcloud.NewClient(opts...)
 	tc.hcloud = hcloudClient
 
-	fmt.Printf("%s: Setting up test env\n", op)
-
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
 
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	clientConfig, err := kubeConfig.ClientConfig()
 	if err != nil {
-		return fmt.Errorf("%s: kubeConfig.ClientConfig: %s", op, err)
+		return fmt.Errorf("kubeConfig.ClientConfig: %s", err)
 	}
 
 	tc.k8sClient, err = kubernetes.NewForConfig(clientConfig)
 	if err != nil {
-		return fmt.Errorf("%s: kubernetes.NewForConfig: %s", op, err)
+		return fmt.Errorf("kubernetes.NewForConfig: %s", err)
 	}
 
 	return nil
 }
 
-func (tc *TestCluster) Start() error {
-	const op = "e2e/TestCluster.Start"
-
-	tc.mu.Lock()
-	defer tc.mu.Unlock()
-
-	if err := tc.initialize(); err != nil {
-		return fmt.Errorf("%s: %v", op, err)
-	}
-	return nil
-}
-
-func (tc *TestCluster) Stop(testFailed bool) error {
-	const op = "e2e/TestCluster.Stop"
-
-	tc.mu.Lock()
-	defer tc.mu.Unlock()
-
+func (tc *TestCluster) Stop() error {
 	for _, c := range tc.certificates {
 		if _, err := tc.hcloud.Certificate.Delete(context.Background(), c); err != nil {
-			fmt.Printf("%s: delete certificate %d: %v", op, c.ID, err)
+			fmt.Printf("delete certificate %d failed: %v", c.ID, err)
 		}
 	}
 
@@ -141,8 +108,6 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 		t.Fatalf("%s: no certificate created", op)
 	}
 
-	tc.mu.Lock()
-	defer tc.mu.Unlock()
 	tc.certificates = append(tc.certificates, cert)
 
 	return cert
@@ -152,12 +117,11 @@ type lbTestHelper struct {
 	podName       string
 	port          int
 	K8sClient     *kubernetes.Clientset
-	KeepOnFailure bool
 	t             *testing.T
 }
 
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
-// and waits until it is "ready"
+// and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	const op = "lbTestHelper/DeployTestPod"
 
@@ -238,7 +202,7 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 }
 
 // CreateService creates a k8s service based on the given service definition
-// and waits until it is "ready"
+// and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
 	const op = "lbTestHelper/CreateService"
 
@@ -272,13 +236,9 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	return lbSvc, nil
 }
 
-// TearDown deletes the created pod and service
+// TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
 	const op = "lbTestHelper/TearDown"
-
-	if l.KeepOnFailure && l.t.Failed() {
-		return
-	}
 
 	svcName := fmt.Sprintf("svc-%s", l.podName)
 	err := l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Delete(context.Background(), svcName, metav1.DeleteOptions{})
