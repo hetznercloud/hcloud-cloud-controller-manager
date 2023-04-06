@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -65,10 +66,10 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 }
 
 func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
-	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.scope+"-1", metav1.GetOptions{})
+	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 	assert.NoError(t, err)
 
-	server, _, err := testCluster.hcloud.Server.Get(context.TODO(), testCluster.scope+"-1")
+	server, _, err := testCluster.hcloud.Server.Get(context.TODO(), "hccm-"+testCluster.scope+"-1")
 	if err != nil {
 		return
 	}
@@ -108,7 +109,12 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 }
 
 func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
-	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-minimal"}
+	lbTest := lbTestHelper{
+		t:         t,
+		K8sClient: testCluster.k8sClient,
+		podName:   "loadbalancer-minimal",
+		namespace: "hccm-test-" + strconv.Itoa(rand.Int()),
+	}
 
 	pod := lbTest.DeployTestPod()
 
@@ -121,10 +127,7 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 		t.Fatalf("deploying test svc: %s", err)
 	}
 
-	for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
-		fmt.Println(ing.IP)
-		WaitForHTTPAvailable(t, ing.IP, false)
-	}
+	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 
 	lbTest.TearDown()
 }
@@ -132,10 +135,10 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
 	lbTest := lbTestHelper{
-		t:             t,
-		K8sClient:     testCluster.k8sClient,
-		podName:       "loadbalancer-https",
-		port:          443,
+		t:         t,
+		K8sClient: testCluster.k8sClient,
+		podName:   "loadbalancer-https",
+		port:      443,
 	}
 
 	pod := lbTest.DeployTestPod()
@@ -165,10 +168,10 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
 	lbTest := lbTestHelper{
-		t:             t,
-		K8sClient:     testCluster.k8sClient,
-		podName:       "loadbalancer-https",
-		port:          443,
+		t:         t,
+		K8sClient: testCluster.k8sClient,
+		podName:   "loadbalancer-https",
+		port:      443,
 	}
 
 	pod := lbTest.DeployTestPod()
@@ -220,12 +223,12 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 }
 
 func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
-	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), testCluster.scope+"-1", metav1.GetOptions{})
+	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 	if err != nil {
 		t.Error(err)
 	}
 
-	network, _, err := testCluster.hcloud.Network.Get(context.TODO(), testCluster.scope)
+	network, _, err := testCluster.hcloud.Network.Get(context.TODO(), "hccm-"+testCluster.scope)
 	if err != nil {
 		t.Error(err)
 	}

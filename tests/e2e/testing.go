@@ -30,10 +30,10 @@ func init() {
 }
 
 type TestCluster struct {
-	hcloud        *hcloud.Client
-	k8sClient     *kubernetes.Clientset
-	certificates  []*hcloud.Certificate
-	scope         string
+	hcloud       *hcloud.Client
+	k8sClient    *kubernetes.Clientset
+	certificates []*hcloud.Certificate
+	scope        string
 }
 
 func (tc *TestCluster) Start() error {
@@ -42,10 +42,17 @@ func (tc *TestCluster) Start() error {
 		tc.scope = "dev"
 	}
 	tc.scope = scopeButcher.ReplaceAllString(tc.scope, "-")
-	tc.scope = "hccm-" + tc.scope
 
 	token := os.Getenv("HCLOUD_TOKEN")
-	if len(token) != 64 {
+	if token == "" {
+		buf, err := os.ReadFile(fmt.Sprintf("../../hack/.token-%s", tc.scope))
+		if err != nil {
+			return err
+		}
+		token = string(buf)
+	}
+
+	if token == "" {
 		return fmt.Errorf("no valid HCLOUD_TOKEN found")
 	}
 
@@ -55,6 +62,11 @@ func (tc *TestCluster) Start() error {
 	}
 	hcloudClient := hcloud.NewClient(opts...)
 	tc.hcloud = hcloudClient
+
+	err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-" + tc.scope)
+	if err != nil {
+		return err
+	}
 
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
@@ -114,16 +126,26 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 }
 
 type lbTestHelper struct {
-	podName       string
-	port          int
-	K8sClient     *kubernetes.Clientset
-	t             *testing.T
+	podName   string
+	port      int
+	K8sClient *kubernetes.Clientset
+	t         *testing.T
+	namespace string
 }
 
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
 // and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	const op = "lbTestHelper/DeployTestPod"
+
+	_, err := l.K8sClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: l.namespace,
+		},
+	}, metav1.CreateOptions{})
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
+		panic(err)
+	}
 
 	podName := fmt.Sprintf("pod-%s", l.podName)
 	testPod := corev1.Pod{
@@ -149,12 +171,12 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 		},
 	}
 
-	pod, err := l.K8sClient.CoreV1().Pods(corev1.NamespaceDefault).Create(context.Background(), &testPod, metav1.CreateOptions{})
+	pod, err := l.K8sClient.CoreV1().Pods(l.namespace).Create(context.Background(), &testPod, metav1.CreateOptions{})
 	if err != nil {
 		l.t.Fatalf("%s: could not create test pod: %s", op, err)
 	}
 	err = wait.Poll(1*time.Second, 1*time.Minute, func() (done bool, err error) {
-		p, err := l.K8sClient.CoreV1().Pods(corev1.NamespaceDefault).Get(context.Background(), podName, metav1.GetOptions{})
+		p, err := l.K8sClient.CoreV1().Pods(l.namespace).Get(context.Background(), podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -213,13 +235,13 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckRetries)] = "1"
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckProtocol)] = "tcp"
 
-	_, err := l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Create(context.Background(), lbSvc, metav1.CreateOptions{})
+	_, err := l.K8sClient.CoreV1().Services(l.namespace).Create(context.Background(), lbSvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: could not create service: %s", op, err)
 	}
 
 	err = wait.Poll(1*time.Second, 5*time.Minute, func() (done bool, err error) {
-		svc, err := l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Get(context.Background(), lbSvc.Name, metav1.GetOptions{})
+		svc, err := l.K8sClient.CoreV1().Services(l.namespace).Get(context.Background(), lbSvc.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -241,13 +263,13 @@ func (l *lbTestHelper) TearDown() {
 	const op = "lbTestHelper/TearDown"
 
 	svcName := fmt.Sprintf("svc-%s", l.podName)
-	err := l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Delete(context.Background(), svcName, metav1.DeleteOptions{})
+	err := l.K8sClient.CoreV1().Services(l.namespace).Delete(context.Background(), svcName, metav1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		l.t.Errorf("%s: deleting test svc failed: %s", op, err)
 	}
 
 	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
-		_, err = l.K8sClient.CoreV1().Services(corev1.NamespaceDefault).Get(context.Background(), svcName, metav1.GetOptions{})
+		_, err = l.K8sClient.CoreV1().Services(l.namespace).Get(context.Background(), svcName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return true, nil
@@ -261,12 +283,12 @@ func (l *lbTestHelper) TearDown() {
 	}
 
 	podName := fmt.Sprintf("pod-%s", l.podName)
-	err = l.K8sClient.CoreV1().Pods(corev1.NamespaceDefault).Delete(context.Background(), podName, metav1.DeleteOptions{})
+	err = l.K8sClient.CoreV1().Pods(l.namespace).Delete(context.Background(), podName, metav1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		l.t.Errorf("%s: deleting test pod failed: %s", op, err)
 	}
 	err = wait.Poll(1*time.Second, 3*time.Minute, func() (done bool, err error) {
-		_, err = l.K8sClient.CoreV1().Pods(corev1.NamespaceDefault).Get(context.Background(), podName, metav1.GetOptions{})
+		_, err = l.K8sClient.CoreV1().Pods(l.namespace).Get(context.Background(), podName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return true, nil
