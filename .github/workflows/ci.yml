@@ -13,7 +13,7 @@ jobs:
       - name: Run tests
         run: |
           go vet ./...
-          go test $(go list ./... | grep -v e2etests)
+          go test $(go list ./... | grep -v e2e)
 
   lint:
     name: Lint
