@@ -25,17 +25,16 @@ archives:
     wrap_in_directory: true
 
 dockers:
-  - ids:
-      - hcloud-cloud-controller-manager
-    goos: linux
-    goarch: amd64
-    image_templates:
-      - "hetznercloud/hcloud-cloud-controller-manager:latest"
-      - "hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
+  - build_flag_templates: [--platform=linux/amd64]
     dockerfile: Dockerfile
+    goarch: amd64
+    image_templates: ["hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64"]
     use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
+
+docker_manifests:
+  - name_template: hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+    image_templates:
+      - hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64
 
 release:
   ids: [""]
