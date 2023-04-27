@@ -65,22 +65,10 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// We do not now the exact length here, as the network might have outdated routes with servers that do not exist
-	// anymore.
-	var routes []*cloudprovider.Route //nolint:prealloc
+	routes := make([]*cloudprovider.Route, 0, len(r.network.Routes))
 	for _, route := range r.network.Routes {
 		ro, err := r.hcloudRouteToRoute(route)
 		if err != nil {
-			if errors.Is(err, hcops.ErrNotFound) {
-				klog.InfoS("server for route not found, deleting route in hcloud because the route is not functional",
-					"op", op, "gateway", route.Gateway.String(), "err", fmt.Sprintf("%v", err))
-				err = r.deleteRouteFromHcloud(ctx, route.Destination, route.Gateway)
-				if err != nil {
-					klog.InfoS("deleting the route failed, continue",
-						"op", op, "gateway", route.Gateway.String(), "err", fmt.Sprintf("%v", err))
-				}
-				continue
-			}
 			return routes, fmt.Errorf("%s: %w", op, err)
 		}
 		routes = append(routes, ro)
