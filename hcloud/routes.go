@@ -158,20 +158,23 @@ func (r *routes) DeleteRoute(ctx context.Context, _ string, route *cloudprovider
 	const op = "hcloud/DeleteRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := r.serverCache.ByName(string(route.TargetNode))
-	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+	// Get target IP from current list of routes, routes can be uniquely identified by their destination cidr.
+	var ip net.IP
+	for _, cloudRoute := range r.network.Routes {
+		if cloudRoute.Destination.String() == route.DestinationCIDR {
+			ip = cloudRoute.Gateway
+			break
+		}
 	}
-	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
-	if !ok {
-		return fmt.Errorf("%s: server %v: no network with id: %d", op, route.TargetNode, r.network.ID)
+	if ip.IsUnspecified() {
+		return fmt.Errorf("%s: route %s not found in cloud network routes", op, route.Name)
 	}
-	ip := privNet.IP
 
 	_, cidr, err := net.ParseCIDR(route.DestinationCIDR)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	err = r.deleteRouteFromHcloud(ctx, cidr, ip)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -212,17 +215,24 @@ func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.R
 	const op = "hcloud/hcloudRouteToRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	nodeName := srv.Name
-
-	return &cloudprovider.Route{
+	cpRoute := &cloudprovider.Route{
 		DestinationCIDR: route.Destination.String(),
 		Name:            fmt.Sprintf("%s-%s", route.Gateway.String(), route.Destination.String()),
-		TargetNode:      types.NodeName(nodeName),
-	}, nil
+	}
+
+	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
+	if err != nil {
+		if errors.Is(err, hcops.ErrNotFound) {
+			// Route belongs to non-existing target
+			cpRoute.Blackhole = true
+			return cpRoute, nil
+		}
+
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	cpRoute.TargetNode = types.NodeName(srv.Name)
+	return cpRoute, nil
 }
 
 func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprovider.Route) (bool, error) {

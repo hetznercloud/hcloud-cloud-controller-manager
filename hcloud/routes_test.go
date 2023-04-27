@@ -140,28 +140,18 @@ func TestRoutes_ListRoutes(t *testing.T) {
 func TestRoutes_DeleteRoute(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(schema.ServerListResponse{
-			Servers: []schema.Server{
-				{
-					ID:   1,
-					Name: "node15",
-					PrivateNet: []schema.ServerPrivateNet{
-						{
-							Network: 1,
-							IP:      "10.0.0.2",
-						},
-					},
-				},
-			},
-		})
-	})
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
 			Network: schema.Network{
 				ID:      1,
 				Name:    "network-1",
 				IPRange: "10.0.0.0/8",
+				Routes: []schema.NetworkRoute{
+					{
+						Destination: "10.5.0.0/24",
+						Gateway:     "10.0.0.2",
+					},
+				},
 			},
 		})
 	})
