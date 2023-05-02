@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: goreleaser
 on:
   push:
@@ -18,19 +19,18 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.20
+          go-version: "1.20"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login to Quay.io
-        uses: docker/login-action@v2
+      - name: Login to ghcr.io for CI
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
-          registry: quay.io
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run GoReleaser for snapshot
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: goreleaser/goreleaser-action@v4
@@ -41,11 +41,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish latest snapshot image
         if: "!startsWith(github.ref, 'refs/tags/')"
-        env:
-          DOCKER_USER: ${{ secrets.DOCKER_USER }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-           docker push quay.io/syself/hetzner-cloud-controller-manager:latest
+          for image in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep hetzner-cloud-controller-manager); do
+              echo pushing "$image"
+              docker push $image
+          done
       - name: Run GoReleaser for tag
         if: "startsWith(github.ref, 'refs/tags/')"
         uses: goreleaser/goreleaser-action@v4

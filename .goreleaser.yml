@@ -4,7 +4,7 @@
 before:
   hooks:
     - go mod tidy
-    - ./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+    #- ./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }} # via charts.syself.com
 
 builds:
   - id: hetzner-cloud-controller-manager
@@ -30,26 +30,26 @@ dockers:
   - build_flag_templates: [--platform=linux/amd64]
     dockerfile: Dockerfile
     goarch: amd64
-    image_templates: ["syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64"]
+    image_templates: ["ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64"]
     use: buildx
   - build_flag_templates: [--platform=linux/arm64]
     dockerfile: Dockerfile
     goarch: arm64
-    image_templates: ["syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-arm64v8"]
+    image_templates: ["ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-arm64v8"]
     use: buildx
   - build_flag_templates: [--platform=linux/arm/v6]
     dockerfile: Dockerfile
     goarch: arm
     goarm: 6
-    image_templates: ["syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-armv6"]
+    image_templates: ["ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-armv6"]
     use: buildx
 
 docker_manifests:
-  - name_template: syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+  - name_template: ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
     image_templates:
-      - syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64
-      - syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-arm64v8
-      - syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-armv6
+      - ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64
+      - ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-arm64v8
+      - ghcr.io/syself/hetzner-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-armv6
 
 release:
   ids: [""]
@@ -57,10 +57,11 @@ release:
     - glob: "./deploy/ccm*.yaml"
     - glob: "./hetzner-cloud-controller-manager-*.tgz"
 
-publishers:
-  - name: helm-chart-repo
-    ids: # make sure that this is only executed once by filtering for *one arbitrary* artifact ID
-      - deployment-yamls
-    cmd: ./scripts/publish-helm-chart.sh hetzner-cloud-controller-manager-{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}.tgz
-    env:
-      - CHART_REPO_REMOTE={{ .Env.CHART_REPO_REMOTE }}
+# via https://github.com/syself/charts
+#publishers:
+#  - name: helm-chart-repo
+#    ids: # make sure that this is only executed once by filtering for *one arbitrary* artifact ID
+#      - deployment-yamls
+#    cmd: ./scripts/publish-helm-chart.sh hetzner-cloud-controller-manager-{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}.tgz
+#    env:
+#      - CHART_REPO_REMOTE={{ .Env.CHART_REPO_REMOTE }}
