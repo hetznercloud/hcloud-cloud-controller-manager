@@ -1,0 +1,20 @@
+on:
+  push:
+    branches:
+      - main
+name: release-please
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: go
+          package-name: hcloud-cloud-controller-manager
+
+          # These files reference the version in the OCI image tag.
+          extra-files: |
+            deploy/ccm.yaml
+            deploy/ccm-networks.yaml
+            chart/Chart.yaml
