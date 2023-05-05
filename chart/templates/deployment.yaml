@@ -66,7 +66,7 @@ spec:
             - name: HCLOUD_METRICS_ENABLED
               value: "false"
             {{- end }}
-          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }}
+          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }} # x-release-please-version
           ports:
             {{- if $.Values.monitoring.enabled }}
             - name: metrics

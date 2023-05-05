@@ -75,7 +75,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: hetznercloud/hcloud-cloud-controller-manager:v1.13.2
+          image: hetznercloud/hcloud-cloud-controller-manager:v1.15.0 # x-release-please-version
           ports:
             - name: metrics
               containerPort: 8233
