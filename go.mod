@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/hetznercloud/hcloud-go v1.42.0
-	github.com/prometheus/client_golang v1.15.0
+	github.com/prometheus/client_golang v1.15.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/crypto v0.9.0
