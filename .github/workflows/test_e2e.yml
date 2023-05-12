@@ -39,7 +39,7 @@ jobs:
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-          trap "hack/dev-down.sh; ./scripts/delete-token.sh $HCLOUD_TOKEN" EXIT
+          trap "hack/dev-down.sh" EXIT
           source <(hack/dev-up.sh)
 
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
