@@ -18,31 +18,9 @@ jobs:
         with:
           go-version: '1.20'
       - uses: actions/checkout@master
-      - name: HCLOUD_TOKEN
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-        run: |
-          set -ueo pipefail
-          if [[ "${HCLOUD_TOKEN:-}" != "" ]]; then
-            echo "HCLOUD_TOKEN=$HCLOUD_TOKEN" >> "$GITHUB_ENV"
-          elif [[ "${{vars.USE_TPS}}" != "" ]]; then
-                    ci_token=$(curl --fail --retry 2 -s \
-                        -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-                        "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=tps" \
-                        | jq -r .value)
-                    token="$(curl --fail --retry 2 -s -X POST -H "Authorization: Bearer $ci_token" https://tps.hc-integrations.de/)"
-                    echo "::add-mask::$token"
-                    echo "HCLOUD_TOKEN=$token" >> "$GITHUB_ENV"
-          elif [[ "${TTS_TOKEN:-}" != "" ]]; then
-                    token="$(./scripts/get-token.sh)"
-                    echo "::add-mask::$token"
-                    echo "HCLOUD_TOKEN=$token" >> "$GITHUB_ENV"
-          else
-            echo "::error ::Couldn't determine HCLOUD_TOKEN. Check that repository secrets are setup correctly."
-            exit 1
-          fi
-
+      - uses: hetznercloud/tps-action@main
+        with:
+          token: ${{ secrets.HCLOUD_TOKEN  }}
       - uses: 3bit/setup-hcloud@v2
       - uses: yokawasa/action-setup-kube-tools@v0.9.3
         with:
@@ -61,7 +39,7 @@ jobs:
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-          trap "hack/dev-down.sh; ./scripts/delete-token.sh $HCLOUD_TOKEN" EXIT
+          trap "hack/dev-down.sh" EXIT
           source <(hack/dev-up.sh)
 
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
