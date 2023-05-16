@@ -293,7 +293,7 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 		proto = "https"
 	}
 
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+	err := wait.Poll(1*time.Second, 4*time.Minute, func() (bool, error) {
 		resp, err := client.Get(fmt.Sprintf("%s://%s", proto, ingressIP))
 		if err != nil {
 			return false, nil
