@@ -171,7 +171,11 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 	t.Parallel()
 
-	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
+	if testCluster.certDomain == "" {
+		t.Skip("Skipping because CERT_DOMAIN is not set")
+	}
+
+	domainName := fmt.Sprintf("%d-ccm-test.%s", rand.Int(), testCluster.certDomain)
 	lbTest := lbTestHelper{
 		t:         t,
 		K8sClient: testCluster.k8sClient,

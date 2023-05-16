@@ -36,6 +36,7 @@ type TestCluster struct {
 	k8sClient    *kubernetes.Clientset
 	certificates []*hcloud.Certificate
 	scope        string
+	certDomain   string
 }
 
 func (tc *TestCluster) Start() error {
@@ -83,6 +84,10 @@ func (tc *TestCluster) Start() error {
 	if err != nil {
 		return fmt.Errorf("kubernetes.NewForConfig: %s", err)
 	}
+
+	// Tests using this value should skip if empty
+	// The domain specified here must be available in Hetzner DNS of the account running the tests.
+	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
 	return nil
 }
