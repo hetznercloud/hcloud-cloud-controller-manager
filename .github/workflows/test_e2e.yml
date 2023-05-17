@@ -36,6 +36,10 @@ jobs:
         env:
           K3S_CHANNEL: ${{ matrix.k3s }}
           SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
+
+          # Domain must be available in the account running the tests. This domain is available in the account
+          # running the public integration tests.
+          CERT_DOMAIN: hc-integrations-test.de
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
