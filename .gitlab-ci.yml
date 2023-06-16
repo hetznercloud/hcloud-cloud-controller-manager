@@ -19,7 +19,7 @@ variables:
 
 test:lint:
   stage: test
-  image: golangci/golangci-lint:v1.52.2
+  image: golangci/golangci-lint:v1.53.3
   allow_failure: true
   script:
     - golangci-lint run -v
