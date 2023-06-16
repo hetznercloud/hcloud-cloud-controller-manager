@@ -1,4 +1,4 @@
 apiVersion: v2
 name: hcloud-cloud-controller-manager
 type: application
-version: v1.15.0 # x-release-please-version
+version: v1.16.0 # x-release-please-version
