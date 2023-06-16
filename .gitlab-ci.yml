@@ -19,7 +19,7 @@ variables:
 
 test:lint:
   stage: test
-  image: golangci/golangci-lint:v1.52.2
+  image: golangci/golangci-lint:v1.53.3
   allow_failure: true
   script:
     - golangci-lint run -v
@@ -27,7 +27,7 @@ test:lint:
     - tags
     - main
   tags:
-    - hc-bladerunner
+    - cloud-integrations
 
 test:unit:
   stage: test
@@ -37,7 +37,7 @@ test:unit:
   script:
     - go test $(go list ./... | grep -v e2e) -v
   tags:
-    - hc-bladerunner
+    -  cloud-integrations
 
 .build:goreleaser: &build-goreleaser
   stage: build
@@ -53,7 +53,7 @@ test:unit:
       - hcloud-cloud-controller-manager
     expire_in: 1 day
   tags:
-    - hc-bladerunner
+    -  cloud-integrations
 
 build:goreleaser:snapshot:
   <<: *build-goreleaser
@@ -94,7 +94,7 @@ e2e:
   script:
     - go test $(go list ./... | grep e2e) -v -timeout 60m
   tags:
-    - hc-bladerunner-build
+    -  cloud-integrations
 
 release:image:
   stage: release:image
