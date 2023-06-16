@@ -57,7 +57,7 @@ spec:
             {{- end }}
             {{- if $.Values.networking.enabled }}
             - name: HCLOUD_NETWORK
-              {{- tpl (toYaml $.Values.networking.networkId) $ | nindent 14 }}
+              {{- tpl (toYaml $.Values.networking.network) $ | nindent 14 }}
             {{- end }}
             {{- if not $.Values.monitoring.enabled }}
             - name: HCLOUD_METRICS_ENABLED
