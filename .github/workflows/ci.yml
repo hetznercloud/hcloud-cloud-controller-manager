@@ -26,8 +26,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: latest
+          # Required: the version of golangci-lint is required and must be specified without patch version
+          version: v1.53.3
           # In general linting is quite fast with warm caches, but a fresh run might take some time.
           args: --timeout 5m
 
