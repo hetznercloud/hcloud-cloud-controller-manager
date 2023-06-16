@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.16.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.15.0-rc.0...v1.16.0) (2023-06-16)
+
+
+### Features
+
+* **helm:** allow to manually set network name or ID ([#458](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/458)) ([8410277](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/841027753b1ae140471a4bc862cad425daf725dc))
+
+
+### Bug Fixes
+
+* **ci:** qemu binfmt wrappers during release ([#421](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/421)) ([84a7541](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/84a754170eab6ed8f91035c84692d9cd82712254))
+* **routes:** Only delete routes in the Cluster CIDR ([#432](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/432)) ([c35d292](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/c35d292b72003bd48203a6fa0fa476113633406a))
+
+
+### Continuous Integration
+
+* setup release-please ([#437](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/437)) ([bbec89e](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/bbec89ef9e1c6bf75b06dec4abdafc14afe549c9))
+
 ## v1.15.0
 
 Affordable, sustainable & powerful! 🚀You can now get one of our Arm64 CAX servers to optimize your operations while minimizing your costs!
