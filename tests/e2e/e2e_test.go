@@ -235,8 +235,8 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 	t.Parallel()
 
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
+	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -324,7 +324,7 @@ func TestRouteDeleteCorrectRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 		network, _, err = testCluster.hcloud.Network.Get(ctx, "hccm-"+testCluster.scope)
 		if err != nil {
 			return false, err
