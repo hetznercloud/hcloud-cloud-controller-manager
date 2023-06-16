@@ -57,10 +57,7 @@ spec:
             {{- end }}
             {{- if $.Values.networking.enabled }}
             - name: HCLOUD_NETWORK
-              valueFrom:
-                secretKeyRef:
-                  name: hcloud
-                  key: network
+              {{- tpl (toYaml $.Values.networking.networkId) $ | nindent 14 }}
             {{- end }}
             {{- if not $.Values.monitoring.enabled }}
             - name: HCLOUD_METRICS_ENABLED
