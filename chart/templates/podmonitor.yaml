@@ -3,7 +3,8 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: hcloud-cloud-controller-manager
+  name: {{ include "hcloud-cloud-controller-manager.name" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   {{- tpl (toYaml $.Values.monitoring.podMonitor.spec) $ | nindent 2 }}
   selector:

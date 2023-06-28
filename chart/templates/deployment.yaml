@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hcloud-cloud-controller-manager
-  namespace: kube-system
+  name: {{ include "hcloud-cloud-controller-manager.name" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -14,7 +14,7 @@ spec:
       labels:
         {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: cloud-controller-manager
+      serviceAccountName: {{ include "hcloud-cloud-controller-manager.name" . }}
       dnsPolicy: Default
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
