@@ -8,5 +8,5 @@ roleRef:
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: cloud-controller-manager
-    namespace: kube-system
+    name: {{ include "hcloud-cloud-controller-manager.name" . }}
+    namespace: {{ .Release.Namespace }}
