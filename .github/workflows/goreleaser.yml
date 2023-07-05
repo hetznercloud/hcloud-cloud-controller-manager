@@ -31,6 +31,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Run GoReleaser for snapshot
+        # This does not actually publish anything, but makes sure that the images can be build
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: goreleaser/goreleaser-action@v4
         with:
@@ -38,13 +39,6 @@ jobs:
           args: release --snapshot --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish latest snapshot image
-        if: "!startsWith(github.ref, 'refs/tags/')"
-        env:
-          DOCKER_USER: ${{ secrets.DOCKER_USER }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-           docker push hetznercloud/hcloud-cloud-controller-manager:latest
 
       # Git is used to push helm chart to hetznercloud/helm-charts
       - name: Setup Git
