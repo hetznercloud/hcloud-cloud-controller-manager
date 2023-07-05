@@ -17,6 +17,7 @@ manifests:
   helm:
     releases:
       - name: hccm
+        namespace: kube-system
         chartPath: chart
         setValues:
           networking.enabled: true
