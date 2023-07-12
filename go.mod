@@ -3,7 +3,7 @@ module github.com/hetznercloud/hcloud-cloud-controller-manager
 go 1.20
 
 require (
-	github.com/hetznercloud/hcloud-go v1.46.1
+	github.com/hetznercloud/hcloud-go v1.48.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
@@ -82,13 +82,13 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
-	golang.org/x/crypto v0.10.0 // indirect
-	golang.org/x/net v0.11.0 // indirect
+	golang.org/x/crypto v0.11.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
-	golang.org/x/term v0.9.0 // indirect
-	golang.org/x/text v0.10.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221202195650-67e5cbc046fd // indirect
