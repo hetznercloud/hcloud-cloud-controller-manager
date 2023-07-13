@@ -36,6 +36,8 @@ func (s Name) AnnotateService(svc *corev1.Service, v interface{}) error {
 		svc.ObjectMeta.Annotations[k] = strconv.FormatBool(vt)
 	case int:
 		svc.ObjectMeta.Annotations[k] = strconv.Itoa(vt)
+	case int64:
+		svc.ObjectMeta.Annotations[k] = strconv.FormatInt(vt, 10)
 	case string:
 		svc.ObjectMeta.Annotations[k] = vt
 	case []string:

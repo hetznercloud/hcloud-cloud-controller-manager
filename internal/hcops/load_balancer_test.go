@@ -105,7 +105,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				err := hcloud.Error{Code: hcloud.ErrorCodeNotFound}
 				fx.LBClient.
-					On("GetByID", fx.Ctx, 1).
+					On("GetByID", fx.Ctx, int64(1)).
 					Return(nil, nil, err)
 			},
 			err: hcops.ErrNotFound,
@@ -115,7 +115,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 			lbID: 2,
 			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBClient.
-					On("GetByID", fx.Ctx, 2).
+					On("GetByID", fx.Ctx, int64(2)).
 					Return(nil, nil, nil)
 			},
 			err: hcops.ErrNotFound,
@@ -126,7 +126,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				lb := &hcloud.LoadBalancer{ID: 3}
 				fx.LBClient.
-					On("GetByID", fx.Ctx, 3).
+					On("GetByID", fx.Ctx, int64(3)).
 					Return(lb, nil, nil)
 			},
 			lb: &hcloud.LoadBalancer{ID: 3},
@@ -136,7 +136,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 			lbID: 4,
 			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBClient.
-					On("GetByID", fx.Ctx, 4).
+					On("GetByID", fx.Ctx, int64(4)).
 					Return(nil, nil, errTestLbClient)
 			},
 			err: errTestLbClient,
