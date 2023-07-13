@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 var rng *rand.Rand

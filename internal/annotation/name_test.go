@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 const ann annotation.Name = "some/annotation"

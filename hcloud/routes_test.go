@@ -8,8 +8,8 @@ import (
 
 	cloudprovider "k8s.io/cloud-provider"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/hetznercloud/hcloud-go/hcloud/schema"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
 
 func TestRoutes_CreateRoute(t *testing.T) {

@@ -16,7 +16,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 var errTestLbClient = errors.New("lb client failed")
@@ -94,7 +94,7 @@ func TestLoadBalancerOps_GetByName(t *testing.T) {
 func TestLoadBalancerOps_GetByID(t *testing.T) {
 	tests := []struct {
 		name string
-		lbID int
+		lbID int64
 		mock func(t *testing.T, fx *hcops.LoadBalancerOpsFixture)
 		lb   *hcloud.LoadBalancer
 		err  error
@@ -771,7 +771,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				newRDNS := "new-name-lb.example.com"
 				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("1.2.3.4").String(), &newRDNS).Return(action, nil, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -818,7 +818,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				newRDNS := "new-name-lb.example.com"
 				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("fe80::1").String(), &newRDNS).Return(action, nil, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -843,7 +843,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				opts := hcloud.LoadBalancerDetachFromNetworkOpts{
 					Network: &hcloud.Network{ID: 14, Name: "some-network"},
 				}
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.On("DetachFromNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
@@ -882,7 +882,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBOps.NetworkID = nw.ID
 
 				opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
 				tt.fx.MockWatchProgress(action, nil)
 			},
@@ -907,7 +907,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(nil, nil, hcloud.Error{Code: hcloud.ErrorCodeConflict}).
 					Once()
 
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.
 					On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).
 					Return(action, nil, nil).
@@ -936,7 +936,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(nil, nil, hcloud.Error{Code: hcloud.ErrorCodeLocked}).
 					Once()
 
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.
 					On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).
 					Return(action, nil, nil).
@@ -981,7 +981,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.
 					On("DisablePublicInterface", tt.fx.Ctx, tt.initialLB).
 					Return(action, nil, nil)
@@ -1022,7 +1022,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
-				action := &hcloud.Action{ID: rand.Int()}
+				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.
 					On("EnablePublicInterface", tt.fx.Ctx, tt.initialLB).
 					Return(action, nil, nil)

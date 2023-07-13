@@ -13,7 +13,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 func TestHCLBServiceOptsBuilder(t *testing.T) {

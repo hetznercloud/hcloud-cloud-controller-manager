@@ -3,7 +3,7 @@ package mocks
 import (
 	"github.com/stretchr/testify/mock"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 func getResponsePtr(args mock.Arguments, i int) *hcloud.Response {

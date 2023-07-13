@@ -26,7 +26,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 )
 
-func providerIDToServerID(providerID string) (int, error) {
+func providerIDToServerID(providerID string) (int64, error) {
 	const op = "hcloud/providerIDToServerID"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -41,13 +41,13 @@ func providerIDToServerID(providerID string) (int, error) {
 		return 0, fmt.Errorf("%s: missing serverID: %s", op, providerID)
 	}
 
-	id, err := strconv.Atoi(idString)
+	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
 	}
 	return id, nil
 }
 
-func serverIDToProviderID(serverID int) string {
+func serverIDToProviderID(serverID int64) string {
 	return fmt.Sprintf("%s://%d", providerName, serverID)
 }

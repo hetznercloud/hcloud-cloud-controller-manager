@@ -3,7 +3,7 @@ package hcops
 import (
 	"context"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type HCloudActionClient interface {
