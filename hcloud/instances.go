@@ -24,7 +24,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type addressFamily int
@@ -38,10 +38,10 @@ const (
 type instances struct {
 	client        *hcloud.Client
 	addressFamily addressFamily
-	networkID     int
+	networkID     int64
 }
 
-func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID int) *instances {
+func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID int64) *instances {
 	return &instances{client, addressFamily, networkID}
 }
 
@@ -118,7 +118,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	}, nil
 }
 
-func nodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Server) []corev1.NodeAddress {
+func nodeAddresses(addressFamily addressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,

@@ -13,7 +13,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type routes struct {
@@ -22,7 +22,7 @@ type routes struct {
 	serverCache *hcops.AllServersCache
 }
 
-func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
+func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
 	const op = "hcloud/newRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -262,7 +262,7 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 	return false, nil
 }
 
-func findServerPrivateNetByID(srv *hcloud.Server, id int) (hcloud.ServerPrivateNet, bool) {
+func findServerPrivateNetByID(srv *hcloud.Server, id int64) (hcloud.ServerPrivateNet, bool) {
 	for _, n := range srv.PrivateNet {
 		if n.Network.ID == id {
 			return n, true

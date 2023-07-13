@@ -12,14 +12,14 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 // LoadBalancerOps defines the Load Balancer related operations required by
 // the hcloud-cloud-controller-manager.
 type LoadBalancerOps interface {
 	GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, error)
-	GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, error)
+	GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, error)
 	GetByK8SServiceUID(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancer, error)
 	Create(ctx context.Context, lbName string, service *corev1.Service) (*hcloud.LoadBalancer, error)
 	Delete(ctx context.Context, lb *hcloud.LoadBalancer) error

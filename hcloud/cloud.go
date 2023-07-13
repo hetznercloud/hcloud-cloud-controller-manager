@@ -30,8 +30,8 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/hetznercloud/hcloud-go/hcloud/metadata"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
 
 const (
@@ -63,7 +63,7 @@ type cloud struct {
 	instances    *instances
 	routes       *routes
 	loadBalancer *loadBalancers
-	networkID    int
+	networkID    int64
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
@@ -103,7 +103,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
 
-	var networkID int
+	var networkID int64
 	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
 		n, _, err := client.Network.Get(context.Background(), v)
 		if err != nil {
@@ -253,7 +253,7 @@ func loadBalancerDefaultsFromEnv() (hcops.LoadBalancerDefaults, bool, bool, erro
 // serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network
 // We use this measurement to protect users against some parts of misconfiguration, like configuring a master in a not attached
 // network.
-func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int) (bool, error) {
+func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int64) (bool, error) {
 	const op = "serverIsAttachedToNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
