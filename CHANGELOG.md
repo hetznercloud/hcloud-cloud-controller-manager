@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.17.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.16.0...v1.17.0) (2023-07-18)
+
+
+### Features
+
+* **helm:** allow to set labels and annotations for podMonitor ([#471](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/471)) ([5dad655](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/5dad655dd6f7091ea96ccbe6443f3f74a0d7c7ae))
+* upgrade to hcloud-go v2 e4352ec  ([5a066a1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/5a066a1825b1a10015bb481ccc164a65f508fe6d))
+
+
+### Bug Fixes
+
+* **helm-chart:** resource namespace and name ([#462](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/462)) ([0c4eee6](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/0c4eee63d2263cd4a6fa999da50b9c8734c4fa15))
+* **routes:** deleting wrong routes when other server has same private IP ([#472](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/472)) ([5461038](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/546103879336e86ade1f2217f33003aa125bdb98)), closes [#470](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/470)
+
 ## [1.16.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.15.0-rc.0...v1.16.0) (2023-06-16)
 
 
