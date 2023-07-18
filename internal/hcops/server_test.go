@@ -197,6 +197,52 @@ func TestAllServersCache_ClientError(t *testing.T) {
 	runAllServersCacheTests(t, "Not found", tmpl, cacheOps)
 }
 
+func TestAllServersCache_DuplicatePrivateIP(t *testing.T) {
+	// Regression test for https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/470
+
+	network := &hcloud.Network{
+		ID:   12345,
+		Name: "cluster-network",
+	}
+	srv := &hcloud.Server{
+		ID:   101010,
+		Name: "cluster-node",
+		PrivateNet: []hcloud.ServerPrivateNet{
+			{
+				IP:      net.ParseIP("10.0.0.4"),
+				Network: network,
+			},
+		},
+	}
+	srvInvalid := &hcloud.Server{
+		ID:   101012,
+		Name: "invalid-node",
+		PrivateNet: []hcloud.ServerPrivateNet{
+			{
+				IP: net.ParseIP("10.0.0.4"),
+				Network: &hcloud.Network{
+					ID:   54321,
+					Name: "invalid-network",
+				},
+			},
+		},
+	}
+
+	cacheOps := newAllServersCacheOps(t, srv)
+	tmpl := allServersCacheTestCase{
+		SetUp: func(t *testing.T, tt *allServersCacheTestCase) {
+			tt.Cache.Network = network
+
+			tt.ServerClient.
+				On("All", mock.Anything).
+				Return([]*hcloud.Server{srv, srvInvalid}, nil)
+		},
+		Expected: srv,
+	}
+
+	runAllServersCacheTests(t, "DuplicatePrivateIP", tmpl, cacheOps)
+}
+
 type allServersCacheOp func(c *hcops.AllServersCache) (*hcloud.Server, error)
 
 func newAllServersCacheOps(t *testing.T, srv *hcloud.Server) map[string]allServersCacheOp {

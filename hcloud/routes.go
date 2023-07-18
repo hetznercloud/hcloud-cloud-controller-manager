@@ -35,9 +35,14 @@ func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
 	}
 
 	return &routes{
-		client:      client,
-		network:     networkObj,
-		serverCache: &hcops.AllServersCache{LoadFunc: client.Server.All},
+		client:  client,
+		network: networkObj,
+		serverCache: &hcops.AllServersCache{
+			// client.Server.All will load ALL the servers in the project, even those
+			// that are not part of the Kubernetes cluster.
+			LoadFunc: client.Server.All,
+			Network:  networkObj,
+		},
 	}, nil
 }
 
