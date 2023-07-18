@@ -5,6 +5,7 @@ metadata:
 build:
   artifacts:
     - image: hetznercloud/hcloud-cloud-controller-manager
+      runtimeType: go
       docker:
         dockerfile: hack/Dockerfile
         cacheFrom:
