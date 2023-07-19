@@ -45,3 +45,24 @@ jobs:
           export PATH=$(go env GOPATH)/bin:$PATH
           go get golang.org/x/tools/cmd/goimports
           diff -u <(echo -n) <(goimports -d .)
+
+  deploy-manifests:
+    name: Check deployment manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: yokawasa/action-setup-kube-tools@v0.9.3
+        with:
+          setup-tools: |
+            helm
+          helm: v3.11.2
+
+      - uses: actions/checkout@v3
+      - name: Generate manifests from helm chart
+        run: scripts/update-deployment-yamls.sh
+
+      - name: Check for diff
+        run: git diff --exit-code -- deploy/
+
+      - name: Show warning
+        if: ${{ failure() }}
+        run: echo "::error title=Deployment Manifests outdated::Please run scripts/update-deployment-yamls.sh and commit the changes to deploy/"

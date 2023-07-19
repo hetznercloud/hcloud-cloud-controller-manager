@@ -4,7 +4,7 @@
 before:
   hooks:
     - go mod tidy
-    - ./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+    - ./scripts/release-generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
 
 builds:
   - id: hcloud-cloud-controller-manager
