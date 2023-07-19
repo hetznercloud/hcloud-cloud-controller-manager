@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cloud-controller-manager
+  name: hcloud-cloud-controller-manager
   namespace: kube-system
 ---
 # Source: hcloud-cloud-controller-manager/templates/clusterrolebinding.yaml
@@ -17,7 +17,7 @@ roleRef:
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: cloud-controller-manager
+    name: hcloud-cloud-controller-manager
     namespace: kube-system
 ---
 # Source: hcloud-cloud-controller-manager/templates/deployment.yaml
@@ -37,7 +37,7 @@ spec:
       labels:
         app: hcloud-cloud-controller-manager
     spec:
-      serviceAccountName: cloud-controller-manager
+      serviceAccountName: hcloud-cloud-controller-manager
       dnsPolicy: Default
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
