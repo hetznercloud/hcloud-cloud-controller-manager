@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.17.0...v1.17.1) (2023-07-19)
+
+
+### Bug Fixes
+
+* **deploy:** make last resource name configurable ([#477](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/477)) ([79ee405](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/79ee4051c2aff00c0977788e337ef6bbabe5eb92))
+* **deploy:** manifests have wrong namespace "default" ([#476](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/476)) ([d800781](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/d8007810844a34aa2910fd7370febf3b2c79f0ab)), closes [#475](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/475)
+
 ## [1.17.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.16.0...v1.17.0) (2023-07-18)
 
 
