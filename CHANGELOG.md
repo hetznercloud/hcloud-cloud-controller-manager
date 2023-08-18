@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.17.1...v1.17.2) (2023-08-18)
+
+
+### Bug Fixes
+
+* **deploy:** do not bind webhook port 10260 ([#495](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/495)) ([52c5f38](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/52c5f38836d7b98e81bd650f2b0f537242431f4c))
+
 ## [1.17.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.17.0...v1.17.1) (2023-07-19)
 
 
