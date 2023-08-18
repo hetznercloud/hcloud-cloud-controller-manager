@@ -9,6 +9,11 @@ args:
   # https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/395
   route-reconciliation-period: 30s
 
+  # We do not use the webhooks feature and there is no need to bind a port that is unused.
+  # https://github.com/kubernetes/kubernetes/issues/120043
+  # https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/492
+  webhook-secure-port: "0"
+
 # hccm environment variables
 env:
   # The following two variables should *not* be set here:

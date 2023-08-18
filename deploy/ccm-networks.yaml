@@ -66,6 +66,7 @@ spec:
             - "--cloud-provider=hcloud"
             - "--leader-elect=false"
             - "--route-reconciliation-period=30s"
+            - "--webhook-secure-port=0"
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr=10.244.0.0/16"
           env:
