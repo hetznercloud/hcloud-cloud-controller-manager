@@ -49,7 +49,7 @@ means an in depth tutorial of setting up Kubernetes clusters.
 
 Please refer to the [kubeadm cluster creation
 guide](https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/),
-which these instructions are meant to argument and the [kubeadm
+which these instructions are meant to augment and the [kubeadm
 documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
 1. The cloud controller manager adds its labels when a node is added to
