@@ -14,6 +14,8 @@ args:
   # https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/492
   webhook-secure-port: "0"
 
+replicaCount: 1
+
 # hccm environment variables
 env:
   # The following two variables should *not* be set here:
