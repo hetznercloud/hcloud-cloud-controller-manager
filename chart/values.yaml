@@ -1,8 +1,7 @@
 # hccm program command line arguments.
-# The "--allocate-node-cidrs" + "--cluster-cidr" arguments are managed by the chart and should *not* be set directly here.
+# The "--allocate-node-cidrs" + "--cluster-cidr" + "--leader-elect" arguments are managed by the chart and should *not* be set directly here.
 args:
   cloud-provider: hcloud
-  leader-elect: "false"
   allow-untagged-cloud: ""
 
   # Read issue #395 to understand how changes to this value affect you.
