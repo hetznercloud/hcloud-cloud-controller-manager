@@ -65,6 +65,7 @@ spec:
             - "--cloud-provider=hcloud"
             - "--route-reconciliation-period=30s"
             - "--webhook-secure-port=0"
+            - "--leader-elect=false"
           env:
             - name: HCLOUD_TOKEN
               valueFrom:

@@ -68,6 +68,7 @@ spec:
             - "--webhook-secure-port=0"
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr=10.244.0.0/16"
+            - "--leader-elect=false"
           env:
             - name: HCLOUD_TOKEN
               valueFrom:
