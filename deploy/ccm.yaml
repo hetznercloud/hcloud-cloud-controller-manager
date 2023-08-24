@@ -63,7 +63,6 @@ spec:
             - "/bin/hcloud-cloud-controller-manager"
             - "--allow-untagged-cloud"
             - "--cloud-provider=hcloud"
-            - "--leader-elect=false"
             - "--route-reconciliation-period=30s"
             - "--webhook-secure-port=0"
           env:
