@@ -49,3 +49,9 @@ If you've already deployed hccm using the `helm install` command above, you can 
 ```sh
 helm upgrade hccm hcloud/hcloud-cloud-controller-manager -n kube-system --set monitoring.podMonitor.enabled=true
 ```
+
+### Multiple replicas
+
+If you want to use multiple replicas you can change `replicaCount` inside the helm values. 
+
+If you have more than 1 replica leader election will be turned on automatically.

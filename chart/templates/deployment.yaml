@@ -4,7 +4,7 @@ metadata:
   name: {{ include "hcloud-cloud-controller-manager.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -49,6 +49,9 @@ spec:
             {{- if $.Values.networking.enabled }}
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
+            {{- end }}
+            {{- if (eq (int $.Values.replicaCount) 1) }}
+            - "--leader-elect=false"
             {{- end }}
           env:
             {{- range $key, $value := $.Values.env }}
