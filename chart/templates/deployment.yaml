@@ -50,8 +50,8 @@ spec:
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
             {{- end }}
-            {{- if (gt (int $.Values.replicaCount) 1) }}
-            - "--leader-elect=true"
+            {{- if (eq (int $.Values.replicaCount) 1) }}
+            - "--leader-elect=false"
             {{- end }}
           env:
             {{- range $key, $value := $.Values.env }}
