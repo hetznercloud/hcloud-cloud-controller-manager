@@ -77,7 +77,7 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
       if [[ -z "${ip:-}" ]]; then
         # Wait for SSH key
         until hcloud ssh-key describe $scope_name >/dev/null 2>&1; do sleep 1; done
-        until hcloud network describe $scope_name >/dev/null 2>&1; do sleep 1; done
+        until hcloud network describe $scope_name 2>&1 | grep $subnet_cidr >/dev/null; do sleep 1; done
 
         createcmd="hcloud server create --image $image_name --label $label --location $location --name $server_name --ssh-key=$scope_name --type $instance_type --network $scope_name"
         for key in $ssh_keys; do
