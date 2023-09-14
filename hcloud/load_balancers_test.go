@@ -797,7 +797,6 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 			},
 			expected: []*corev1.Node{
 				newNodeSelectorNode("node1", map[string]string{"environment": "production"}),
-				nil,
 			},
 		},
 		{
@@ -814,7 +813,6 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 				newNodeSelectorNode("node2", map[string]string{"environment": "production", "zone": "nue"}),
 			},
 			expected: []*corev1.Node{
-				nil,
 				newNodeSelectorNode("node2", map[string]string{"environment": "production", "zone": "nue"}),
 			},
 		},

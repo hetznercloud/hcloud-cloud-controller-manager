@@ -46,7 +46,10 @@ func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disabl
 }
 
 func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Node, error) {
-	var err error
+	var (
+		err           error
+		selectedNodes []*corev1.Node
+	)
 
 	selector := labels.Everything()
 	if v, ok := annotation.LBNodeSelector.StringFromService(svc); ok {
@@ -56,10 +59,9 @@ func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Nod
 		}
 	}
 
-	selectedNodes := make([]*corev1.Node, len(nodes))
-	for i, n := range nodes {
+	for _, n := range nodes {
 		if selector.Matches(labels.Set(n.GetLabels())) {
-			selectedNodes[i] = n
+			selectedNodes = append(selectedNodes, n)
 		}
 	}
 
