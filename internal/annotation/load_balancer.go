@@ -100,7 +100,7 @@ const (
 
 	// LBNodeSelector can be set to restrict which Nodes are added as targets to the
 	// Load Balancer. It accepts a Kubernetes label selector string, using either the
-	// set-based or equality-based formats. 
+	// set-based or equality-based formats.
 	//
 	// If the selector can not be parsed, the targets in the Load Balancer are not
 	// updated and an Event is created with the error message.
