@@ -55,7 +55,7 @@ func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Nod
 	if v, ok := annotation.LBNodeSelector.StringFromService(svc); ok {
 		selector, err = labels.Parse(v)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to parse the node-selector annotation: %w", err)
 		}
 	}
 
