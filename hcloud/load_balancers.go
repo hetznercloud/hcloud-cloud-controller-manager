@@ -130,7 +130,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		return nil, fmt.Errorf("%s: %v", op, err)
 	}
 
-	nodeNames := make([]string, len(nodes))
+	nodeNames := make([]string, len(selectedNodes))
 	for i, n := range selectedNodes {
 		nodeNames[i] = n.Name
 	}
@@ -177,7 +177,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 	reload = reload || servicesChanged
 
-	targetsChanged, err := l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, nodes)
+	targetsChanged, err := l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -264,12 +264,18 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var (
-		lb  *hcloud.LoadBalancer
-		err error
+		lb            *hcloud.LoadBalancer
+		err           error
+		selectedNodes []*corev1.Node
 	)
 
-	nodeNames := make([]string, len(nodes))
-	for i, n := range nodes {
+	selectedNodes, err = matchNodeSelector(svc, nodes)
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+
+	nodeNames := make([]string, len(selectedNodes))
+	for i, n := range selectedNodes {
 		nodeNames[i] = n.Name
 	}
 	klog.InfoS("update Load Balancer", "op", op, "service", svc.Name, "nodes", nodeNames)
@@ -291,7 +297,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	if _, err = l.lbOps.ReconcileHCLB(ctx, lb, svc); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, nodes); err != nil {
+	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if _, err = l.lbOps.ReconcileHCLBServices(ctx, lb, svc); err != nil {

@@ -98,6 +98,8 @@ const (
 	// Mutually exclusive with LBLocation.
 	LBNetworkZone Name = "load-balancer.hetzner.cloud/network-zone"
 
+	// LBNodeSelector specifies a Kubernetes label selector that matches the
+	// string based format. This is used to select the nodes added to the Load Balancer.
 	LBNodeSelector Name = "load-balancer.hetzner.cloud/node-selector"
 
 	// LBSvcProxyProtocol specifies if the Load Balancer services should
