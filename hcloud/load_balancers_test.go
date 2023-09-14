@@ -3,15 +3,27 @@ package hcloud
 import (
 	"errors"
 	"net"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
+
+func newNodeSelectorNode(name string, labels map[string]string) *v1.Node {
+	return &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+	}
+}
 
 func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 	tests := []LoadBalancerTestCase{
@@ -712,4 +724,114 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 	}
 
 	RunLoadBalancerTests(t, tests)
+}
+
+func TestLoadBalancer_matchNodeSelector(t *testing.T) {
+	cases := []struct {
+		name     string
+		service  *corev1.Service
+		k8sNodes []*corev1.Node
+		expected []*corev1.Node
+	}{
+		{
+			name: "no node selector",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", nil),
+				newNodeSelectorNode("node2", nil),
+			},
+			expected: []*corev1.Node{
+				newNodeSelectorNode("node1", nil),
+				newNodeSelectorNode("node2", nil),
+			},
+		},
+		{
+			name: "empty node selector",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(annotation.LBNodeSelector): "",
+					},
+				},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", nil),
+				newNodeSelectorNode("node2", nil),
+			},
+			expected: []*corev1.Node{
+				newNodeSelectorNode("node1", nil),
+				newNodeSelectorNode("node2", nil),
+			},
+		},
+		{
+			name: "single node selector to select all",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(annotation.LBNodeSelector): "environment=production",
+					},
+				},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "production"}),
+				newNodeSelectorNode("node2", map[string]string{"environment": "production"}),
+			},
+			expected: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "production"}),
+				newNodeSelectorNode("node2", map[string]string{"environment": "production"}),
+			},
+		},
+		{
+			name: "single node selector to select some",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(annotation.LBNodeSelector): "environment=production",
+					},
+				},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "production"}),
+				newNodeSelectorNode("node2", map[string]string{"environment": "staging"}),
+			},
+			expected: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "production"}),
+				nil,
+			},
+		},
+		{
+			name: "multiple node selector to select all",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(annotation.LBNodeSelector): "environment=production,zone=nue",
+					},
+				},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "production", "zone": "fsn"}),
+				newNodeSelectorNode("node2", map[string]string{"environment": "production", "zone": "nue"}),
+			},
+			expected: []*corev1.Node{
+				nil,
+				newNodeSelectorNode("node2", map[string]string{"environment": "production", "zone": "nue"}),
+			},
+		},
+	}
+
+	for _, c := range cases {
+		c := c // prevent scopelint from complaining
+		t.Run(c.name, func(t *testing.T) {
+			nodes, err := matchNodeSelector(c.service, c.k8sNodes)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !reflect.DeepEqual(nodes, c.expected) {
+				t.Errorf("expected: %+v got %+v", c.expected, nodes)
+			}
+		})
+	}
 }

@@ -98,6 +98,8 @@ const (
 	// Mutually exclusive with LBLocation.
 	LBNetworkZone Name = "load-balancer.hetzner.cloud/network-zone"
 
+	LBNodeSelector Name = "load-balancer.hetzner.cloud/node-selector"
+
 	// LBSvcProxyProtocol specifies if the Load Balancer services should
 	// use the proxy protocol.
 	//

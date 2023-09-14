@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
@@ -42,6 +43,27 @@ func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disabl
 		disablePrivateIngressDefault: disablePrivateIngressDefault,
 		disableIPv6Default:           disableIPv6Default,
 	}
+}
+
+func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Node, error) {
+	var err error
+
+	selector := labels.Everything()
+	if v, ok := annotation.LBNodeSelector.StringFromService(svc); ok {
+		selector, err = labels.Parse(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	selectedNodes := make([]*corev1.Node, len(nodes))
+	for i, n := range nodes {
+		if selector.Matches(labels.Set(n.GetLabels())) {
+			selectedNodes[i] = n
+		}
+	}
+
+	return selectedNodes, nil
 }
 
 func (l *loadBalancers) GetLoadBalancer(
@@ -97,13 +119,19 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var (
-		reload bool
-		lb     *hcloud.LoadBalancer
-		err    error
+		reload        bool
+		lb            *hcloud.LoadBalancer
+		err           error
+		selectedNodes []*corev1.Node
 	)
 
+	selectedNodes, err = matchNodeSelector(svc, nodes)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %v", op, err)
+	}
+
 	nodeNames := make([]string, len(nodes))
-	for i, n := range nodes {
+	for i, n := range selectedNodes {
 		nodeNames[i] = n.Name
 	}
 	klog.InfoS("ensure Load Balancer", "op", op, "service", svc.Name, "nodes", nodeNames)
