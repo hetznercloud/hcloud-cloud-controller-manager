@@ -273,7 +273,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 
 	selectedNodes, err = matchNodeSelector(svc, nodes)
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	nodeNames := make([]string, len(selectedNodes))
