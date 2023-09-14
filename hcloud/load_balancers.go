@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
@@ -42,6 +43,29 @@ func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disabl
 		disablePrivateIngressDefault: disablePrivateIngressDefault,
 		disableIPv6Default:           disableIPv6Default,
 	}
+}
+
+func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Node, error) {
+	var (
+		err           error
+		selectedNodes []*corev1.Node
+	)
+
+	selector := labels.Everything()
+	if v, ok := annotation.LBNodeSelector.StringFromService(svc); ok {
+		selector, err = labels.Parse(v)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse the node-selector annotation: %w", err)
+		}
+	}
+
+	for _, n := range nodes {
+		if selector.Matches(labels.Set(n.GetLabels())) {
+			selectedNodes = append(selectedNodes, n)
+		}
+	}
+
+	return selectedNodes, nil
 }
 
 func (l *loadBalancers) GetLoadBalancer(
@@ -97,13 +121,19 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var (
-		reload bool
-		lb     *hcloud.LoadBalancer
-		err    error
+		reload        bool
+		lb            *hcloud.LoadBalancer
+		err           error
+		selectedNodes []*corev1.Node
 	)
 
-	nodeNames := make([]string, len(nodes))
-	for i, n := range nodes {
+	selectedNodes, err = matchNodeSelector(svc, nodes)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	nodeNames := make([]string, len(selectedNodes))
+	for i, n := range selectedNodes {
 		nodeNames[i] = n.Name
 	}
 	klog.InfoS("ensure Load Balancer", "op", op, "service", svc.Name, "nodes", nodeNames)
@@ -149,7 +179,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 	reload = reload || servicesChanged
 
-	targetsChanged, err := l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, nodes)
+	targetsChanged, err := l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -236,12 +266,18 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var (
-		lb  *hcloud.LoadBalancer
-		err error
+		lb            *hcloud.LoadBalancer
+		err           error
+		selectedNodes []*corev1.Node
 	)
 
-	nodeNames := make([]string, len(nodes))
-	for i, n := range nodes {
+	selectedNodes, err = matchNodeSelector(svc, nodes)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	nodeNames := make([]string, len(selectedNodes))
+	for i, n := range selectedNodes {
 		nodeNames[i] = n.Name
 	}
 	klog.InfoS("update Load Balancer", "op", op, "service", svc.Name, "nodes", nodeNames)
@@ -263,7 +299,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	if _, err = l.lbOps.ReconcileHCLB(ctx, lb, svc); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, nodes); err != nil {
+	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if _, err = l.lbOps.ReconcileHCLBServices(ctx, lb, svc); err != nil {
