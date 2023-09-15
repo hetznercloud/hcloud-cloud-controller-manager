@@ -25,7 +25,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
-	hrobot "github.com/syself/hrobot-go"
+	robotclient "github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
 	"github.com/syself/hrobot-go/models"
 	"k8s.io/klog/v2"
 )
@@ -53,7 +53,7 @@ func getHCloudServerByID(ctx context.Context, c *hcloud.Client, id int64) (*hclo
 	return server, nil
 }
 
-func getRobotServerByName(c hrobot.RobotClient, name string) (server *models.Server, err error) {
+func getRobotServerByName(c robotclient.Client, name string) (server *models.Server, err error) {
 	const op = "robot/getServerByName"
 
 	if c == nil {
@@ -80,7 +80,7 @@ func getRobotServerByName(c hrobot.RobotClient, name string) (server *models.Ser
 	return server, nil
 }
 
-func getRobotServerByID(c hrobot.RobotClient, id int) (*models.Server, error) {
+func getRobotServerByID(c robotclient.Client, id int) (*models.Server, error) {
 	const op = "robot/getServerByID"
 
 	if c == nil {

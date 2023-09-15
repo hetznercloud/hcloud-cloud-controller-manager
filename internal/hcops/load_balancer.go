@@ -13,7 +13,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
-	hrobot "github.com/syself/hrobot-go"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
@@ -72,7 +72,7 @@ type LoadBalancerOps struct {
 	LBClient      HCloudLoadBalancerClient
 	ActionClient  HCloudActionClient
 	NetworkClient HCloudNetworkClient
-	RobotClient   hrobot.RobotClient
+	RobotClient   client.Client
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
@@ -724,7 +724,6 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	// Assign the dedicated servers which are currently assigned as nodes
 	// to the K8S Load Balancer as IP targets to the HC Load Balancer.
 	for id := range k8sNodeIDsRobot {
-
 		var arr []string
 		if l.Defaults.DisableIPv6 {
 			arr = []string{

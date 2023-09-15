@@ -3,9 +3,8 @@ package mocks
 import (
 	"context"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/stretchr/testify/mock"
 )
 
 type CertificateClient struct {
