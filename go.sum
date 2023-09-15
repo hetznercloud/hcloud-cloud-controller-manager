@@ -211,8 +211,6 @@ github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 h1:BZHcxBETFHIdVyhyEfOvn/RdU/QG
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0/go.mod h1:hgWBS7lorOAVIJEQMi4ZsPv9hVvWI6+ch50m39Pf2Ks=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
-github.com/hetznercloud/hcloud-go v1.41.0 h1:KJGFRRc68QiVu4PrEP5BmCQVveCP2CM26UGQUKGpIUs=
-github.com/hetznercloud/hcloud-go v1.41.0/go.mod h1:NaHg47L6C77mngZhwBG652dTAztYrsZ2/iITJKhQkHA=
 github.com/hetznercloud/hcloud-go/v2 v2.1.1 h1:HDe1IBEYut7sfi4uiDyz1ml2+4ZuQZWW6vjSK3PP8DM=
 github.com/hetznercloud/hcloud-go/v2 v2.1.1/go.mod h1:4iUG2NG8b61IAwNx6UsMWQ6IfIf/i1RsG0BbsKAyR5Q=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=

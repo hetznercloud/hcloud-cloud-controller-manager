@@ -3,7 +3,6 @@ module github.com/syself/hetzner-cloud-controller-manager
 go 1.21.1
 
 require (
-	github.com/hetznercloud/hcloud-go v1.41.0
 	github.com/hetznercloud/hcloud-go/v2 v2.1.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/pflag v1.0.5
