@@ -3,21 +3,21 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cloud-controller-manager
+  name: hcloud-cloud-controller-manager
   namespace: kube-system
 ---
 # Source: hetzner-cloud-controller-manager/templates/clusterrolebinding.yaml
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: system:cloud-controller-manager
+  name: "system:hcloud-cloud-controller-manager"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: cloud-controller-manager
+    name: hcloud-cloud-controller-manager
     namespace: kube-system
 ---
 # Source: hetzner-cloud-controller-manager/templates/deployment.yaml
@@ -37,7 +37,7 @@ spec:
       labels:
         app: hetzner-cloud-controller-manager
     spec:
-      serviceAccountName: cloud-controller-manager
+      serviceAccountName: hcloud-cloud-controller-manager
       dnsPolicy: Default
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
@@ -63,8 +63,9 @@ spec:
             - "/bin/hetzner-cloud-controller-manager"
             - "--allow-untagged-cloud"
             - "--cloud-provider=hetzner"
-            - "--leader-elect=false"
             - "--route-reconciliation-period=30s"
+            - "--webhook-secure-port=0"
+            - "--leader-elect=false"
           env:
             - name: HCLOUD_TOKEN
               valueFrom:
@@ -75,7 +76,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: quay.io/syself/hetzner-cloud-controller-manager:v1.9.1
+          image: quay.io/syself/hetzner-cloud-controller-manager:v1.9.1 # x-release-please-version
           ports:
             - name: metrics
               containerPort: 8233

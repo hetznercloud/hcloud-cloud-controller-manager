@@ -7,13 +7,12 @@ import (
 	"net"
 	"time"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
-
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 type routes struct {
@@ -22,7 +21,7 @@ type routes struct {
 	serverCache *hcops.AllServersCache
 }
 
-func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
+func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
 	const op = "hcloud/newRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -35,9 +34,14 @@ func newRoutes(client *hcloud.Client, networkID int) (*routes, error) {
 	}
 
 	return &routes{
-		client:      client,
-		network:     networkObj,
-		serverCache: &hcops.AllServersCache{LoadFunc: client.Server.All},
+		client:  client,
+		network: networkObj,
+		serverCache: &hcops.AllServersCache{
+			// client.Server.All will load ALL the servers in the project, even those
+			// that are not part of the Kubernetes cluster.
+			LoadFunc: client.Server.All,
+			Network:  networkObj,
+		},
 	}, nil
 }
 
@@ -65,22 +69,10 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// We do not now the exact length here, as the network might have outdated routes with servers that do not exist
-	// anymore.
-	var routes []*cloudprovider.Route //nolint:prealloc
+	routes := make([]*cloudprovider.Route, 0, len(r.network.Routes))
 	for _, route := range r.network.Routes {
 		ro, err := r.hcloudRouteToRoute(route)
 		if err != nil {
-			if errors.Is(err, hcops.ErrNotFound) {
-				klog.InfoS("server for route not found, deleting route in hcloud because the route is not functional",
-					"op", op, "gateway", route.Gateway.String(), "err", fmt.Sprintf("%v", err))
-				err = r.deleteRouteFromHcloud(ctx, route.Destination, route.Gateway)
-				if err != nil {
-					klog.InfoS("deleting the route failed, continue",
-						"op", op, "gateway", route.Gateway.String(), "err", fmt.Sprintf("%v", err))
-				}
-				continue
-			}
 			return routes, fmt.Errorf("%s: %w", op, err)
 		}
 		routes = append(routes, ro)
@@ -158,20 +150,23 @@ func (r *routes) DeleteRoute(ctx context.Context, _ string, route *cloudprovider
 	const op = "hcloud/DeleteRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := r.serverCache.ByName(string(route.TargetNode))
-	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+	// Get target IP from current list of routes, routes can be uniquely identified by their destination cidr.
+	var ip net.IP
+	for _, cloudRoute := range r.network.Routes {
+		if cloudRoute.Destination.String() == route.DestinationCIDR {
+			ip = cloudRoute.Gateway
+			break
+		}
 	}
-	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
-	if !ok {
-		return fmt.Errorf("%s: server %v: no network with id: %d", op, route.TargetNode, r.network.ID)
+	if ip.IsUnspecified() {
+		return fmt.Errorf("%s: route %s not found in cloud network routes", op, route.Name)
 	}
-	ip := privNet.IP
 
 	_, cidr, err := net.ParseCIDR(route.DestinationCIDR)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	err = r.deleteRouteFromHcloud(ctx, cidr, ip)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -212,17 +207,24 @@ func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.R
 	const op = "hcloud/hcloudRouteToRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	nodeName := srv.Name
-
-	return &cloudprovider.Route{
+	cpRoute := &cloudprovider.Route{
 		DestinationCIDR: route.Destination.String(),
 		Name:            fmt.Sprintf("%s-%s", route.Gateway.String(), route.Destination.String()),
-		TargetNode:      types.NodeName(nodeName),
-	}, nil
+	}
+
+	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
+	if err != nil {
+		if errors.Is(err, hcops.ErrNotFound) {
+			// Route belongs to non-existing target
+			cpRoute.Blackhole = true
+			return cpRoute, nil
+		}
+
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	cpRoute.TargetNode = types.NodeName(srv.Name)
+	return cpRoute, nil
 }
 
 func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprovider.Route) (bool, error) {
@@ -264,7 +266,7 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 	return false, nil
 }
 
-func findServerPrivateNetByID(srv *hcloud.Server, id int) (hcloud.ServerPrivateNet, bool) {
+func findServerPrivateNetByID(srv *hcloud.Server, id int64) (hcloud.ServerPrivateNet, bool) {
 	for _, n := range srv.PrivateNet {
 		if n.Network.ID == id {
 			return n, true

@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hetzner-cloud-controller-manager
-  namespace: kube-system
+  name: {{ include "hetzner-cloud-controller-manager.name" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -14,7 +14,7 @@ spec:
       labels:
         {{- include "hetzner-cloud-controller-manager.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: cloud-controller-manager
+      serviceAccountName: {{ include "hcloud-cloud-controller-manager.name" . }}
       dnsPolicy: Default
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
@@ -50,6 +50,9 @@ spec:
             - "--allocate-node-cidrs=true"
             - "--cluster-cidr={{ $.Values.networking.clusterCIDR }}"
             {{- end }}
+            {{- if (eq (int $.Values.replicaCount) 1) }}
+            - "--leader-elect=false"
+            {{- end }}
           env:
             {{- range $key, $value := $.Values.env }}
             - name: {{ $key }}
@@ -57,16 +60,13 @@ spec:
             {{- end }}
             {{- if $.Values.networking.enabled }}
             - name: HCLOUD_NETWORK
-              valueFrom:
-                secretKeyRef:
-                  name: hcloud
-                  key: network
+              {{- tpl (toYaml $.Values.networking.network) $ | nindent 14 }}
             {{- end }}
             {{- if not $.Values.monitoring.enabled }}
             - name: HCLOUD_METRICS_ENABLED
               value: "false"
             {{- end }}
-          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }}
+          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }} # x-release-please-version
           ports:
             {{- if $.Values.monitoring.enabled }}
             - name: metrics

@@ -8,7 +8,7 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/hetznercloud)
+      - prefix(github.com/syself)
 
   importas:
     no-unaliased: true
@@ -26,7 +26,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - depguard
     - errcheck
     - errname
     - exhaustive

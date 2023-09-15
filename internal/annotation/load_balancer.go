@@ -3,7 +3,7 @@ package annotation
 import (
 	"fmt"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -96,6 +96,16 @@ const (
 	//
 	// Mutually exclusive with LBLocation.
 	LBNetworkZone Name = "load-balancer.hetzner.cloud/network-zone"
+
+	// LBNodeSelector can be set to restrict which Nodes are added as targets to the
+	// Load Balancer. It accepts a Kubernetes label selector string, using either the
+	// set-based or equality-based formats.
+	//
+	// If the selector can not be parsed, the targets in the Load Balancer are not
+	// updated and an Event is created with the error message.
+	//
+	// Format: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	LBNodeSelector Name = "load-balancer.hetzner.cloud/node-selector"
 
 	// LBSvcProxyProtocol specifies if the Load Balancer services should
 	// use the proxy protocol.

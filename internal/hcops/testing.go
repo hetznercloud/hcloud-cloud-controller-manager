@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/mocks"
 	"github.com/syself/hrobot-go/models"
 )
@@ -60,7 +60,7 @@ func (fx *LoadBalancerOpsFixture) MockGetByID(lb *hcloud.LoadBalancer, err error
 func (fx *LoadBalancerOpsFixture) MockCreate(
 	opts hcloud.LoadBalancerCreateOpts, lb *hcloud.LoadBalancer, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	createResult := hcloud.LoadBalancerCreateResult{Action: action, LoadBalancer: lb}
 	fx.LBClient.On("Create", fx.Ctx, opts).Return(createResult, nil, err)
 	return action
@@ -69,7 +69,7 @@ func (fx *LoadBalancerOpsFixture) MockCreate(
 func (fx *LoadBalancerOpsFixture) MockAddService(
 	opts hcloud.LoadBalancerAddServiceOpts, lb *hcloud.LoadBalancer, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("AddService", fx.Ctx, lb, opts).Return(action, nil, err)
 	return action
 }
@@ -77,13 +77,13 @@ func (fx *LoadBalancerOpsFixture) MockAddService(
 func (fx *LoadBalancerOpsFixture) MockUpdateService(
 	opts hcloud.LoadBalancerUpdateServiceOpts, lb *hcloud.LoadBalancer, listenPort int, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("UpdateService", fx.Ctx, lb, listenPort, opts).Return(action, nil, err)
 	return action
 }
 
 func (fx *LoadBalancerOpsFixture) MockDeleteService(lb *hcloud.LoadBalancer, port int, err error) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("DeleteService", fx.Ctx, lb, port).Return(action, nil, err)
 	return action
 }
@@ -91,7 +91,7 @@ func (fx *LoadBalancerOpsFixture) MockDeleteService(lb *hcloud.LoadBalancer, por
 func (fx *LoadBalancerOpsFixture) MockAddServerTarget(
 	lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServerTargetOpts, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("AddServerTarget", fx.Ctx, lb, opts).Return(action, nil, err)
 	return action
 }
@@ -99,7 +99,7 @@ func (fx *LoadBalancerOpsFixture) MockAddServerTarget(
 func (fx *LoadBalancerOpsFixture) MockRemoveServerTarget(
 	lb *hcloud.LoadBalancer, s *hcloud.Server, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("RemoveServerTarget", fx.Ctx, lb, s).Return(action, nil, err)
 	return action
 }
@@ -107,7 +107,7 @@ func (fx *LoadBalancerOpsFixture) MockRemoveServerTarget(
 func (fx *LoadBalancerOpsFixture) MockAddIPTarget(
 	lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddIPTargetOpts, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("AddIPTarget", fx.Ctx, lb, opts).Return(action, nil, err)
 	return action
 }
@@ -115,7 +115,7 @@ func (fx *LoadBalancerOpsFixture) MockAddIPTarget(
 func (fx *LoadBalancerOpsFixture) MockRemoveIPTarget(
 	lb *hcloud.LoadBalancer, ip net.IP, err error,
 ) *hcloud.Action {
-	action := &hcloud.Action{ID: rand.Int()}
+	action := &hcloud.Action{ID: rand.Int63()}
 	fx.LBClient.On("RemoveIPTarget", fx.Ctx, lb, ip).Return(action, nil, err)
 	return action
 }

@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 // ErrNotSet signals that an annotation was not set.
@@ -36,6 +35,8 @@ func (s Name) AnnotateService(svc *corev1.Service, v interface{}) error {
 		svc.ObjectMeta.Annotations[k] = strconv.FormatBool(vt)
 	case int:
 		svc.ObjectMeta.Annotations[k] = strconv.Itoa(vt)
+	case int64:
+		svc.ObjectMeta.Annotations[k] = strconv.FormatInt(vt, 10)
 	case string:
 		svc.ObjectMeta.Annotations[k] = vt
 	case []string:
@@ -49,7 +50,7 @@ func (s Name) AnnotateService(svc *corev1.Service, v interface{}) error {
 				idsOrNames[i] = c.Name
 				continue
 			}
-			idsOrNames[i] = strconv.Itoa(c.ID)
+			idsOrNames[i] = strconv.FormatInt(c.ID, 10)
 		}
 		svc.ObjectMeta.Annotations[k] = strings.Join(idsOrNames, ",")
 	case hcloud.NetworkZone:
@@ -289,7 +290,7 @@ func (s Name) CertificatesFromService(svc *corev1.Service) ([]*hcloud.Certificat
 		cs = make([]*hcloud.Certificate, len(ss))
 
 		for i, s := range ss {
-			id, err := strconv.Atoi(s)
+			id, err := strconv.ParseInt(s, 10, 64)
 			if err != nil {
 				// If we could not parse the string as an integer we assume it
 				// is a name not an id.

@@ -20,13 +20,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	hrobot "github.com/syself/hrobot-go"
 	"github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
-
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 type addressFamily int
@@ -41,12 +40,12 @@ type instances struct {
 	client        *hcloud.Client
 	robotClient   hrobot.RobotClient
 	addressFamily addressFamily
-	networkID     int
+	networkID     int64
 }
 
 var errServerNotFound = fmt.Errorf("server not found")
 
-func newInstances(client *hcloud.Client, robotClient hrobot.RobotClient, addressFamily addressFamily, networkID int) *instances {
+func newInstances(client *hcloud.Client, robotClient hrobot.RobotClient, addressFamily addressFamily, networkID int64) *instances {
 	return &instances{client, robotClient, addressFamily, networkID}
 }
 
@@ -58,7 +57,7 @@ func (i *instances) lookupServer(
 	node *corev1.Node,
 ) (hcloudServer *hcloud.Server, bmServer *models.Server, isHCloudServer bool, err error) {
 	if node.Spec.ProviderID != "" {
-		var serverID int
+		var serverID int64
 		serverID, isHCloudServer, err = providerIDToServerID(node.Spec.ProviderID)
 		if err != nil {
 			return nil, nil, false, fmt.Errorf("failed to convert provider id to server id: %w", err)
@@ -73,7 +72,7 @@ func (i *instances) lookupServer(
 			if i.robotClient == nil {
 				return nil, nil, false, errMissingRobotCredentials
 			}
-			bmServer, err = getRobotServerByID(i.robotClient, serverID)
+			bmServer, err = getRobotServerByID(i.robotClient, int(serverID))
 			if err != nil {
 				return nil, nil, false, fmt.Errorf("failed to get robot server \"%d\": %w", serverID, err)
 			}
@@ -165,7 +164,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	}, nil
 }
 
-func hcloudNodeAddresses(addressFamily addressFamily, networkID int, server *hcloud.Server) []corev1.NodeAddress {
+func hcloudNodeAddresses(addressFamily addressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,

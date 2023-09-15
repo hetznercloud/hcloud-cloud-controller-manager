@@ -23,12 +23,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	hrobot "github.com/syself/hrobot-go"
 	"github.com/syself/hrobot-go/models"
 	"k8s.io/klog/v2"
-
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 const rateLimitWaitingTime = 5 * time.Minute
@@ -83,7 +82,7 @@ func getHCloudServerByName(ctx context.Context, c *hcloud.Client, name string) (
 	return server, nil
 }
 
-func getHCloudServerByID(ctx context.Context, c *hcloud.Client, id int) (*hcloud.Server, error) {
+func getHCloudServerByID(ctx context.Context, c *hcloud.Client, id int64) (*hcloud.Server, error) {
 	const op = "hcloud/getServerByID"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -146,7 +145,7 @@ func getRobotServerByID(c hrobot.RobotClient, id int) (*models.Server, error) {
 	return server, nil
 }
 
-func providerIDToServerID(providerID string) (id int, isHCloudServer bool, err error) {
+func providerIDToServerID(providerID string) (id int64, isHCloudServer bool, err error) {
 	const op = "hcloud/providerIDToServerID"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -171,7 +170,7 @@ func providerIDToServerID(providerID string) (id int, isHCloudServer bool, err e
 		return 0, false, fmt.Errorf("%s: missing serverID: %s", op, providerID)
 	}
 
-	id, err = strconv.Atoi(idString)
+	id, err = strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return 0, false, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
 	}
@@ -186,7 +185,7 @@ func serverIDToProviderIDRobot(serverID int) string {
 	return fmt.Sprintf("%s://%s%d", providerName, hostNamePrefixRobot, serverID)
 }
 
-func serverIDToProviderIDHCloud(serverID int) string {
+func serverIDToProviderIDHCloud(serverID int64) string {
 	return fmt.Sprintf("%s://%d", providerName, serverID)
 }
 

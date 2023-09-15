@@ -4,7 +4,11 @@
 before:
   hooks:
     - go mod tidy
-    #- ./scripts/generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }} # via charts.syself.com
+<<<<<<< HEAD
+    #- ./scripts/release-generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }} # via charts.syself.com
+=======
+    - ./scripts/release-generate-deployment-yamls.sh {{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+>>>>>>> upstream/main
 
 builds:
   - id: hetzner-cloud-controller-manager
@@ -19,12 +23,6 @@ builds:
     binary: hetzner-cloud-controller-manager
     ldflags:
       - "-s -w -X github.com/syself/hetzner-cloud-controller-manager/hcloud.providerVersion={{ if not .IsSnapshot }}v{{ end }}{{ .Version }}"
-
-archives:
-  - id: deployment-yamls
-    builds: [""]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_deployment_yamls"
-    wrap_in_directory: true
 
 dockers:
   - build_flag_templates: [--platform=linux/amd64]
@@ -57,11 +55,14 @@ release:
     - glob: "./deploy/ccm*.yaml"
     - glob: "./hetzner-cloud-controller-manager-*.tgz"
 
-# via https://github.com/syself/charts
-#publishers:
-#  - name: helm-chart-repo
-#    ids: # make sure that this is only executed once by filtering for *one arbitrary* artifact ID
-#      - deployment-yamls
-#    cmd: ./scripts/publish-helm-chart.sh hetzner-cloud-controller-manager-{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}.tgz
-#    env:
-#      - CHART_REPO_REMOTE={{ .Env.CHART_REPO_REMOTE }}
+publishers:
+  - name: helm-chart-repo
+
+    # make sure that this is only executed once. There are no separate ids per binary built,
+    # we filter for no actual ID and then run the publisher for the checksum.
+    ids: [""]
+    checksum: true
+
+    cmd: ./scripts/publish-helm-chart.sh hetzner-cloud-controller-manager-{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}.tgz
+    env:
+      - CHART_REPO_REMOTE={{ .Env.CHART_REPO_REMOTE }}

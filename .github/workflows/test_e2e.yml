@@ -5,34 +5,22 @@ on:
     branches: [main]
 jobs:
   k3s:
+    name: k3s ${{ matrix.k3s }}
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k3s: [ v1.24, v1.25, v1.26 ]
+        k3s: [ v1.25, v1.26, v1.27, v1.28 ]
       fail-fast: false
-    name: k3s ${{ matrix.k3s }}
     steps:
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20'
+          go-version: "1.21"
       - uses: actions/checkout@master
-      - name: HCLOUD_TOKEN
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-          TTS_TOKEN: ${{ secrets.TTS_TOKEN }}
-        run: |
-          set -ueo pipefail
-          if [[ "${HCLOUD_TOKEN:-}" != "" ]]; then
-            echo "HCLOUD_TOKEN=$HCLOUD_TOKEN" >> "$GITHUB_ENV"
-          elif [[ "${TTS_TOKEN:-}" != "" ]]; then
-                    token="$(./scripts/get-token.sh)"
-                    echo "::add-mask::$token"
-                    echo "HCLOUD_TOKEN=$token" >> "$GITHUB_ENV"
-          else
-            echo "::error ::Couldn't determine HCLOUD_TOKEN. Check that repository secrets are setup correctly."
-            exit 1
-          fi
-
+      - uses: hetznercloud/tps-action@main
+        with:
+          token: ${{ secrets.HCLOUD_TOKEN  }}
       - uses: 3bit/setup-hcloud@v2
       - uses: yokawasa/action-setup-kube-tools@v0.9.3
         with:
@@ -41,17 +29,21 @@ jobs:
             kubectl
             skaffold
           helm: v3.11.2
-          kubectl: v1.26.3
+          kubectl: v1.28.1
           skaffold: v2.3.0
 
       - name: Run tests
         env:
           K3S_CHANNEL: ${{ matrix.k3s }}
           SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
+
+          # Domain must be available in the account running the tests. This domain is available in the account
+          # running the public integration tests.
+          CERT_DOMAIN: hc-integrations-test.de
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-          trap "hack/dev-down.sh; ./scripts/delete-token.sh $HCLOUD_TOKEN" EXIT
+          trap "hack/dev-down.sh" EXIT
           source <(hack/dev-up.sh)
 
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"

@@ -3,7 +3,7 @@ package hcops
 import (
 	"context"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/stretchr/testify/mock"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -18,7 +18,7 @@ func (m *MockLoadBalancerOps) GetByName(ctx context.Context, name string) (*hclo
 	return mocks.GetLoadBalancerPtr(args, 0), args.Error(1)
 }
 
-func (m *MockLoadBalancerOps) GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, error) {
+func (m *MockLoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, error) {
 	args := m.Called(ctx, id)
 	return mocks.GetLoadBalancerPtr(args, 0), args.Error(1)
 }

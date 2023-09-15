@@ -4,19 +4,19 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/stretchr/testify/assert"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
 var testCluster TestCluster
@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 	os.Exit(rc)
 }
 
-func TestCloudControllerManagerPodIsPresent(t *testing.T) {
+func TestPodIsPresent(t *testing.T) {
 	t.Parallel()
 
 	t.Run("hcloud-cloud-controller-manager pod is present in kube-system", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestCloudControllerManagerPodIsPresent(t *testing.T) {
 	})
 }
 
-func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
+func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 	t.Parallel()
 
 	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
@@ -113,7 +113,7 @@ func TestCloudControllerManagerSetCorrectNodeLabelsAndIPAddresses(t *testing.T) 
 	}
 }
 
-func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
+func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 	t.Parallel()
 
 	lbTest := lbTestHelper{
@@ -138,7 +138,7 @@ func TestCloudControllerManagerLoadBalancersMinimalSetup(t *testing.T) {
 	lbTest.TearDown()
 }
 
-func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
+func TestServiceLoadBalancersHTTPS(t *testing.T) {
 	t.Parallel()
 
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
@@ -167,10 +167,14 @@ func TestCloudControllerManagerLoadBalancersHTTPS(t *testing.T) {
 	lbTest.TearDown()
 }
 
-func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
+func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 	t.Parallel()
 
-	domainName := fmt.Sprintf("%d-ccm-test.hc-certs.de", rand.Int())
+	if testCluster.certDomain == "" {
+		t.Skip("Skipping because CERT_DOMAIN is not set")
+	}
+
+	domainName := fmt.Sprintf("%d-ccm-test.%s", rand.Int(), testCluster.certDomain)
 	lbTest := lbTestHelper{
 		t:         t,
 		K8sClient: testCluster.k8sClient,
@@ -205,7 +209,7 @@ func TestCloudControllerManagerLoadBalancersHTTPSWithManagedCertificate(t *testi
 	assert.NoError(t, err)
 }
 
-func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
+func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	t.Parallel()
 
 	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-private-network"}
@@ -227,11 +231,11 @@ func TestCloudControllerManagerLoadBalancersWithPrivateNetwork(t *testing.T) {
 	lbTest.TearDown()
 }
 
-func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
+func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 	t.Parallel()
 
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(context.Background(), "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
+	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -251,6 +255,91 @@ func TestCloudControllerManagerNetworksPodIPsAreAccessible(t *testing.T) {
 			}
 		}
 		return false, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRouteDeleteCorrectRoutes(t *testing.T) {
+	t.Parallel()
+
+	// This test tests for:
+	// - hccm is keeping routes that are outside of its scope (e.g. 0.0.0.0/0)
+	// - hccm is deleting routes that are inside the cluster cidr, but for which no server exists (10.254.0.0/24)
+	//
+	// Testing for no-op (keep route) is hard, but by combining the test with a deletion test we can be reasonably sure
+	// that it was not tried in the same reconcile loop.
+
+	ctx := context.Background()
+
+	testGateway := net.ParseIP("10.0.0.254")
+	_, defaultDestination, err := net.ParseCIDR("0.0.0.0/0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, outdatedDestination, err := net.ParseCIDR("10.244.254.0/24")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	network, _, err := testCluster.hcloud.Network.Get(ctx, "hccm-"+testCluster.scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove routes from previous tests
+	for _, route := range network.Routes {
+		if route.Gateway.Equal(testGateway) {
+			action, _, err := testCluster.hcloud.Network.DeleteRoute(ctx, network, hcloud.NetworkDeleteRouteOpts{Route: route})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := hcops.WatchAction(ctx, &testCluster.hcloud.Action, action); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	action, _, err := testCluster.hcloud.Network.AddRoute(ctx, network, hcloud.NetworkAddRouteOpts{Route: hcloud.NetworkRoute{
+		Destination: defaultDestination,
+		Gateway:     testGateway,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := hcops.WatchAction(ctx, &testCluster.hcloud.Action, action); err != nil {
+		t.Fatal(err)
+	}
+
+	action, _, err = testCluster.hcloud.Network.AddRoute(ctx, network, hcloud.NetworkAddRouteOpts{Route: hcloud.NetworkRoute{
+		Destination: outdatedDestination,
+		Gateway:     testGateway,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := hcops.WatchAction(ctx, &testCluster.hcloud.Action, action); err != nil {
+		t.Fatal(err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		network, _, err = testCluster.hcloud.Network.Get(ctx, "hccm-"+testCluster.scope)
+		if err != nil {
+			return false, err
+		}
+
+		hasDefaultRoute := false
+		for _, route := range network.Routes {
+			switch route.Destination.String() {
+			case defaultDestination.String():
+				hasDefaultRoute = true
+			case outdatedDestination.String():
+				// Route for outdated destination still exists
+				return false, nil
+			}
+		}
+		return hasDefaultRoute, nil
 	})
 	if err != nil {
 		t.Fatal(err)

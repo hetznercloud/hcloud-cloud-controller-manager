@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/testsupport"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,13 +21,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
 
-var rng *rand.Rand
-var scopeButcher = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+var (
+	rng          *rand.Rand
+	scopeButcher = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+)
 
 func init() {
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -36,6 +37,7 @@ type TestCluster struct {
 	k8sClient    *kubernetes.Clientset
 	certificates []*hcloud.Certificate
 	scope        string
+	certDomain   string
 }
 
 func (tc *TestCluster) Start() error {
@@ -83,6 +85,10 @@ func (tc *TestCluster) Start() error {
 	if err != nil {
 		return fmt.Errorf("kubernetes.NewForConfig: %s", err)
 	}
+
+	// Tests using this value should skip if empty
+	// The domain specified here must be available in Hetzner DNS of the account running the tests.
+	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
 	return nil
 }
@@ -136,10 +142,12 @@ type lbTestHelper struct {
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
 // and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
+	ctx := context.Background()
+
 	if l.namespace == "" {
 		l.namespace = "hccm-test-" + strconv.Itoa(rand.Int())
 	}
-	_, err := l.K8sClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
+	_, err := l.K8sClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: l.namespace,
 		},
@@ -172,12 +180,12 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 		},
 	}
 
-	pod, err := l.K8sClient.CoreV1().Pods(l.namespace).Create(context.Background(), &testPod, metav1.CreateOptions{})
+	pod, err := l.K8sClient.CoreV1().Pods(l.namespace).Create(ctx, &testPod, metav1.CreateOptions{})
 	if err != nil {
 		l.t.Fatalf("could not create test pod: %s", err)
 	}
-	err = wait.Poll(1*time.Second, 1*time.Minute, func() (done bool, err error) {
-		p, err := l.K8sClient.CoreV1().Pods(l.namespace).Get(context.Background(), podName, metav1.GetOptions{})
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+		p, err := l.K8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -227,6 +235,8 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 // CreateService creates a k8s service based on the given service definition
 // and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
+	ctx := context.Background()
+
 	// Default is 15s interval, 10s timeout, 3 retries => 45 seconds until up
 	// With these changes it should be 1 seconds until up
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckInterval)] = "1s"
@@ -234,13 +244,13 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckRetries)] = "1"
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckProtocol)] = "tcp"
 
-	_, err := l.K8sClient.CoreV1().Services(l.namespace).Create(context.Background(), lbSvc, metav1.CreateOptions{})
+	_, err := l.K8sClient.CoreV1().Services(l.namespace).Create(ctx, lbSvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("could not create service: %s", err)
 	}
 
-	err = wait.Poll(1*time.Second, 5*time.Minute, func() (done bool, err error) {
-		svc, err := l.K8sClient.CoreV1().Services(l.namespace).Get(context.Background(), lbSvc.Name, metav1.GetOptions{})
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+		svc, err := l.K8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -259,8 +269,8 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 // TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
-	err := wait.Poll(1*time.Second, 3*time.Minute, func() (bool, error) {
-		err := l.K8sClient.CoreV1().Namespaces().Delete(context.Background(), l.namespace, metav1.DeleteOptions{})
+	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+		err := l.K8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
@@ -288,7 +298,7 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 		proto = "https"
 	}
 
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 4*time.Minute, false, func(_ context.Context) (bool, error) {
 		resp, err := client.Get(fmt.Sprintf("%s://%s", proto, ingressIP))
 		if err != nil {
 			return false, nil
