@@ -1,4 +1,4 @@
-package hcloud
+package hcops
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestRateLimitSet(t *testing.T) {
-	rl := rateLimit{}
+	rl := rateLimitHandler{}
 	now := time.Now()
 	rl.set()
 	require.Equal(t, true, rl.exceeded)
@@ -19,18 +19,18 @@ func TestRateLimitSet(t *testing.T) {
 func TestRateLimitIsExceeded(t *testing.T) {
 	now := time.Now()
 
-	rateLimitNotExceeded := rateLimit{}
+	rateLimitNotExceeded := rateLimitHandler{}
 
 	require.Equal(t, false, rateLimitNotExceeded.isExceeded())
 
-	rateLimitExceeded := rateLimit{
+	rateLimitExceeded := rateLimitHandler{
 		exceeded:    true,
 		lastChecked: now.Add(-3 * time.Minute),
 	}
 
 	require.Equal(t, true, rateLimitExceeded.isExceeded())
 
-	rateLimitWaitingTimeOver := rateLimit{
+	rateLimitWaitingTimeOver := rateLimitHandler{
 		exceeded:    true,
 		lastChecked: now.Add(-10 * time.Minute),
 	}
@@ -43,14 +43,15 @@ func TestRateLimitIsExceeded(t *testing.T) {
 func TestRateLimitTimeOfNextPossibleAPICall(t *testing.T) {
 	now := time.Now()
 	lastChecked := now.Add(-3 * time.Minute)
-	rateLimitExceeded := rateLimit{
+	rateLimitExceeded := rateLimitHandler{
+		waitTime:    5 * time.Minute,
 		exceeded:    true,
 		lastChecked: lastChecked,
 	}
 
-	require.Equal(t, lastChecked.Add(rateLimitWaitingTime), rateLimitExceeded.timeOfNextPossibleAPICall())
+	require.Equal(t, lastChecked.Add(rateLimitExceeded.waitTime), rateLimitExceeded.timeOfNextPossibleAPICall())
 
-	rateLimitNotExceeded := rateLimit{}
+	rateLimitNotExceeded := rateLimitHandler{}
 
 	require.Equal(t, time.Time{}, rateLimitNotExceeded.timeOfNextPossibleAPICall())
 }

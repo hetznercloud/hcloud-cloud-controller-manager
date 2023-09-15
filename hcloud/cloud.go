@@ -43,6 +43,10 @@ const (
 	robotUserNameENVVar = "ROBOT_USER_NAME"
 	robotPasswordENVVar = "ROBOT_PASSWORD"
 
+	// Only as reference - is used in hcops package.
+	// Default is 5 minutes.
+	RateLimitWaitTimeRobot = "RATE_LIMIT_WAIT_TIME_ROBOT"
+
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudNetworkRoutesEnabledENVVar         = "HCLOUD_NETWORK_ROUTES_ENABLED"
