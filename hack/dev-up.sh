@@ -34,8 +34,8 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
   scope_name=hccm-${scope}
   label="managedby=hack,scope=$scope_name"
   ssh_private_key="$SCRIPT_DIR/.ssh-$scope"
-  k3s_opts=${K3S_OPTS:-"--kubelet-arg cloud-provider=external --disable=traefik --disable=servicelb --flannel-backend=none --disable=local-storage"}
-  k3s_server_opts=${K3S_SERVER_OPTS:-"--disable-cloud-controller --cluster-cidr ${cluster_cidr}"}
+  k3s_opts=${K3S_OPTS:-"--kubelet-arg cloud-provider=external"}
+  k3s_server_opts=${K3S_SERVER_OPTS:-"--disable-cloud-controller --disable=traefik --disable=servicelb --flannel-backend=none --disable=local-storage --cluster-cidr ${cluster_cidr}"}
 
   echo -n "$HCLOUD_TOKEN" > "$SCRIPT_DIR/.token-$scope"
 
