@@ -1,0 +1,97 @@
+name: Build Syself Hetzner CCM Image
+# yamllint disable rule:line-length
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+env:
+  IMAGE_NAME: hetzner-cloud-controller-manager-staging
+  REGISTRY: ghcr.io/syself
+  metadata_flavor: latest=true
+  metadata_tags: type=sha,prefix=sha-,format=short
+permissions:
+  contents: read
+  packages: write
+  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+  id-token: write
+jobs:
+  manager-image:
+    name: Build and push manager image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3
+        with:
+          fetch-depth: 0
+      - name: Install go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.0.1
+        with:
+          go-version-file: "go.mod"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@ecf95283f03858871ff00b787d79c419715afc34 # v2
+
+      - name: Generate metadata
+        id: meta
+        uses: ./.github/actions/metadata
+        with:
+          metadata_flavor: ${{ env.metadata_flavor }}
+          metadata_tags: ${{ env.metadata_tags }}
+
+      - name: Login to ghcr.io for CI
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dd6b2e2b610a11fd73dd187a43d57cc1394e35f9 # v3.0.5
+
+      - name: Setup Env
+        run: |
+          DOCKER_BUILD_LDFLAGS="$(hack/version.sh)"
+          echo 'DOCKER_BUILD_LDFLAGS<<EOF' >> $GITHUB_ENV
+          echo $DOCKER_BUILD_LDFLAGS >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Build and push manager image
+        uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4
+        id: docker_build_release
+        with:
+          provenance: false
+          context: .
+          file: ./images/hetzner-cloud-controller-manager/Dockerfile
+          push: true
+          build-args: |
+            LDFLAGS=${{ env.DOCKER_BUILD_LDFLAGS }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+
+      - name: Sign Container Images
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign --yes ghcr.io/syself/hetzner-cloud-controller-manager-staging@${{ steps.docker_build_release.outputs.digest }}
+
+      - name: Image Releases digests
+        shell: bash
+        run: |
+          mkdir -p image-digest/
+          echo "ghcr.io/syself/hetzner-cloud-controller-manager-staging:{{ steps.meta.outputs.tags }}@${{ steps.docker_build_release.outputs.digest }}" >> image-digest/hetzner-cloud-controller-manager.txt
+
+      # Upload artifact digests
+      - name: Upload artifact digests
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        with:
+          name: image-digest hetzner-cloud-controller-manager
+          path: image-digest
+          retention-days: 90
+
+      - name: Image Digests Output
+        shell: bash
+        run: |
+          cd image-digest/
+          find -type f | sort | xargs -d '\n' cat
