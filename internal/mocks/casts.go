@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/stretchr/testify/mock"
 	"github.com/syself/hrobot-go/models"
 )

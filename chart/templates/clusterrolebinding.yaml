@@ -1,12 +1,12 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: system:cloud-controller-manager
+  name: "system:{{ include "hcloud-cloud-controller-manager.name" . }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: cloud-controller-manager
-    namespace: kube-system
+    name: {{ include "hcloud-cloud-controller-manager.name" . }}
+    namespace: {{ .Release.Namespace }}

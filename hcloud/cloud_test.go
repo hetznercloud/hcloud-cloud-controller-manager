@@ -25,12 +25,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	hrobot "github.com/syself/hrobot-go"
-
-	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 )
 
 type testEnv struct {

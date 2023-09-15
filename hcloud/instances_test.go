@@ -29,8 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cloudprovider "k8s.io/cloud-provider"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
-	"github.com/hetznercloud/hcloud-go/hcloud/schema"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
 
 // TestInstances_InstanceExists also tests [lookupServer]. The other tests
@@ -335,7 +335,7 @@ func TestNodeAddresses(t *testing.T) {
 		name           string
 		addressFamily  addressFamily
 		server         *hcloud.Server
-		privateNetwork int
+		privateNetwork int64
 		expected       []corev1.NodeAddress
 	}{
 		{

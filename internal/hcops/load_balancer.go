@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	hrobot "github.com/syself/hrobot-go"
@@ -25,7 +25,7 @@ const LabelServiceUID = "hcloud-ccm/service-uid"
 // HCloudLoadBalancerClient defines the hcloud-go functions required by the
 // Load Balancer operations type.
 type HCloudLoadBalancerClient interface {
-	GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, *hcloud.Response, error)
+	GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, *hcloud.Response, error)
 	GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, *hcloud.Response, error)
 
 	Create(ctx context.Context, opts hcloud.LoadBalancerCreateOpts) (hcloud.LoadBalancerCreateResult, *hcloud.Response, error)
@@ -75,7 +75,7 @@ type LoadBalancerOps struct {
 	RobotClient   hrobot.RobotClient
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
-	NetworkID     int
+	NetworkID     int64
 	Defaults      LoadBalancerDefaults
 }
 
@@ -141,7 +141,7 @@ func (l *LoadBalancerOps) GetByName(ctx context.Context, name string) (*hcloud.L
 //
 // If no Load Balancer with id could be found, a wrapped ErrNotFound is
 // returned.
-func (l *LoadBalancerOps) GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, error) {
+func (l *LoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.GetByName"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -576,9 +576,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	var (
 		// Set of all K8S server IDs currently assigned as nodes to this
 		// cluster.
-		k8sNodeIDsHCloud = make(map[int]bool)
+		k8sNodeIDsHCloud = make(map[int64]bool)
 		k8sNodeIDsRobot  = make(map[int]bool)
-		k8sNodeNames     = make(map[int]string)
+		k8sNodeNames     = make(map[int64]string)
 
 		robotIPsToIDs = make(map[string]int)
 		robotIDToIPv4 = make(map[int]string)
@@ -587,7 +587,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		// of the entries may get deleted during reconcilement. In this case
 		// the hclbTargetIDs[id] is always false. If hclbTargetIDs[id] is true,
 		// the node with this server id is assigned to the K8S cluster.
-		hclbTargetIDs = make(map[int]bool)
+		hclbTargetIDs = make(map[int64]bool)
 
 		// Set of server IPs assigned as targets to the HC Load Balancer. Some
 		// of the entries may get deleted during reconcilement. In this case
@@ -615,7 +615,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		if isHCloudServer {
 			k8sNodeIDsHCloud[id] = true
 		} else {
-			k8sNodeIDsRobot[id] = true
+			k8sNodeIDsRobot[int(id)] = true
 		}
 		k8sNodeNames[id] = node.Name
 	}
@@ -667,13 +667,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				continue
 			}
 
-			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
+			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)])
 			// Node currently not in use by k8s Load Balancer. Remove it from the HC Load Balancer.
 			a, _, err := l.LBClient.RemoveIPTarget(ctx, lb, net.ParseIP(ip))
 			if err != nil {
 				var e error
 				if foundServer {
-					e = fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
+					e = fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[int64(id)], err)
 				} else {
 					e = fmt.Errorf("%s: targetIP: %s: %w", op, ip, err)
 				}
@@ -682,7 +682,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
 				var e error
 				if foundServer {
-					e = fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
+					e = fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[int64(id)], err)
 				} else {
 					e = fmt.Errorf("%s: targetIP: %s: %w", op, ip, err)
 				}
@@ -746,20 +746,20 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				klog.InfoS("k8s node found but no corresponding server in robot", "id", id)
 				continue
 			}
-			klog.InfoS("add target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id], "ip", ip)
+			klog.InfoS("add target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)], "ip", ip)
 			opts := hcloud.LoadBalancerAddIPTargetOpts{
 				IP: net.ParseIP(ip),
 			}
 			a, _, err := l.LBClient.AddIPTarget(ctx, lb, opts)
 			if err != nil {
 				if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
-					klog.InfoS("resource limit exceeded", "err", err.Error(), "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
+					klog.InfoS("resource limit exceeded", "err", err.Error(), "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)])
 					return false, nil
 				}
-				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
+				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
 			}
 			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
-				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
+				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
 			}
 			changed = true
 		}
@@ -1316,7 +1316,7 @@ const (
 	hostNamePrefixRobot = "bm-"
 )
 
-func providerIDToServerID(providerID string) (id int, isHCloudServer bool, err error) {
+func providerIDToServerID(providerID string) (id int64, isHCloudServer bool, err error) {
 	const op = "hcloud/providerIDToServerID"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -1341,14 +1341,14 @@ func providerIDToServerID(providerID string) (id int, isHCloudServer bool, err e
 		return 0, false, fmt.Errorf("%s: missing serverID: %s", op, providerID)
 	}
 
-	id, err = strconv.Atoi(idString)
+	id, err = strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return 0, false, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
 	}
 	return id, isHCloudServer, nil
 }
 
-func lbAttached(lb *hcloud.LoadBalancer, nwID int) bool {
+func lbAttached(lb *hcloud.LoadBalancer, nwID int64) bool {
 	for _, nw := range lb.PrivateNet {
 		if nw.Network.ID == nwID {
 			return true

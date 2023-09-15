@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"

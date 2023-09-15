@@ -6,14 +6,14 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type LoadBalancerClient struct {
 	mock.Mock
 }
 
-func (m *LoadBalancerClient) GetByID(ctx context.Context, id int) (*hcloud.LoadBalancer, *hcloud.Response, error) {
+func (m *LoadBalancerClient) GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, *hcloud.Response, error) {
 	args := m.Called(ctx, id)
 	return GetLoadBalancerPtr(args, 0), getResponsePtr(args, 1), args.Error(2)
 }

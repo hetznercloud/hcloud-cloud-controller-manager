@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
+	"k8s.io/klog/v2"
 )
 
 // AllServersCache caches the result of the LoadFunc and provides random access
@@ -20,6 +21,9 @@ type AllServersCache struct {
 	LoadFunc    func(context.Context) ([]*hcloud.Server, error)
 	LoadTimeout time.Duration
 	MaxAge      time.Duration
+
+	// If set, only IPs in this network will be considered for [ByPrivateIP]
+	Network *hcloud.Network
 
 	lastRefresh time.Time
 	byPrivIP    map[string]*hcloud.Server
@@ -102,8 +106,17 @@ func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hclou
 	for _, srv := range srvs {
 		// Index servers by the IPs of their private networks
 		for _, n := range srv.PrivateNet {
+			if c.Network != nil {
+				if n.Network.ID != c.Network.ID {
+					// Only consider private IPs in the right network
+					continue
+				}
+			}
 			if n.IP == nil {
 				continue
+			}
+			if _, ok := c.byPrivIP[n.IP.String()]; ok {
+				klog.Warningf("Overriding AllServersCache entry for private ip %s with server %s\n", n.IP.String(), srv.Name)
 			}
 			c.byPrivIP[n.IP.String()] = srv
 		}

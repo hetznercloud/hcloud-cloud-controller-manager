@@ -1,9 +1,11 @@
 ---
 include:
-  - project: "cloud/backend/deploy-tools"
-    file: "ci/build/image.yml"
-  - project: "cloud/backend/deploy-tools"
-    file: "ci/release/image.yml"
+  - project: cloud/integrations/ci
+    file: default.yml
+  - project: cloud/backend/deploy-tools
+    file: ci/build/image.yml
+  - project: cloud/backend/deploy-tools
+    file: ci/release/image.yml
 
 stages:
   - test
@@ -19,25 +21,21 @@ variables:
 
 test:lint:
   stage: test
-  image: golangci/golangci-lint:v1.52.2
+  image: golangci/golangci-lint:v1.54.2
   allow_failure: true
   script:
     - golangci-lint run -v
   except:
     - tags
     - main
-  tags:
-    - hc-bladerunner
 
 test:unit:
   stage: test
-  image: golang:1.20
+  image: golang:1.21
   variables:
     NODE_NAME: "test"
   script:
     - go test $(go list ./... | grep -v e2e) -v
-  tags:
-    - hc-bladerunner
 
 .build:goreleaser: &build-goreleaser
   stage: build
@@ -52,8 +50,6 @@ test:unit:
     paths:
       - hcloud-cloud-controller-manager
     expire_in: 1 day
-  tags:
-    - hc-bladerunner
 
 build:goreleaser:snapshot:
   <<: *build-goreleaser
@@ -71,8 +67,6 @@ build:goreleaser:tags:
 
 build:image:
   stage: build:image
-  tags:
-    - cloud-integrations
 
 e2e:
   stage: e2e-test
@@ -81,9 +75,9 @@ e2e:
     CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   parallel:
     matrix:
-      - K8S_VERSION: [ k8s-1.24.10, k8s-1.25.6, k8s-1.26.1 ]
+      - K8S_VERSION: [k8s-1.24.10, k8s-1.25.6, k8s-1.26.1]
         USE_NETWORKS: ["yes", "no"]
-      - K8S_VERSION: [ k3s-v1.24.10+k3s1, k3s-v1.25.6+k3s1, k3s-v1.26.1+k3s1 ]
+      - K8S_VERSION: [k3s-v1.24.10+k3s1, k3s-v1.25.6+k3s1, k3s-v1.26.1+k3s1]
         USE_NETWORKS: ["yes", "no"]
   before_script:
     - apk add --no-cache git make musl-dev go openssh-client
@@ -93,10 +87,6 @@ e2e:
     - docker pull $CCM_IMAGE_NAME
   script:
     - go test $(go list ./... | grep e2e) -v -timeout 60m
-  tags:
-    - hc-bladerunner-build
 
 release:image:
   stage: release:image
-  tags:
-    - cloud-integrations

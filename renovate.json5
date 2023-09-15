@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+
+    // Generate commits compatible with release-please changelog
+    ":semanticCommitTypeAll(deps)",
+    ":semanticCommitScopeDisabled",
+  ]
+}
