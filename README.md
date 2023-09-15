@@ -217,7 +217,7 @@ that will be billed.
 
 1x CPX21 (Ubuntu 18.04)
 
-**Requirements: Docker and Go 1.20**
+**Requirements: Docker and Go 1.21**
 
 1. Configure your environment correctly
 
