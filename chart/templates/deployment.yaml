@@ -34,6 +34,11 @@ spec:
 
         - key: "node.kubernetes.io/not-ready"
           effect: "NoExecute"
+
+        {{- if gt (len .Values.additionalTolerations) 0 }}
+        {{ toYaml .Values.additionalTolerations | nindent 8 }}
+        {{- end }}
+
       {{- if $.Values.networking.enabled }}
       hostNetwork: true
       {{- end }}
