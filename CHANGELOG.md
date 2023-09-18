@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.18.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.17.2...v1.18.0) (2023-09-18)
+
+
+### Features
+
+* build with Go 1.21 ([#516](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/516)) ([7bf7e71](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/7bf7e7165ce5f603463ab7bbc0f623bff774aff0))
+* **chart:** configure additional tolerations ([#518](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/518)) ([0d25cb6](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/0d25cb6cb5313b5ac82c1343de657e08255ef76a)), closes [#512](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/512)
+* **chart:** support running multiple replicas with leader election ([4b18ee5](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/4b18ee55b7d7b3ad7df2ad14e88a56c7fc7bb1b6))
+* **load-balancer:** Add new node-selector annotation ([#514](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/514)) ([db2e6dc](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/db2e6dc46a2aa7e691e2ecb125dc770dc8963799))
+* test against kubernetes v1.28 and drop v1.24 ([#500](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/500)) ([3adf781](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/3adf78150e71081c6e2b3199b8aae5c21ff5bac2))
+
 ## [1.17.2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.17.1...v1.17.2) (2023-08-18)
 
 
