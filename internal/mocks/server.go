@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/stretchr/testify/mock"
 )
 
 // ServerClient is a mock implementation of the hcloud.ServerClient.

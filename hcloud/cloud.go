@@ -24,11 +24,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
+	robotclient "github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/robot/client/cache"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/util"
 	hrobot "github.com/syself/hrobot-go"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -46,6 +50,9 @@ const (
 	// Only as reference - is used in hcops package.
 	// Default is 5 minutes.
 	RateLimitWaitTimeRobot = "RATE_LIMIT_WAIT_TIME_ROBOT"
+
+	// default is 3 minutes.
+	CacheTimeout = "CACHE_TIMEOUT"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -71,7 +78,7 @@ var providerVersion = "unknown"
 
 type cloud struct {
 	client       *hcloud.Client
-	robotClient  hrobot.RobotClient
+	robotClient  robotclient.Client
 	instances    *instances
 	routes       *routes
 	loadBalancer *loadBalancers
@@ -118,9 +125,19 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	robotUserName, foundRobotUserName := os.LookupEnv(robotUserNameENVVar)
 	robotPassword, foundRobotPassword := os.LookupEnv(robotPasswordENVVar)
 
-	var robotClient hrobot.RobotClient
+	cacheTimeout, err := util.GetEnvDuration(CacheTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if cacheTimeout == 0 {
+		cacheTimeout = 3 * time.Minute
+	}
+
+	var robotClient robotclient.Client
 	if foundRobotUserName && foundRobotPassword {
-		robotClient = hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+		c := hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+		robotClient = cache.NewClient(c, cacheTimeout)
 	}
 
 	var networkID int64
@@ -153,7 +170,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
-	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	_, _, err = client.Server.List(context.Background(), hcloud.ServerListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

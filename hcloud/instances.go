@@ -22,7 +22,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
-	hrobot "github.com/syself/hrobot-go"
+	robotclient "github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
 	"github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
@@ -38,14 +38,14 @@ const (
 
 type instances struct {
 	client        *hcloud.Client
-	robotClient   hrobot.RobotClient
+	robotClient   robotclient.Client
 	addressFamily addressFamily
 	networkID     int64
 }
 
 var errServerNotFound = fmt.Errorf("server not found")
 
-func newInstances(client *hcloud.Client, robotClient hrobot.RobotClient, addressFamily addressFamily, networkID int64) *instances {
+func newInstances(client *hcloud.Client, robotClient robotclient.Client, addressFamily addressFamily, networkID int64) *instances {
 	return &instances{client, robotClient, addressFamily, networkID}
 }
 

@@ -1,16 +1,15 @@
 package hcops
 
 import (
-	"fmt"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/syself/hetzner-cloud-controller-manager/internal/util"
 	"github.com/syself/hrobot-go/models"
 )
 
 func init() {
-	rateLimitWaitTimeRobot, err := getEnvDuration("RATE_LIMIT_WAIT_TIME_ROBOT")
+	rateLimitWaitTimeRobot, err := util.GetEnvDuration("RATE_LIMIT_WAIT_TIME_ROBOT")
 	if err != nil {
 		panic(err)
 	}
@@ -77,20 +76,4 @@ func HandleRateLimitExceededError(err error) {
 	if models.IsError(err, models.ErrorCodeRateLimitExceeded) || strings.Contains(err.Error(), "server responded with status code 403") {
 		SetRateLimit()
 	}
-}
-
-// getEnvDuration returns the duration parsed from the environment variable with the given key and a potential error
-// parsing the var. Returns false if the env var is unset.
-func getEnvDuration(key string) (time.Duration, error) {
-	v := os.Getenv(key)
-	if v == "" {
-		return 0, nil
-	}
-
-	b, err := time.ParseDuration(v)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %v", key, err)
-	}
-
-	return b, nil
 }
