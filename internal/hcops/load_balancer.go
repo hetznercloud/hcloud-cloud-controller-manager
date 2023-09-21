@@ -565,6 +565,17 @@ func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.
 	return true, nil
 }
 
+func (l *LoadBalancerOps) getDisableIPv6(svc *corev1.Service) (bool, error) {
+	disable, err := annotation.LBIPv6Disabled.BoolFromService(svc)
+	if err == nil {
+		return disable, nil
+	}
+	if errors.Is(err, annotation.ErrNotSet) {
+		return l.Defaults.DisableIPv6, nil
+	}
+	return false, err
+}
+
 // ReconcileHCLBTargets adds or removes target nodes from the Hetzner Cloud
 // Load Balancer when nodes are added or removed to the K8S cluster.
 func (l *LoadBalancerOps) ReconcileHCLBTargets(
@@ -597,6 +608,11 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 		changed bool
 	)
+
+	disableIPv6, err := l.getDisableIPv6(svc)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
 
 	usePrivateIP, err := l.getUsePrivateIP(svc)
 	if err != nil {
@@ -725,7 +741,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	// to the K8S Load Balancer as IP targets to the HC Load Balancer.
 	for id := range k8sNodeIDsRobot {
 		var arr []string
-		if l.Defaults.DisableIPv6 {
+		if disableIPv6 {
 			arr = []string{
 				robotIDToIPv4[id],
 			}
