@@ -15,6 +15,7 @@ import (
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 )
 
@@ -76,6 +77,7 @@ type LoadBalancerOps struct {
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
+	Recorder      record.EventRecorder
 	Defaults      LoadBalancerDefaults
 }
 
@@ -651,6 +653,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		robotIDToIPv6[s.ServerNumber] = s.ServerIPv6Net + "1"
 	}
 
+	numberOfTargets := len(lb.Targets)
+
 	// Extract IDs of the hc Load Balancer's server targets. Along the way,
 	// Remove all server targets from the HC Load Balancer which are currently
 	// not assigned as nodes to the K8S Load Balancer.
@@ -674,6 +678,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
 			}
 			changed = true
+			numberOfTargets--
 		}
 
 		if target.Type == hcloud.LoadBalancerTargetTypeIP {
@@ -706,6 +711,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				return changed, e
 			}
 			changed = true
+			numberOfTargets--
 		}
 	}
 
@@ -715,6 +721,16 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		// Don't assign the node again if it is already assigned to the HC load
 		// balancer.
 		if hclbTargetIDs[id] {
+			continue
+		}
+
+		if maxTargetsReached(numberOfTargets, lb.LoadBalancerType.Name) {
+			l.Recorder.Eventf(
+				svc,
+				"Warning",
+				"LoadBalancerTargetsReached",
+				"cannot add server target %v because max number of targets have been reached for load balancer %s", id, lb.Name,
+			)
 			continue
 		}
 
@@ -735,6 +751,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
 		}
 		changed = true
+		numberOfTargets++
 	}
 
 	// Assign the dedicated servers which are currently assigned as nodes
@@ -762,6 +779,17 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				klog.InfoS("k8s node found but no corresponding server in robot", "id", id)
 				continue
 			}
+
+			if maxTargetsReached(numberOfTargets, lb.LoadBalancerType.Name) {
+				l.Recorder.Eventf(
+					svc,
+					"Warning",
+					"LoadBalancerTargetsReached",
+					"cannot add ip target %v of %v because max number of targets have been reached for load balancer %s", ip, id, lb.Name,
+				)
+				continue
+			}
+
 			klog.InfoS("add target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)], "ip", ip)
 			opts := hcloud.LoadBalancerAddIPTargetOpts{
 				IP: net.ParseIP(ip),
@@ -778,6 +806,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
 			}
 			changed = true
+			numberOfTargets++
 		}
 	}
 	return changed, nil
@@ -792,6 +821,20 @@ func (l *LoadBalancerOps) getUsePrivateIP(svc *corev1.Service) (bool, error) {
 		return false, err
 	}
 	return usePrivateIP, nil
+}
+
+func maxTargetsReached(currentNumber int, lbType string) bool {
+	var maxNumber int
+	switch lbType {
+	case "lb31":
+		maxNumber = 150
+	case "lb21":
+		maxNumber = 75
+	default:
+		maxNumber = 25
+	}
+
+	return currentNumber >= maxNumber
 }
 
 // ReconcileHCLBServices synchronizes services exposed by the Hetzner Cloud
