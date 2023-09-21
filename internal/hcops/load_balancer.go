@@ -624,7 +624,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	// correspond to a dedicated server
 	dedicatedServers, err := l.RobotClient.ServerGetList()
 	if err != nil {
-		HandleRateLimitExceededError(err)
+		HandleRateLimitExceededError(err, svc)
 		return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
 	}
 

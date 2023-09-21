@@ -27,6 +27,7 @@ import (
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	robotclient "github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
 	"github.com/syself/hrobot-go/models"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -53,7 +54,7 @@ func getHCloudServerByID(ctx context.Context, c *hcloud.Client, id int64) (*hclo
 	return server, nil
 }
 
-func getRobotServerByName(c robotclient.Client, name string) (server *models.Server, err error) {
+func getRobotServerByName(c robotclient.Client, node *corev1.Node) (server *models.Server, err error) {
 	const op = "robot/getServerByName"
 
 	if c == nil {
@@ -61,18 +62,18 @@ func getRobotServerByName(c robotclient.Client, name string) (server *models.Ser
 	}
 
 	// check for rate limit
-	if hcops.IsRateLimitExceeded() {
+	if hcops.IsRateLimitExceeded(node) {
 		return nil, fmt.Errorf("%s: rate limit exceeded - next try at %q", op, hcops.TimeOfNextPossibleAPICall().String())
 	}
 
 	serverList, err := c.ServerGetList()
 	if err != nil {
-		hcops.HandleRateLimitExceededError(err)
+		hcops.HandleRateLimitExceededError(err, node)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	for i, s := range serverList {
-		if s.Name == name {
+		if s.Name == node.Name {
 			server = &serverList[i]
 		}
 	}
@@ -80,7 +81,7 @@ func getRobotServerByName(c robotclient.Client, name string) (server *models.Ser
 	return server, nil
 }
 
-func getRobotServerByID(c robotclient.Client, id int) (*models.Server, error) {
+func getRobotServerByID(c robotclient.Client, id int, node *corev1.Node) (*models.Server, error) {
 	const op = "robot/getServerByID"
 
 	if c == nil {
@@ -88,13 +89,13 @@ func getRobotServerByID(c robotclient.Client, id int) (*models.Server, error) {
 	}
 
 	// check for rate limit
-	if hcops.IsRateLimitExceeded() {
+	if hcops.IsRateLimitExceeded(node) {
 		return nil, fmt.Errorf("%s: rate limit exceeded - next try at %q", op, hcops.TimeOfNextPossibleAPICall().String())
 	}
 
 	server, err := c.ServerGet(id)
 	if err != nil && !models.IsError(err, models.ErrorCodeServerNotFound) {
-		hcops.HandleRateLimitExceededError(err)
+		hcops.HandleRateLimitExceededError(err, node)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 

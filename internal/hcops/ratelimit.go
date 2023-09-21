@@ -6,6 +6,10 @@ import (
 
 	"github.com/syself/hetzner-cloud-controller-manager/internal/util"
 	"github.com/syself/hrobot-go/models"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/kubectl/pkg/scheme"
 )
 
 func init() {
@@ -21,7 +25,12 @@ func init() {
 	handler = rateLimitHandler{
 		waitTime: rateLimitWaitTimeRobot,
 	}
+
+	eventBroadcaster := record.NewBroadcaster()
+	recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hetzner-ccm-ratelimit"})
 }
+
+var recorder record.EventRecorder
 
 var handler rateLimitHandler
 
@@ -60,8 +69,12 @@ func (rl *rateLimitHandler) timeOfNextPossibleAPICall() time.Time {
 
 // implement rate limit that is stored in memory
 
-func IsRateLimitExceeded() bool {
-	return handler.isExceeded()
+func IsRateLimitExceeded(obj runtime.Object) bool {
+	if handler.isExceeded() {
+		recorder.Event(obj, "Warning", "RobotRateLimitExceeded", "exceeded Hetzner Robot API rate limit")
+		return true
+	}
+	return false
 }
 
 func SetRateLimit() {
@@ -72,8 +85,9 @@ func TimeOfNextPossibleAPICall() time.Time {
 	return handler.timeOfNextPossibleAPICall()
 }
 
-func HandleRateLimitExceededError(err error) {
+func HandleRateLimitExceededError(err error, obj runtime.Object) {
 	if models.IsError(err, models.ErrorCodeRateLimitExceeded) || strings.Contains(err.Error(), "server responded with status code 403") {
+		recorder.Event(obj, "Warning", "RobotRateLimitExceeded", "exceeded Hetzner Robot API rate limit")
 		SetRateLimit()
 	}
 }

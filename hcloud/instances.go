@@ -72,7 +72,7 @@ func (i *instances) lookupServer(
 			if i.robotClient == nil {
 				return nil, nil, false, errMissingRobotCredentials
 			}
-			bmServer, err = getRobotServerByID(i.robotClient, int(serverID))
+			bmServer, err = getRobotServerByID(i.robotClient, int(serverID), node)
 			if err != nil {
 				return nil, nil, false, fmt.Errorf("failed to get robot server \"%d\": %w", serverID, err)
 			}
@@ -88,7 +88,7 @@ func (i *instances) lookupServer(
 			if i.robotClient == nil {
 				return nil, nil, false, errMissingRobotCredentials
 			}
-			bmServer, err = getRobotServerByName(i.robotClient, string(node.Name))
+			bmServer, err = getRobotServerByName(i.robotClient, node)
 			if err != nil {
 				return nil, nil, false, fmt.Errorf("failed to get robot server %q: %w", string(node.Name), err)
 			}
@@ -217,7 +217,7 @@ func robotNodeAddresses(addressFamily addressFamily, server *models.Server) []co
 	if addressFamily == AddressFamilyIPv6 || addressFamily == AddressFamilyDualStack {
 		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
 		hostAddress := server.ServerIPv6Net
-		hostAddress = hostAddress + "1"
+		hostAddress += "1"
 
 		addresses = append(
 			addresses,
