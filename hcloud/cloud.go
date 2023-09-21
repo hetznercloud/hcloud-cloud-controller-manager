@@ -34,8 +34,11 @@ import (
 	"github.com/syself/hetzner-cloud-controller-manager/internal/robot/client/cache"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/util"
 	hrobot "github.com/syself/hrobot-go"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/scheme"
 )
 
 const (
@@ -183,6 +186,10 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
 	lbOpsDefaults.DisableIPv6 = lbDisableIPv6
+
+	eventBroadcaster := record.NewBroadcaster()
+	lbRecorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hetzner-ccm-loadbalancer"})
+
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &client.LoadBalancer,
 		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
@@ -190,6 +197,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		NetworkClient: &client.Network,
 		RobotClient:   robotClient,
 		NetworkID:     networkID,
+		Recorder:      lbRecorder,
 		Defaults:      lbOpsDefaults,
 	}
 
