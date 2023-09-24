@@ -299,6 +299,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	if _, err = l.lbOps.ReconcileHCLB(ctx, lb, svc); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

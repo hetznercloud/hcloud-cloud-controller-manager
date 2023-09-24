@@ -24,8 +24,10 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-var rng *rand.Rand
-var scopeButcher = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+var (
+	rng          *rand.Rand
+	scopeButcher = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+)
 
 func init() {
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))

@@ -20,16 +20,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot/client/cache"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/util"
+	hrobot "github.com/syself/hrobot-go"
 	"io"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/kubectl/pkg/scheme"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
+	robotclient "github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot/client"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
@@ -39,6 +47,17 @@ const (
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
+
+	robotUserNameENVVar = "ROBOT_USER_NAME"
+	robotPasswordENVVar = "ROBOT_PASSWORD"
+
+	// Only as reference - is used in hcops package.
+	// Default is 5 minutes.
+	RateLimitWaitTimeRobot = "RATE_LIMIT_WAIT_TIME_ROBOT"
+
+	// default is 3 minutes.
+	CacheTimeout = "CACHE_TIMEOUT"
+
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudNetworkRoutesEnabledENVVar         = "HCLOUD_NETWORK_ROUTES_ENABLED"
@@ -53,13 +72,17 @@ const (
 	hcloudMetricsAddress                     = ":8233"
 	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
+	hostNamePrefixRobot                      = "bm-"
 )
+
+var errMissingRobotCredentials = errors.New("missing robot credentials - cannot connect to robot API")
 
 // providerVersion is set by the build process using -ldflags -X.
 var providerVersion = "unknown"
 
 type cloud struct {
 	client       *hcloud.Client
+	robotClient  robotclient.Client
 	instances    *instances
 	routes       *routes
 	loadBalancer *loadBalancers
@@ -103,6 +126,24 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
 
+	robotUserName, foundRobotUserName := os.LookupEnv(robotUserNameENVVar)
+	robotPassword, foundRobotPassword := os.LookupEnv(robotPasswordENVVar)
+
+	cacheTimeout, err := util.GetEnvDuration(CacheTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if cacheTimeout == 0 {
+		cacheTimeout = 3 * time.Minute
+	}
+
+	var robClient robotclient.Client
+	if foundRobotUserName && foundRobotPassword {
+		c := hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+		robClient = cache.NewClient(c, cacheTimeout)
+	}
+
 	var networkID int64
 	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
 		n, _, err := client.Network.Get(context.Background(), v)
@@ -133,7 +174,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
-	_, _, err := client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	_, _, err = client.Server.List(context.Background(), hcloud.ServerListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -145,12 +186,19 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	lbOpsDefaults.DisableIPv6 = lbDisableIPv6
+
+	eventBroadcaster := record.NewBroadcaster()
+	lbRecorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hetzner-ccm-loadbalancer"})
+
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &client.LoadBalancer,
 		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
 		ActionClient:  &client.Action,
 		NetworkClient: &client.Network,
+		RobotClient:   robClient,
 		NetworkID:     networkID,
+		Recorder:      lbRecorder,
 		Defaults:      lbOpsDefaults,
 	}
 
@@ -166,7 +214,8 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	return &cloud{
 		client:       client,
-		instances:    newInstances(client, instancesAddressFamily, networkID),
+		robotClient:  robClient,
+		instances:    newInstances(client, robClient, instancesAddressFamily, networkID),
 		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,

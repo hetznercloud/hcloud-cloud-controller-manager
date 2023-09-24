@@ -309,6 +309,89 @@ On code change, Skaffold will repack the image & deploy it to your test cluster 
 
 *After setting this up, only the command from step 7 is required!*=
 
+### Bare-Metal Guide (Talos)
+
+Alltough this guide is specifically for [TalosOS](https://talos.dev), it should be easily adaptable to any k8s distribution.
+
+0. Setup Hetzner HCloud and Robot API Access
+
+In order for the provider integration hetzner to communicate with the Hetzner API ([HCloud API](https://docs.hetzner.cloud/) + [Robot API](https://robot.your-server.de/doc/webservice/en.html#preface)), we need to create a secret with the access data. The secret must be in the same namespace as the other CRs.
+
+```shell
+export HCLOUD_TOKEN="<YOUR-TOKEN>" \
+export HETZNER_ROBOT_USER="<YOUR-ROBOT-USER>" \
+export HETZNER_ROBOT_PASSWORD="<YOUR-ROBOT-PASSWORD>" \
+export HETZNER_SSH_PUB_PATH="<YOUR-SSH-PUBLIC-PATH>" \
+export HETZNER_SSH_PRIV_PATH="<YOUR-SSH-PRIVATE-PATH>" \
+```
+
+- HCLOUD_TOKEN: The project where your cluster will be placed to. You have to get a token from your HCloud Project.
+- HETZNER_ROBOT_USER: The User you have defined in robot under settings / Web
+- HETZNER_ROBOT_PASSWORD: The Robot Password you have set in robot under settings/web.
+- HETZNER_SSH_PUB_PATH: The Path to your generated Public SSH Key.
+- HETZNER_SSH_PRIV_PATH: The Path to your generated Private SSH Key. This is needed because CAPH uses this key to provision the node in Hetzner Dedicated.
+
+1. Make sure to name your root servers on Hetzner Robot with a `bm-` prefix, e.g. `bm-worker-1`
+2. Configure worker nodes to use the same name as hostname / node name
+
+worker.yaml
+
+```yaml
+machine:
+  network:
+    hostname: bm-worker-1
+```
+
+3. Enable External Cloud Provider
+
+worker.yaml
+
+```yaml
+externalCloudProvider:
+  enabled: true # Enable external cloud provider.
+  # A list of urls that point to additional manifests for an external cloud provider.
+  manifests:
+    - https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-bare-metal.yaml
+```
+
+5. Apply CCM Secrets
+
+```shell
+kubectl -n kube-system create secret generic hetzner --from-literal=hcloud=$HCLOUD_TOKEN --from-literal=robot-user=$HETZNER_ROBOT_USER --from-literal=robot-password=$HETZNER_ROBOT_PASSWORD
+
+kubectl -n kube-system create secret generic robot-ssh --from-literal=sshkey-name=cluster --from-file=ssh-privatekey=$HETZNER_SSH_PRIV_PATH --from-file=ssh-publickey=$HETZNER_SSH_PUB_PATH
+
+# Patch the created secret so it is automatically moved to the target cluster later.
+kubectl -n kube-system patch secret hetzner -p '{"metadata":{"labels":{"clusterctl.cluster.x-k8s.io/move":""}}}'
+```
+
+6. Check if CCM was configured successfully
+
+Get pod name:
+
+```shell
+kubectl -n kube-system get pods | grep ccm
+```
+
+Example output:
+
+```shell
+ccm-ccm-hetzner-86d4f578bb-hmzvm                1/1     Running   0             49m
+```
+
+Check logs:
+
+```shell
+kubectl -n kube-system logs pods/ccm-ccm-hetzner-86d4f578bb-hmzvm
+```
+
+You should see outputs like:
+
+```shell
+I1006 08:35:13.996304       1 event.go:294] "Event occurred" object="bm-worker-1" fieldPath="" kind="Node" apiVersion="v1" type="Normal" reason="Synced" message="Node synced successfully"
+I1006 08:35:14.554423       1 node_controller.go:465] Successfully initialized node bm-worker-3 with cloud provider
+```
+
 ## License
 
 Apache License, Version 2.0
