@@ -100,10 +100,10 @@ var replaceHex = regexp.MustCompile(`0x[0123456789abcdef]+`)
 func (lt *LoggingTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 
 	stack := replaceHex.ReplaceAllString(string(debug.Stack()), "0xX")
+	stack = strings.ReplaceAll(stack, "\n", "\\n")
 
 	resp, err = lt.roundTripper.RoundTrip(req)
 	if err != nil {
-		stack = strings.ReplaceAll(stack, "\n", "\\n")
 		klog.InfoS("hetzner robot API. Error.", "err", err, "method", req.Method, "url", req.URL, "stack", stack)
 		return resp, err
 	}
