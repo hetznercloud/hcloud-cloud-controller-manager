@@ -103,6 +103,7 @@ func (lt *LoggingTransport) RoundTrip(req *http.Request) (resp *http.Response, e
 
 	resp, err = lt.roundTripper.RoundTrip(req)
 	if err != nil {
+		stack = strings.ReplaceAll(stack, "\n", "\\n")
 		klog.InfoS("hetzner robot API. Error.", "err", err, "method", req.Method, "url", req.URL, "stack", stack)
 		return resp, err
 	}
