@@ -21,7 +21,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
+	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -88,6 +91,25 @@ type cloud struct {
 	networkID    int64
 }
 
+type LoggingTransport struct {
+	roundTripper http.RoundTripper
+}
+
+var replaceHex = regexp.MustCompile(`0x[0123456789abcdef]+`)
+
+func (lt *LoggingTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+
+	stack := replaceHex.ReplaceAllString(string(debug.Stack()), "0xX")
+
+	resp, err = lt.roundTripper.RoundTrip(req)
+	if err != nil {
+		klog.InfoS("hetzner robot API. Error.", "err", err, "method", req.Method, "url", req.URL, "stack", stack)
+		return resp, err
+	}
+	klog.InfoS("hetzner robot API called.", "statusCode", resp.StatusCode, "method", req.Method, "url", req.URL, "stack", stack)
+	return resp, nil
+}
+
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -139,7 +161,12 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	var robotClient robotclient.Client
 	if foundRobotUserName && foundRobotPassword {
-		c := hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+		client := &http.Client{
+			Transport: &LoggingTransport{
+				roundTripper: http.DefaultTransport,
+			},
+		}
+		c := hrobot.NewBasicAuthClientWithCustomHttpClient(robotUserName, robotPassword, client)
 		robotClient = cache.NewClient(c, cacheTimeout)
 	}
 
