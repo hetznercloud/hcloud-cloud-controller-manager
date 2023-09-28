@@ -77,16 +77,11 @@ version::ldflags() {
         local key=${1}
         local val=${2}
         ldflags+=(
-            "-X 'github.com/syself/hetzner-cloud-controller-manager/version.${key}=${val}'"
+            "-X 'github.com/syself/hetzner-cloud-controller-manager/hcloud.${key}=${val}'"
         )
     }
 
-    add_ldflag "buildDate" "$(date ${SOURCE_DATE_EPOCH:+"--date=@${SOURCE_DATE_EPOCH}"} -u +'%Y-%m-%dT%H:%M:%SZ')"
-    add_ldflag "gitCommit" "${GIT_COMMIT}"
-    add_ldflag "gitTreeState" "${GIT_TREE_STATE}"
-    add_ldflag "gitMajor" "${GIT_MAJOR}"
-    add_ldflag "gitMinor" "${GIT_MINOR}"
-    add_ldflag "gitVersion" "${GIT_VERSION}"
+    add_ldflag "providerVersion" "${GIT_VERSION}"
 
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"
