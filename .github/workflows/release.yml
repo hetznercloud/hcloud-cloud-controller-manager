@@ -1,0 +1,157 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+env:
+  IMAGE_NAME: hetzner-cloud-controller-manager
+  REGISTRY: ghcr.io/syself
+  metadata_flavor: latest=true
+  metadata_tags: type=ref,event=tag
+permissions:
+  contents: write
+  packages: write
+  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+  id-token: write
+jobs:
+  manager-image:
+    name: Build and push manager image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-go
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2
+
+      - name: Generate metadata
+        id: meta
+        uses: ./.github/actions/metadata
+        with:
+          metadata_flavor: ${{ env.metadata_flavor }}
+          metadata_tags: ${{ env.metadata_tags }}
+
+      - name: Login to ghcr.io for CI
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 # v3.1.2
+
+      - name: Install Bom
+        shell: bash
+        run: |
+          curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.4.1/bom-linux-amd64 -o bom
+          sudo mv ./bom /usr/local/bin/bom
+          sudo chmod +x /usr/local/bin/bom
+
+      - name: Setup Env
+        run: |
+          DOCKER_BUILD_LDFLAGS="$(hack/version.sh)"
+          echo 'DOCKER_BUILD_LDFLAGS<<EOF' >> $GITHUB_ENV
+          echo $DOCKER_BUILD_LDFLAGS >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Build and push manager image
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5
+        id: docker_build_release
+        with:
+          provenance: false
+          context: .
+          file: ./images/hetzner-cloud-controller-manager/Dockerfile
+          push: true
+          build-args: |
+            LDFLAGS=${{ env.DOCKER_BUILD_LDFLAGS }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha, scope=${{ github.workflow }}
+          cache-to: type=gha, mode=max, scope=${{ github.workflow }}
+
+      - name: Sign Container Images
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign --yes ghcr.io/syself/hetzner-cloud-controller-manager@${{ steps.docker_build_release.outputs.digest }}
+
+      - name: Generate SBOM
+        shell: bash
+        # To-Do: generate SBOM from source after https://github.com/kubernetes-sigs/bom/issues/202 is fixed
+        # To-Do: format SBOM output to json after cosign v2.0 is released with https://github.com/sigstore/cosign/pull/2479
+        run: |
+          bom generate -o sbom_ci_main_hetzner-cloud-controller-manager_${{ steps.meta.outputs.version }}.spdx \
+          --image=ghcr.io/syself/hetzner-cloud-controller-manager:${{ steps.meta.outputs.version }}
+
+      - name: Attach SBOM to Container Images
+        run: |
+          cosign attach sbom --sbom sbom_ci_main_hetzner-cloud-controller-manager_${{ steps.meta.outputs.version }}.spdx ghcr.io/syself/hetzner-cloud-controller-manager@${{ steps.docker_build_release.outputs.digest }}
+
+      - name: Sign SBOM Images
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          docker_build_release_digest="${{ steps.docker_build_release.outputs.digest }}"
+          image_name="ghcr.io/syself/hetzner-cloud-controller-manager:${docker_build_release_digest/:/-}.sbom"
+          docker_build_release_sbom_digest="sha256:$(docker buildx imagetools inspect --raw ${image_name} | sha256sum | head -c 64)"
+          cosign sign --yes "ghcr.io/syself/hetzner-cloud-controller-manager@${docker_build_release_sbom_digest}"
+
+      - name: Image Releases digests
+        shell: bash
+        run: |
+          mkdir -p image-digest/
+          echo "ghcr.io/syself/hetzner-cloud-controller-manager:{{ steps.meta.outputs.version }}@${{ steps.docker_build_release.outputs.digest }}" >> image-digest/hetzner-cloud-controller-manager.txt
+
+      # Upload artifact digests
+      - name: Upload artifact digests
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: image-digest hetzner-cloud-controller-manager
+          path: image-digest
+          retention-days: 90
+
+      - name: Image Digests Output
+        shell: bash
+        run: |
+          cd image-digest/
+          find -type f | sort | xargs -d '\n' cat
+
+  release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    needs:
+      - manager-image
+    steps:
+      - name: Set env
+        run: echo "RELEASE_TAG=${GITHUB_REF:10}" >> $GITHUB_ENV
+      - name: checkout code
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        with:
+          fetch-depth: 0
+      - name: Install go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        with:
+          go-version-file: "go.mod"
+          cache: true
+          cache-dependency-path: go.sum
+      - name: install kustomize
+        run: |
+          make kustomize
+      - name: generate release artifacts
+        run: |
+          make release
+      - name: generate release notes
+        run: |
+          make release-notes
+      - name: Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          draft: true
+          files: out/*
+          body_path: _releasenotes/${{ env.RELEASE_TAG }}.md
