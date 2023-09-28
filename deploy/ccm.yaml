@@ -76,7 +76,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: quay.io/syself/hetzner-cloud-controller-manager:v1.9.1 # x-release-please-version
+          image: quay.io/syself/hetzner-cloud-controller-manager:v1.18.0-0.0.1 # x-release-please-version
           ports:
             - name: metrics
               containerPort: 8233
