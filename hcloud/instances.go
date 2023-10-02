@@ -158,5 +158,6 @@ func nodeAddresses(addressFamily addressFamily, networkID int64, server *hcloud.
 			}
 		}
 	}
+
 	return addresses
 }

@@ -197,6 +197,10 @@ const (
 	// performing the health check.
 	LBSvcHealthCheckHTTPPath Name = "load-balancer.hetzner.cloud/health-check-http-path"
 
+	// LBSvcHealthCheckTLSPort specifies the port for which to enable TLS
+	// performing the health check.
+	LBSvcHealthCheckTLSPort Name = "load-balancer.hetzner.cloud/health-check-tls-port"
+
 	// LBSvcHealthCheckHTTPValidateCertificate specifies whether the health
 	// check should validate the SSL certificate that comes from the target
 	// nodes.
@@ -267,6 +271,7 @@ func LBToService(svc *corev1.Service, lb *hcloud.LoadBalancer) error {
 			sa.Annotate(LBSvcHealthCheckHTTPPath, hclbService.HealthCheck.HTTP.Path)
 			sa.Annotate(LBSvcHealthCheckHTTPStatusCodes, hclbService.HealthCheck.HTTP.StatusCodes)
 		}
+
 		if isHTTPSHealthCheck(hclbService) {
 			sa.Annotate(LBSvcHealthCheckHTTPValidateCertificate, hclbService.HealthCheck.HTTP.TLS)
 		}
