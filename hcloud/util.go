@@ -99,6 +99,11 @@ func getRobotServerByID(c robotclient.Client, id int, node *corev1.Node) (*model
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	// check whether name matches - otherwise this server does not belong to the respective node anymore
+	if server.Name != node.Name {
+		return nil, nil
+	}
+
 	// return nil, nil if server could not be found
 	return server, nil
 }

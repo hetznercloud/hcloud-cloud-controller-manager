@@ -94,7 +94,6 @@ func (i *instances) lookupServer(
 			}
 		}
 	}
-
 	return hcloudServer, bmServer, isHCloudServer, nil
 }
 
@@ -113,6 +112,7 @@ func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool
 func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceShutdown"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	hcloudServer, _, isHCloudServer, err := i.lookupServer(ctx, node)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
