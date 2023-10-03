@@ -57,7 +57,7 @@ const (
 	// Default is 5 minutes.
 	RateLimitWaitTimeRobot = "RATE_LIMIT_WAIT_TIME_ROBOT"
 
-	// default is 3 minutes.
+	// default is 5 minutes.
 	CacheTimeout = "CACHE_TIMEOUT"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
@@ -98,7 +98,6 @@ type LoggingTransport struct {
 var replaceHex = regexp.MustCompile(`0x[0123456789abcdef]+`)
 
 func (lt *LoggingTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-
 	stack := replaceHex.ReplaceAllString(string(debug.Stack()), "0xX")
 	stack = strings.ReplaceAll(stack, "\n", "\\n")
 
@@ -157,7 +156,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	if cacheTimeout == 0 {
-		cacheTimeout = 3 * time.Minute
+		cacheTimeout = 5 * time.Minute
 	}
 
 	var robotClient robotclient.Client
