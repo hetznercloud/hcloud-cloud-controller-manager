@@ -1,8 +1,11 @@
-# Kubernetes Cloud Controller Manager for Hetzner Cloud
+# Kubernetes Cloud Controller Manager for Hetzner Cloud & Hetzner Dedicated
 
 [![GitHub Actions status](https://github.com/syself/hetzner-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/syself/hetzner-cloud-controller-manager/actions)
 
-The Hetzner Cloud controller manager integrates your Kubernetes cluster with the Hetzner Cloud API.
+The Hetzner Cloud controller manager seamlessly integrates your Kubernetes cluster with both the Hetzner Cloud API and the Robot API.
+
+> This specific fork of the CCM has been enhanced to support Hetzner Dedicated servers and is actively maintained by [Syself](https://syself.com). Its primary purpose is to facilitate the operation of the [Cluster API Provider Integration Hetzner](https://github.com/syself/cluster-api-provider-hetzner).
+> If you have inquiries or are contemplating deploying production-grade Kubernetes clusters on Hetzner, we welcome you to reach out to us at [info@syself.com](mailto:info@syself.com?subject=cluster-api-provider-hetzner).
 
 ## Features
 
@@ -10,6 +13,7 @@ The Hetzner Cloud controller manager integrates your Kubernetes cluster with the
 * **zones interface**: makes Kubernetes aware of the failure domain of the server by setting the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels on the node.
 * **Private Networks**: allows to use Hetzner Cloud Private Networks for your pods traffic.
 * **Load Balancers**: allows to use Hetzner Cloud Load Balancers with Kubernetes Services
+* **Hetzner Dedicated**: use Baremetal Server and Cloud Servers together
 
 Read more about cloud controllers in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 
