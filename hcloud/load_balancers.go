@@ -31,15 +31,13 @@ type LoadBalancerOps interface {
 
 type loadBalancers struct {
 	lbOps                        LoadBalancerOps
-	ac                           hcops.HCloudActionClient // Deprecated: should only be referenced by hcops types
 	disablePrivateIngressDefault bool
 	disableIPv6Default           bool
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
 	return &loadBalancers{
 		lbOps:                        lbOps,
-		ac:                           ac,
 		disablePrivateIngressDefault: disablePrivateIngressDefault,
 		disableIPv6Default:           disableIPv6Default,
 	}

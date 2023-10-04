@@ -89,7 +89,6 @@ type LoadBalancerTestCase struct {
 	// Set by run
 	LBOps         *hcops.MockLoadBalancerOps
 	LBClient      *mocks.LoadBalancerClient
-	ActionClient  *mocks.ActionClient
 	LoadBalancers *loadBalancers
 	Service       *corev1.Service
 }
@@ -99,9 +98,6 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 
 	tt.LBOps = &hcops.MockLoadBalancerOps{}
 	tt.LBOps.Test(t)
-
-	tt.ActionClient = &mocks.ActionClient{}
-	tt.ActionClient.Test(t)
 
 	tt.LBClient = &mocks.LoadBalancerClient{}
 	tt.LBClient.Test(t)
@@ -125,12 +121,11 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.ActionClient, tt.DisablePrivateIngressDefault, tt.DisableIPv6Default)
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.DisablePrivateIngressDefault, tt.DisableIPv6Default)
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)
 	tt.LBClient.AssertExpectations(t)
-	tt.ActionClient.AssertExpectations(t)
 }
 
 func RunLoadBalancerTests(t *testing.T, tests []LoadBalancerTestCase) {
