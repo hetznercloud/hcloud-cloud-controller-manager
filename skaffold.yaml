@@ -30,3 +30,6 @@ profiles:
       - op: replace
         path: /manifests/helm/releases/0/setValues/networking.enabled
         value: false
+      - op: add
+        path: /manifests/helm/releases/0/setValues/robot.enabled
+        value: true

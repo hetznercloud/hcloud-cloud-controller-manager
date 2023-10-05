@@ -24,11 +24,26 @@ env:
   # The following two variables should *not* be set here:
   # HCLOUD_METRICS_ENABLED - see monitoring.enabled
   # HCLOUD_NETWORK - see networking.enabled
+  # ROBOT_ENABLED - see robot.enabled
+
   HCLOUD_TOKEN:
     valueFrom:
       secretKeyRef:
         name: hcloud
         key: token
+
+  ROBOT_USER:
+    valueFrom:
+      secretKeyRef:
+        name: hcloud
+        key: robot-user
+        optional: true
+  ROBOT_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: hcloud
+        key: robot-password
+        optional: true
 
 image:
   repository: hetznercloud/hcloud-cloud-controller-manager
@@ -81,3 +96,7 @@ additionalTolerations: []
 
 nodeSelector: {}
   # node-role.kubernetes.io/control-plane: ""
+
+robot:
+  # Set to true to enable support for Robot (Dedicated) servers.
+  enabled: false

@@ -75,6 +75,18 @@ spec:
                 secretKeyRef:
                   key: token
                   name: hcloud
+            - name: ROBOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: robot-password
+                  name: hcloud
+                  optional: true
+            - name: ROBOT_USER
+              valueFrom:
+                secretKeyRef:
+                  key: robot-user
+                  name: hcloud
+                  optional: true
             - name: HCLOUD_NETWORK
               valueFrom:
                 secretKeyRef:

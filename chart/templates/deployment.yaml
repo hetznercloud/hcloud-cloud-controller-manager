@@ -77,6 +77,10 @@ spec:
             - name: HCLOUD_METRICS_ENABLED
               value: "false"
             {{- end }}
+            {{- if $.Values.robot.enabled }}
+            - name: ROBOT_ENABLED
+              value: "true"
+            {{- end }}
           image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }} # x-release-please-version
           ports:
             {{- if $.Values.monitoring.enabled }}
