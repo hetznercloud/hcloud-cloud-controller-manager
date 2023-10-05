@@ -30,6 +30,20 @@ env:
         name: hcloud
         key: token
 
+  # TODO: get field names from existing hetzner-ccm deployment
+  ROBOT_USER_NAME:
+    valueFrom:
+      secretKeyRef:
+        name: hcloud
+        key: robot-user
+        optional: true
+  ROBOT_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: hcloud
+        key: robot-password
+        optional: true
+
 image:
   repository: hetznercloud/hcloud-cloud-controller-manager
   tag: '{{ $.Chart.Version }}'
