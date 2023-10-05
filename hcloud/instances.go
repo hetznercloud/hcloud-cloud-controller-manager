@@ -20,48 +20,99 @@ import (
 	"context"
 	"fmt"
 
+	robotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type instances struct {
 	client        *hcloud.Client
+	robotClient   robot.Client
 	addressFamily config.AddressFamily
 	networkID     int64
 }
 
-func newInstances(client *hcloud.Client, addressFamily config.AddressFamily, networkID int64) *instances {
-	return &instances{client, addressFamily, networkID}
+var errServerNotFound = fmt.Errorf("server not found")
+
+func newInstances(client *hcloud.Client, robotClient robot.Client, addressFamily config.AddressFamily, networkID int64) *instances {
+	return &instances{client, robotClient, addressFamily, networkID}
 }
 
-// lookupServer attempts to locate the corresponding hcloud.Server for a given corev1.Node
+// lookupServer attempts to locate the corresponding [*hcloud.Server] or [*robotmodels.Server] for a given [*corev1.Node].
 // It returns an error if the Node has an invalid provider ID or if API requests failed.
-// It can return a nil [*hcloud.Server] if neither the ProviderID nor the Name matches an existing server.
-func (i *instances) lookupServer(ctx context.Context, node *corev1.Node) (*hcloud.Server, error) {
-	var server *hcloud.Server
+// It can return nil server if neither the ProviderID nor the Name matches an existing server.
+func (i *instances) lookupServer(
+	ctx context.Context,
+	node *corev1.Node,
+) (genericServer, error) {
 	if node.Spec.ProviderID != "" {
-		serverID, err := providerid.ToServerID(node.Spec.ProviderID)
+		var serverID int64
+		serverID, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert provider id to server id: %w", err)
 		}
 
-		server, _, err = i.client.Server.GetByID(ctx, serverID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to lookup server \"%d\": %w", serverID, err)
+		if isCloudServer {
+			server, err := getCloudServerByID(ctx, i.client, serverID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get hcloud server \"%d\": %w", serverID, err)
+			}
+
+			if server == nil {
+				return nil, nil
+			}
+
+			return hcloudServer{server}, nil
 		}
-	} else {
-		var err error
-		server, _, err = i.client.Server.GetByName(ctx, node.Name)
+
+		if i.robotClient == nil {
+			return nil, errMissingRobotCredentials
+		}
+		server, err := getRobotServerByID(i.robotClient, int(serverID), node)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lookup server \"%s\": %w", node.Name, err)
+			return nil, fmt.Errorf("failed to get robot server \"%d\": %w", serverID, err)
+		}
+
+		if server == nil {
+			return nil, nil
+		}
+
+		return robotServer{server, i.robotClient}, nil
+	}
+
+	// If the node has no provider ID we try to find the server by name from
+	// both sources. In case we find two servers, we return an error.
+	cloudServer, err := getCloudServerByName(ctx, i.client, node.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get hcloud server %q: %w", node.Name, err)
+	}
+
+	var rServer *robotmodels.Server
+	if i.robotClient != nil {
+		rServer, err = getRobotServerByName(i.robotClient, node)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get robot server %q: %w", node.Name, err)
 		}
 	}
-	return server, nil
+
+	switch {
+	case cloudServer != nil && rServer != nil:
+		return nil, fmt.Errorf("found both a cloud & robot server for name %q", node.Name)
+	case cloudServer != nil && rServer == nil:
+		return hcloudServer{cloudServer}, nil
+	case cloudServer == nil && rServer != nil:
+		return robotServer{rServer, i.robotClient}, nil
+	default:
+		// Both nil
+		return nil, nil
+	}
 }
 
 func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool, error) {
@@ -70,7 +121,7 @@ func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return server != nil, nil
@@ -82,13 +133,21 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bo
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
-		return false, err
-	}
-	if server == nil {
-		return false, fmt.Errorf("failed to find server status: no matching server found for node '%s'", node.Name)
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return server.Status == hcloud.ServerStatusOff, nil
+	if server == nil {
+		return false, fmt.Errorf(
+			"%s: failed to get instance metadata: no matching server found for node '%s': %w",
+			op, node.Name, errServerNotFound)
+	}
+
+	shutdown, err := server.Shutdown()
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return shutdown, nil
 }
 
 func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
@@ -97,22 +156,24 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
-		return nil, err
-	}
-	if server == nil {
-		return nil, fmt.Errorf("failed to get instance metadata: no matching server found for node '%s'", node.Name)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &cloudprovider.InstanceMetadata{
-		ProviderID:    providerid.FromServerID(server.ID),
-		InstanceType:  server.ServerType.Name,
-		NodeAddresses: nodeAddresses(i.addressFamily, i.networkID, server),
-		Zone:          server.Datacenter.Name,
-		Region:        server.Datacenter.Location.Name,
-	}, nil
+	if server == nil {
+		return nil, fmt.Errorf(
+			"%s: failed to get instance metadata: no matching server found for node '%s': %w",
+			op, node.Name, errServerNotFound)
+	}
+
+	metadata, err := server.Metadata(i.addressFamily, i.networkID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return metadata, nil
 }
 
-func nodeAddresses(addressFamily config.AddressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
+func hcloudNodeAddresses(addressFamily config.AddressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,
@@ -153,4 +214,82 @@ func nodeAddresses(addressFamily config.AddressFamily, networkID int64, server *
 		}
 	}
 	return addresses
+}
+
+func robotNodeAddresses(addressFamily config.AddressFamily, server *robotmodels.Server) []corev1.NodeAddress {
+	var addresses []corev1.NodeAddress
+	addresses = append(
+		addresses,
+		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
+	)
+
+	if addressFamily == config.AddressFamilyIPv6 || addressFamily == config.AddressFamilyDualStack {
+		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
+		// TODO: Actually parse & do this properly
+		hostAddress := server.ServerIPv6Net
+		hostAddress += "1"
+
+		addresses = append(
+			addresses,
+			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress},
+		)
+	}
+
+	if addressFamily == config.AddressFamilyIPv4 || addressFamily == config.AddressFamilyDualStack {
+		addresses = append(
+			addresses,
+			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP},
+		)
+	}
+
+	return addresses
+}
+
+type genericServer interface {
+	Shutdown() (bool, error)
+	Metadata(addressFamily config.AddressFamily, networkID int64) (*cloudprovider.InstanceMetadata, error)
+}
+
+type hcloudServer struct {
+	*hcloud.Server
+}
+
+func (s hcloudServer) Shutdown() (bool, error) {
+	return s.Status == hcloud.ServerStatusOff, nil
+}
+
+func (s hcloudServer) Metadata(addressFamily config.AddressFamily, networkID int64) (*cloudprovider.InstanceMetadata, error) {
+	return &cloudprovider.InstanceMetadata{
+		ProviderID:    providerid.FromCloudServerID(s.ID),
+		InstanceType:  s.ServerType.Name,
+		NodeAddresses: hcloudNodeAddresses(addressFamily, networkID, s.Server),
+		Zone:          s.Datacenter.Name,
+		Region:        s.Datacenter.Location.Name,
+	}, nil
+}
+
+type robotServer struct {
+	*robotmodels.Server
+	robotClient robot.Client
+}
+
+func (s robotServer) Shutdown() (bool, error) {
+	resetStatus, err := s.robotClient.ResetGet(s.ServerNumber)
+	if err != nil {
+		return false, err
+	}
+
+	// OperationStatus is not supported for server models using the tower case, in that case the value is "not supported"
+	// When the server is powered off, the OperatingStatus is "shut off"
+	return resetStatus.OperatingStatus == "shut off", nil
+}
+
+func (s robotServer) Metadata(addressFamily config.AddressFamily, _ int64) (*cloudprovider.InstanceMetadata, error) {
+	return &cloudprovider.InstanceMetadata{
+		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
+		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
+		NodeAddresses: robotNodeAddresses(addressFamily, s.Server),
+		Zone:          getZoneOfRobotServer(s.Server),
+		Region:        getRegionOfRobotServer(s.Server),
+	}, nil
 }

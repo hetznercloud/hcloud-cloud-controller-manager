@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -20,6 +21,7 @@ func TestRead(t *testing.T) {
 			name: "minimal",
 			env:  []string{},
 			want: HCCMConfiguration{
+				Robot:        RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
@@ -35,6 +37,7 @@ func TestRead(t *testing.T) {
 			},
 			want: HCCMConfiguration{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Robot:        RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				Network: NetworkConfiguration{
@@ -58,6 +61,29 @@ func TestRead(t *testing.T) {
 					Endpoint: "https://api.example.com",
 					Debug:    true,
 				},
+				Robot:        RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "robot",
+			env: []string{
+				"ROBOT_USER_NAME", "foobar",
+				"ROBOT_PASSWORD", "secret-password",
+				"ROBOT_RATE_LIMIT_WAIT_TIME", "5m",
+				"ROBOT_CACHE_TIMEOUT", "1m",
+			},
+			want: HCCMConfiguration{
+				Robot: RobotClientConfiguration{
+					Enabled:           true,
+					Username:          "foobar",
+					Password:          "secret-password",
+					RateLimitWaitTime: 5 * time.Minute,
+					CacheTimeout:      1 * time.Minute,
+				},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
@@ -70,6 +96,7 @@ func TestRead(t *testing.T) {
 				"HCLOUD_INSTANCES_ADDRESS_FAMILY", "ipv6",
 			},
 			want: HCCMConfiguration{
+				Robot:        RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
@@ -83,6 +110,7 @@ func TestRead(t *testing.T) {
 				"HCLOUD_NETWORK", "foobar",
 			},
 			want: HCCMConfiguration{
+				Robot:        RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
@@ -101,6 +129,7 @@ func TestRead(t *testing.T) {
 				"HCLOUD_NETWORK_ROUTES_ENABLED", "false",
 			},
 			want: HCCMConfiguration{
+				Robot:        RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
@@ -122,6 +151,7 @@ func TestRead(t *testing.T) {
 				"HCLOUD_LOAD_BALANCERS_DISABLE_IPV6", "true",
 			},
 			want: HCCMConfiguration{
+				Robot:    RobotClientConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{
@@ -159,6 +189,15 @@ failed to parse HCLOUD_LOAD_BALANCERS_DISABLE_IPV6: strconv.ParseBool: parsing "
 failed to parse HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK: strconv.ParseBool: parsing "oui": invalid syntax
 failed to parse HCLOUD_NETWORK_ROUTES_ENABLED: strconv.ParseBool: parsing "si": invalid syntax`),
 		},
+		{
+			name: "error parsing duration values",
+			env: []string{
+				"ROBOT_RATE_LIMIT_WAIT_TIME", "42fortnights",
+				"ROBOT_CACHE_TIMEOUT", "biweekly",
+			},
+			wantErr: errors.New(`failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in duration "42fortnights"
+failed to parse ROBOT_CACHE_TIMEOUT: time: invalid duration "biweekly"`),
+		},
 	}
 
 	for _, tt := range tests {
@@ -180,6 +219,7 @@ failed to parse HCLOUD_NETWORK_ROUTES_ENABLED: strconv.ParseBool: parsing "si": 
 func TestHCCMConfiguration_Validate(t *testing.T) {
 	type fields struct {
 		HCloudClient HCloudClientConfiguration
+		Robot        RobotClientConfiguration
 		Metrics      MetricsConfiguration
 		Instance     InstanceConfiguration
 		LoadBalancer LoadBalancerConfiguration
@@ -251,11 +291,23 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			},
 			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_LOCATION\"/\"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE\", only one of them can be set"),
 		},
+		{
+			name: "robot & routes activated",
+			fields: fields{
+
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Route:        RouteConfiguration{Enabled: true},
+				Robot:        RobotClientConfiguration{Enabled: true},
+			},
+			wantErr: errors.New("using Routes with Robot is not supported"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := HCCMConfiguration{
 				HCloudClient: tt.fields.HCloudClient,
+				Robot:        tt.fields.Robot,
 				Metrics:      tt.fields.Metrics,
 				Instance:     tt.fields.Instance,
 				LoadBalancer: tt.fields.LoadBalancer,
@@ -271,3 +323,5 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Robot Config Tests

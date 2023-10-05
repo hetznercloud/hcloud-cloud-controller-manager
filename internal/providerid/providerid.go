@@ -7,30 +7,66 @@ import (
 )
 
 const (
-	// providerPrefix is the prefix for all provider IDs. It MUST not be changed,
-	// otherwise existing nodes will not be recognized anymore.
-	providerPrefix = "hcloud://"
+	// prefixCloud is the prefix for Cloud Server provider IDs.
+	//
+	// It MUST not be changed, otherwise existing nodes will not be recognized anymore.
+	prefixCloud = "hcloud://"
+
+	// prefixRobot is the prefix for Robot Server provider IDs.
+	//
+	// It MUST not be changed, otherwise existing nodes will not be recognized anymore.
+	prefixRobot = "hrobot://"
+
+	// prefixRobot is the prefix used by the Syself Fork for Robot Server provider IDs.
+	// This Prefix is no longer used for new nodes, instead [prefixRobot] should be used.
+	//
+	// It MUST not be changed, otherwise existing nodes will not be recognized anymore.
+	prefixRobotLegacy = "hcloud://bm-"
 )
 
-// ToServerID converts a ProviderID to a server ID.
-func ToServerID(providerID string) (int64, error) {
-	if !strings.HasPrefix(providerID, providerPrefix) {
-		return 0, fmt.Errorf("providerID does not have the expected prefix %s: %s", providerPrefix, providerID)
+// ToServerID parses the Cloud or Robot Server ID from a ProviderID.
+//
+// This method supports all formats for the ProviderID that were ever used.
+// If a format is ever dropped from this method the Nodes that still use that
+// format will get abandoned and can no longer be processed by HCCM.
+func ToServerID(providerID string) (id int64, isCloudServer bool, err error) {
+	if !strings.HasPrefix(providerID, prefixCloud) &&
+		!strings.HasPrefix(providerID, prefixRobot) &&
+		!strings.HasPrefix(providerID, prefixRobotLegacy) {
+		return 0, false, fmt.Errorf("providerID does not have one of the the expected prefixes (%s, %s, %s): %s", prefixCloud, prefixRobot, prefixRobotLegacy, providerID)
 	}
 
-	idString := strings.ReplaceAll(providerID, providerPrefix, "")
+	idString := providerID
+	switch {
+	case strings.HasPrefix(providerID, prefixRobotLegacy):
+		// This case needs to be first, as prefixCloud is a superset of prefixRobotLegacy
+		idString = strings.ReplaceAll(idString, prefixRobotLegacy, "")
+
+	case strings.HasPrefix(providerID, prefixCloud):
+		isCloudServer = true
+		idString = strings.ReplaceAll(providerID, prefixCloud, "")
+
+	case strings.HasPrefix(providerID, prefixRobot):
+		idString = strings.ReplaceAll(idString, prefixRobot, "")
+	}
+
 	if idString == "" {
-		return 0, fmt.Errorf("providerID is missing a serverID: %s", providerID)
+		return 0, false, fmt.Errorf("providerID is missing a serverID: %s", providerID)
 	}
 
-	id, err := strconv.ParseInt(idString, 10, 64)
+	id, err = strconv.ParseInt(idString, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("unable to parse server id: %s", providerID)
+		return 0, false, fmt.Errorf("unable to parse server id: %s", providerID)
 	}
-	return id, nil
+	return id, isCloudServer, nil
 }
 
-// FromServerID converts a server ID to a ProviderID.
-func FromServerID(serverID int64) string {
-	return fmt.Sprintf("%s%d", providerPrefix, serverID)
+// FromCloudServerID generates the canonical ProviderID for a Cloud Server.
+func FromCloudServerID(serverID int64) string {
+	return fmt.Sprintf("%s%d", prefixCloud, serverID)
+}
+
+// FromRobotServerNumber generates the canonical ProviderID for a Robot Server.
+func FromRobotServerNumber(serverNumber int) string {
+	return fmt.Sprintf("%s%d", prefixRobot, serverNumber)
 }

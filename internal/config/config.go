@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 const (
@@ -12,6 +13,11 @@ const (
 	hcloudEndpoint = "HCLOUD_ENDPOINT"
 	hcloudNetwork  = "HCLOUD_NETWORK"
 	hcloudDebug    = "HCLOUD_DEBUG"
+
+	robotUserName          = "ROBOT_USER_NAME"
+	robotPassword          = "ROBOT_PASSWORD"
+	robotRateLimitWaitTime = "ROBOT_RATE_LIMIT_WAIT_TIME"
+	robotCacheTimeout      = "ROBOT_CACHE_TIMEOUT"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 
@@ -34,6 +40,14 @@ type HCloudClientConfiguration struct {
 	Token    string
 	Endpoint string
 	Debug    bool
+}
+
+type RobotClientConfiguration struct {
+	Enabled           bool
+	Username          string
+	Password          string
+	RateLimitWaitTime time.Duration
+	CacheTimeout      time.Duration
 }
 
 type MetricsConfiguration struct {
@@ -73,6 +87,7 @@ type RouteConfiguration struct {
 
 type HCCMConfiguration struct {
 	HCloudClient HCloudClientConfiguration
+	Robot        RobotClientConfiguration
 	Metrics      MetricsConfiguration
 	Instance     InstanceConfiguration
 	LoadBalancer LoadBalancerConfiguration
@@ -95,6 +110,22 @@ func Read() (HCCMConfiguration, error) {
 	cfg.HCloudClient.Debug, err = getEnvBool(hcloudDebug, false)
 	if err != nil {
 		errs = append(errs, err)
+	}
+
+	cfg.Robot.Username = os.Getenv(robotUserName)
+	cfg.Robot.Password = os.Getenv(robotPassword)
+	// Enable Robot Support when both credentials are set
+	cfg.Robot.Enabled = cfg.Robot.Username != "" && cfg.Robot.Password != ""
+	cfg.Robot.RateLimitWaitTime, err = getEnvDuration(robotRateLimitWaitTime)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	cfg.Robot.CacheTimeout, err = getEnvDuration(robotCacheTimeout)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.Robot.CacheTimeout == 0 {
+		cfg.Robot.CacheTimeout = 5 * time.Minute
 	}
 
 	cfg.Metrics.Enabled, err = getEnvBool(hcloudMetricsEnabled, true)
@@ -168,6 +199,12 @@ func (c HCCMConfiguration) Validate() (err error) {
 		errs = append(errs, fmt.Errorf("invalid value for %q/%q, only one of them can be set", hcloudLoadBalancersLocation, hcloudLoadBalancersNetworkZone))
 	}
 
+	if c.Robot.Enabled {
+		if c.Route.Enabled {
+			errs = append(errs, fmt.Errorf("using Routes with Robot is not supported"))
+		}
+	}
+
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
@@ -185,6 +222,22 @@ func getEnvBool(key string, defaultValue bool) (bool, error) {
 	b, err := strconv.ParseBool(v)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse %s: %v", key, err)
+	}
+
+	return b, nil
+}
+
+// getEnvDuration returns the duration parsed from the environment variable with the given key and a potential error
+// parsing the var. Returns false if the env var is unset.
+func getEnvDuration(key string) (time.Duration, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return 0, nil
+	}
+
+	b, err := time.ParseDuration(v)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse %s: %v", key, err)
 	}
 
 	return b, nil
