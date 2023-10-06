@@ -15,7 +15,7 @@ const (
 // ToServerID converts a ProviderID to a server ID.
 func ToServerID(providerID string) (int64, error) {
 	if !strings.HasPrefix(providerID, providerPrefix) {
-		return 0, fmt.Errorf("providerID does not have the expected prefix hcloud://: %s", providerID)
+		return 0, fmt.Errorf("providerID does not have the expected prefix %s: %s", providerPrefix, providerID)
 	}
 
 	idString := strings.ReplaceAll(providerID, providerPrefix, "")
