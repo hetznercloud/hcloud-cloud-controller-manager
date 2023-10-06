@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +12,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -594,7 +593,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 	// Extract HC server IDs of all K8S nodes assigned to the K8S cluster.
 	for _, node := range nodes {
-		id, err := providerIDToServerID(node.Spec.ProviderID)
+		id, err := providerid.ToServerID(node.Spec.ProviderID)
 		if err != nil {
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
@@ -1202,28 +1201,6 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	}
 
 	return opts, nil
-}
-
-// TODO this is a copy of the function in hcloud/utils.go => refactor.
-func providerIDToServerID(providerID string) (int64, error) {
-	const op = "hcops/providerIDToServerID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	providerPrefix := "hcloud://"
-	if !strings.HasPrefix(providerID, providerPrefix) {
-		return 0, fmt.Errorf("%s: missing prefix hcloud://: %s", op, providerID)
-	}
-
-	idString := strings.ReplaceAll(providerID, providerPrefix, "")
-	if idString == "" {
-		return 0, fmt.Errorf("%s: missing serverID: %s", op, providerID)
-	}
-
-	id, err := strconv.ParseInt(idString, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("%s: invalid serverID: %s", op, providerID)
-	}
-	return id, nil
 }
 
 func lbAttached(lb *hcloud.LoadBalancer, nwID int64) bool {
