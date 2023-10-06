@@ -24,6 +24,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -51,7 +52,7 @@ func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID 
 func (i *instances) lookupServer(ctx context.Context, node *corev1.Node) (*hcloud.Server, error) {
 	var server *hcloud.Server
 	if node.Spec.ProviderID != "" {
-		serverID, err := providerIDToServerID(node.Spec.ProviderID)
+		serverID, err := providerid.ToServerID(node.Spec.ProviderID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert provider id to server id: %w", err)
 		}
@@ -110,7 +111,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	}
 
 	return &cloudprovider.InstanceMetadata{
-		ProviderID:    serverIDToProviderID(server.ID),
+		ProviderID:    providerid.FromServerID(server.ID),
 		InstanceType:  server.ServerType.Name,
 		NodeAddresses: nodeAddresses(i.addressFamily, i.networkID, server),
 		Zone:          server.Datacenter.Name,
