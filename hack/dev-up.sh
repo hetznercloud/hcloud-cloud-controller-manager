@@ -164,7 +164,17 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
     # Create HCLOUD_TOKEN Secret for hcloud-cloud-controller-manager.
     ( trap error ERR
       if ! kubectl -n kube-system get secret hcloud >/dev/null 2>&1; then
-        kubectl -n kube-system create secret generic hcloud --from-literal="token=$HCLOUD_TOKEN" --from-literal="network=$scope_name"
+        data=(
+          --from-literal="token=$HCLOUD_TOKEN"
+          --from-literal="network=$scope_name"
+        )
+        if [[ -v ROBOT_USER ]]; then
+          data+=(
+            --from-literal="robot-user=$ROBOT_USER"
+            --from-literal="robot-password=$ROBOT_PASSWORD"
+          )
+        fi
+        kubectl -n kube-system create secret generic hcloud "${data[@]}"
       fi) &
     wait
   ) &

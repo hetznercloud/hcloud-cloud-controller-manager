@@ -22,3 +22,11 @@ manifests:
         chartPath: chart
         setValues:
           networking.enabled: true
+
+profiles:
+  # Clusters with Robot Servers do not support the native Routing functionality right now.
+  - name: robot
+    patches:
+      - op: replace
+        path: /manifests/helm/releases/0/setValues/networking.enabled
+        value: false
