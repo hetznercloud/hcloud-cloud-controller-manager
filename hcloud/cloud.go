@@ -61,7 +61,6 @@ var providerVersion = "unknown"
 type cloud struct {
 	client       *hcloud.Client
 	instances    *instances
-	routes       *routes
 	loadBalancer *loadBalancers
 	networkID    int64
 }
@@ -154,7 +153,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		Defaults:      lbOpsDefaults,
 	}
 
-	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDisablePrivateIngress, lbDisableIPv6)
+	loadBalancers := newLoadBalancers(lbOps, lbDisablePrivateIngress, lbDisableIPv6)
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}
@@ -168,7 +167,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		client:       client,
 		instances:    newInstances(client, instancesAddressFamily, networkID),
 		loadBalancer: loadBalancers,
-		routes:       nil,
 		networkID:    networkID,
 	}, nil
 }
