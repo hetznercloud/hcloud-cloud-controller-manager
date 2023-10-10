@@ -182,8 +182,10 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
   echo "Success - cluster fully initialized and ready, why not see for yourself?"
   echo '$ kubectl get nodes'
   kubectl get nodes
+  export CONTROL_IP=$(hcloud server ip "$scope_name-1")
 } >&2
 
 echo "export KUBECONFIG=$KUBECONFIG"
 $SCRIPT_DIR/registry-port-forward.sh
 echo "export SKAFFOLD_DEFAULT_REPO=localhost:30666"
+echo "export CONTROL_IP=$CONTROL_IP"

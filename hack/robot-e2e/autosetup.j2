@@ -1,0 +1,15 @@
+HOSTNAME {{ server_name }}
+
+DRIVE1 /dev/sda
+DRIVE2 /dev/sdb
+
+# We do not care at all about data consistency/availability, as we reprovision for every test run
+SWRAID 1
+SWRAIDLEVEL 0
+
+BOOTLOADER grub
+
+PART /boot ext3 1024M
+PART /     ext4 all
+
+IMAGE /root/.oldroot/nfs/images/Ubuntu-2204-jammy-amd64-base.tar.gz

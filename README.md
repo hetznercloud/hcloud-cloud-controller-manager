@@ -254,6 +254,15 @@ alias kgp="kubectl get pods"
 alias kgs="kubectl get services"
 ```
 
+The test suite is split in three parts:
+
+- **General Part**: Sets up the test env & checks if the HCCM Pod is properly running
+   - Build Tag: `e2e`
+- **Cloud Part**: Tests regular functionality against a Cloud-only environment
+   - Build Tag: `e2e && !robot`
+- **Robot Part**: Tests Robot functionality against a Cloud+Robot environment
+   - Build Tag: `e2e && robot`
+
 ## Local test setup
 This repository provides [skaffold](https://skaffold.dev/) to easily deploy / debug this controller on demand
 

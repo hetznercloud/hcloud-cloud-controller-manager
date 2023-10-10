@@ -1,0 +1,8 @@
+all:
+  hosts:
+    # TODO: Dynamic inventory
+    hccm-test:
+      ansible_host: 142.132.203.104
+      ansible_user: root
+      ansible_ssh_private_key_file: ../.ssh-{{ scope }}
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
