@@ -1,0 +1,96 @@
+---
+- name: Prepare Reinstall
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    scope: dev
+    # Additional SSH keys to add to the server for debugging. Must already exist in Robot.
+    authorized_keys: []
+
+  module_defaults:
+    group/community.hrobot.robot:
+      hetzner_user: "{{ lookup('ansible.builtin.env', 'ROBOT_USER_NAME') }}"
+      hetzner_password: "{{ lookup('ansible.builtin.env', 'ROBOT_PASSWORD') }}"
+
+  tasks:
+    - name: Get Server Info
+      community.hrobot.server_info:
+        server_number: "{{ server_number }}"
+      register: server_info
+
+    - name: Set Server Facts
+      ansible.builtin.set_fact: server_ip="{{ server_info.servers[0].server_ip }}" server_name="{{ server_info.servers[0].server_name }}"
+
+    - name: Create SSH Key
+      community.hrobot.ssh_key:
+        name: "hccm-{{ scope }}"
+        public_key: "{{ lookup('file', '../.ssh-{{ scope }}.pub') }}"
+        state: present
+      register: ssh_key
+
+    - name: Enable Rescue System
+      community.hrobot.boot:
+        server_number: "{{ server_number }}"
+        rescue:
+          authorized_keys: "{{ authorized_keys + [ ssh_key.fingerprint ] }}"
+          os: linux
+
+    - name: Reset Server (to get to Rescue System)
+      community.hrobot.reset:
+        server_number: "{{ server_number }}"
+        reset_type: hardware # only type that does not require a separate reset for starting again
+
+    - name: Wait for SSH
+      ansible.builtin.wait_for:
+        host: "{{ server_ip }}"
+        port: "{{ 22 }}"
+        search_regex: SSH
+
+- name: Install OS to Server
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Write autosetup
+      ansible.builtin.template:
+        src: autosetup.j2
+        dest: /autosetup
+      vars:
+        server_name: "{{ hostvars['localhost']['server_name'] }}"
+
+    - name: installimage
+      # -t => Take over rescue system SSH public keys
+      ansible.builtin.command: /root/.oldroot/nfs/install/installimage -t yes
+
+    - name: Reboot
+      ansible.builtin.reboot:
+
+    - name: Create k3s directory
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+
+    - name: Prepare Local Registry
+      ansible.builtin.copy:
+        src: ../k3s-registries.yaml
+        dest: /etc/rancher/k3s/registries.yaml
+
+- name: Join Kubernetes Cluster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    control_ip: "{{ lookup('ansible.builtin.env', 'CONTROL_IP') }}"
+    k3s_channel: stable
+    scope: dev
+
+  tasks:
+    - name: k3sup
+      ansible.builtin.command: >-
+        k3sup join
+          --server-ip={{ control_ip | ansible.builtin.mandatory }}
+          --ip={{ server_ip }}
+          --k3s-channel={{ k3s_channel }}
+          --k3s-extra-args="--kubelet-arg cloud-provider=external --node-label instance.hetzner.cloud/is-root-server=true"
+          --ssh-key ../.ssh-{{ scope }}

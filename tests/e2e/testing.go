@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +36,7 @@ func init() {
 
 type TestCluster struct {
 	hcloud       *hcloud.Client
+	hrobot       hrobot.RobotClient
 	k8sClient    *kubernetes.Clientset
 	certificates []*hcloud.Certificate
 	scope        string
@@ -48,6 +50,7 @@ func (tc *TestCluster) Start() error {
 	}
 	tc.scope = scopeButcher.ReplaceAllString(tc.scope, "-")
 
+	// Hetzner Cloud Client
 	token := os.Getenv("HCLOUD_TOKEN")
 	if token == "" {
 		buf, err := os.ReadFile(fmt.Sprintf("../../hack/.token-%s", tc.scope))
@@ -67,6 +70,12 @@ func (tc *TestCluster) Start() error {
 	}
 	hcloudClient := hcloud.NewClient(opts...)
 	tc.hcloud = hcloudClient
+
+	// Hetzner Robot Client
+	if robotUser, set := os.LookupEnv("ROBOT_USER_NAME"); set {
+		robotPassword := os.Getenv("ROBOT_PASSWORD")
+		tc.hrobot = hrobot.NewBasicAuthClient(robotUser, robotPassword)
+	}
 
 	err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-"+tc.scope)
 	if err != nil {

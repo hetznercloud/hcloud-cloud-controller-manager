@@ -1,11 +1,11 @@
-name: Run e2e tests
+name: e2e tests
 on:
   pull_request: {}
   push:
     branches: [main]
 jobs:
-  k3s:
-    name: k3s ${{ matrix.k3s }}
+  cloud:
+    name: Cloud ${{ matrix.k3s }}
     permissions:
       id-token: write
     runs-on: ubuntu-latest
@@ -49,4 +49,64 @@ jobs:
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
           tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
           skaffold deploy --images=hetznercloud/hcloud-cloud-controller-manager=$tag
+          
           go test ./tests/e2e -tags e2e -v -timeout 60m
+
+  robot:
+    name: Robot
+    permissions:
+      id-token: write
+
+    # Make sure that only one Job is using the server at a time
+    concurrency: robot-test-server
+    environment: e2e-robot
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+      - uses: actions/checkout@master
+      - uses: hetznercloud/tps-action@main
+        with:
+          token: ${{ secrets.HCLOUD_TOKEN  }}
+      - uses: 3bit/setup-hcloud@v2
+      - uses: yokawasa/action-setup-kube-tools@v0.9.3
+        with:
+          setup-tools: |
+            helm
+            kubectl
+            skaffold
+          helm: v3.11.2
+          kubectl: v1.28.1
+          skaffold: v2.3.0
+
+      - name: Run tests
+        env:
+          K3S_CHANNEL: v1.28
+          SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
+
+          # Disable routes in dev-env, not supported for Robot.
+          ROUTES_ENABLED: "false"
+
+          ROBOT_USER_NAME: ${{ secrets.ROBOT_USER_NAME }}
+          ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
+          SERVER_NUMBER: ${{ vars.SERVER_NUMBER }}
+        run: |
+          curl -sLS https://get.k3sup.dev | sh
+
+          trap "hack/dev-down.sh" EXIT
+          source <(hack/dev-up.sh)
+
+          skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
+          tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
+          skaffold deploy \
+            --profile=robot \
+            --images=hetznercloud/hcloud-cloud-controller-manager=$tag
+          
+          pushd hack/robot-e2e
+          ansible-galaxy install -r requirements.yml
+          ansible-playbook e2e-setup-robot-server.yml -e scope=$SCOPE -e server_number=$SERVER_NUMBER -vvv
+          popd
+          
+          go test ./tests/e2e -tags e2e,robot -v -timeout 60m
