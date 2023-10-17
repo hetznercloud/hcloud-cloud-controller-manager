@@ -1,11 +1,10 @@
-{{- if eq $.Values.kind "Deployment" }}
+{{- if eq $.Values.kind "DaemonSet" }}
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: {{ include "hcloud-cloud-controller-manager.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 2
   selector:
     matchLabels:
