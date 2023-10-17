@@ -82,3 +82,6 @@ selectorLabels:
   app.kubernetes.io/instance: '{{ $.Release.Name }}'
 
 additionalTolerations: []
+
+nodeSelector: {}
+  # node-role.kubernetes.io/control-plane: ""

@@ -39,6 +39,11 @@ spec:
         {{- if gt (len .Values.additionalTolerations) 0 }}
         {{ toYaml .Values.additionalTolerations | nindent 8 }}
         {{- end }}
+      
+      {{- if gt (len .Values.nodeSelector) 0 }}
+      nodeSelector: 
+        {{ toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
 
       {{- if $.Values.networking.enabled }}
       hostNetwork: true

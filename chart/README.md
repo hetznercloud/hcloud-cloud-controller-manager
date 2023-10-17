@@ -58,3 +58,4 @@ If you want to change the replica count you can adjust the value `replicaCount` 
 If you have more than 1 replica leader election will be turned on automatically.
 
 If you want to deploy hccm as a DaemonSet you can set `kind` to `DaemonSet` inside the values. 
+To adjust on which nodes the DaemonSet should be deployed you can use the `nodeSelector` and `additionalTolerations` values.
