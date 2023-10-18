@@ -9,9 +9,9 @@ label="managedby=hack"
 
 if [[ "${ALL:-}" == "" ]]; then
   label="$label,scope=$scope_name"
-  rm -f $SCRIPT_DIR/.ssh-$scope $SCRIPT_DIR/.kubeconfig-$scope
+  rm -f $SCRIPT_DIR/.ssh-$scope* $SCRIPT_DIR/.kubeconfig-$scope $SCRIPT_DIR/.token-$scope $SCRIPT_DIR/.reg-pf*
 else
-  rm -f $SCRIPT_DIR/.ssh* $SCRIPT_DIR/.kubeconfig*
+  rm -f $SCRIPT_DIR/.ssh* $SCRIPT_DIR/.kubeconfig* $SCRIPT_DIR/.token-* $SCRIPT_DIR/.reg-pf*
 fi
 
 for instance in $(hcloud server list -o noheader -o columns=id -l $label); do
