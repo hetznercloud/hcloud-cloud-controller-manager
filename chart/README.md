@@ -50,8 +50,12 @@ If you've already deployed hccm using the `helm install` command above, you can 
 helm upgrade hccm hcloud/hcloud-cloud-controller-manager -n kube-system --set monitoring.podMonitor.enabled=true
 ```
 
-### Multiple replicas
+### Multiple replicas / DaemonSet
 
-If you want to use multiple replicas you can change `replicaCount` inside the helm values. 
+You can choose between different deployment options. By default the chart will deploy a single replica as a Deployment.
 
+If you want to change the replica count you can adjust the value `replicaCount` inside the helm values.
 If you have more than 1 replica leader election will be turned on automatically.
+
+If you want to deploy hccm as a DaemonSet you can set `kind` to `DaemonSet` inside the values. 
+To adjust on which nodes the DaemonSet should be deployed you can use the `nodeSelector` and `additionalTolerations` values.
