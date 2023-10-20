@@ -193,13 +193,16 @@ not fix bugs related only to an unsupported version.
 To run unit tests locally, execute
 
 ```sh
-go test $(go list ./... | grep -v e2e) -v
+go test ./...
 ```
 
-Check that your go version is up to date, tests might fail if it is not.
+Check that your go version is up-to-date, tests might fail if it is not.
 
-If in doubt, check which go version the `test:unit` section in `.gitlab-ci.yml`
-has set in the `image: golang:$VERSION`.
+If in doubt, check which go version is installed in the [ci.yaml](.github/workflows/ci.yaml) GitHub Actions Workflow:
+
+```yaml
+go-version: "1.21"
+```
 
 ## E2E Tests
 
@@ -234,10 +237,10 @@ export KEEP_SERVER_ON_FAILURE=yes # Keep the test server after a test failure.
 2. Run the tests
 
 ```bash
-go test $(go list ./... | grep e2e) -v -timeout 60m
+go test ./... -tags e2e -v -timeout 60m
 ```
 
-The tests will now run and cleanup themselves afterwards. Sometimes it might happen that you need to clean up the
+The tests will now run and cleanup themselves afterward. Sometimes it might happen that you need to clean up the
 project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or
 the [hcloud-cli](https://github.com/hetznercloud/cli) .
 
