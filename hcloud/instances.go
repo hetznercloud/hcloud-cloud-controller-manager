@@ -23,26 +23,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-type addressFamily int
-
-const (
-	AddressFamilyDualStack addressFamily = iota
-	AddressFamilyIPv6
-	AddressFamilyIPv4
-)
-
 type instances struct {
 	client        *hcloud.Client
-	addressFamily addressFamily
+	addressFamily config.AddressFamily
 	networkID     int64
 }
 
-func newInstances(client *hcloud.Client, addressFamily addressFamily, networkID int64) *instances {
+func newInstances(client *hcloud.Client, addressFamily config.AddressFamily, networkID int64) *instances {
 	return &instances{client, addressFamily, networkID}
 }
 
@@ -119,14 +112,14 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	}, nil
 }
 
-func nodeAddresses(addressFamily addressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
+func nodeAddresses(addressFamily config.AddressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,
 		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
 	)
 
-	if addressFamily == AddressFamilyIPv4 || addressFamily == AddressFamilyDualStack {
+	if addressFamily == config.AddressFamilyIPv4 || addressFamily == config.AddressFamilyDualStack {
 		if !server.PublicNet.IPv4.IsUnspecified() {
 			addresses = append(
 				addresses,
@@ -135,7 +128,7 @@ func nodeAddresses(addressFamily addressFamily, networkID int64, server *hcloud.
 		}
 	}
 
-	if addressFamily == AddressFamilyIPv6 || addressFamily == AddressFamilyDualStack {
+	if addressFamily == config.AddressFamilyIPv6 || addressFamily == config.AddressFamilyDualStack {
 		if !server.PublicNet.IPv6.IsUnspecified() {
 			// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
 			hostAddress := server.PublicNet.IPv6.IP
