@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
@@ -65,7 +66,7 @@ func TestNewCloud(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	resetEnv := Setenv(t,
+	resetEnv := testsupport.Setenv(t,
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"HCLOUD_METRICS_ENABLED", "false",
@@ -86,7 +87,7 @@ func TestNewCloud(t *testing.T) {
 }
 
 func TestNewCloudWrongTokenSize(t *testing.T) {
-	resetEnv := Setenv(t,
+	resetEnv := testsupport.Setenv(t,
 		"HCLOUD_TOKEN", "0123456789abcdef",
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
@@ -100,7 +101,7 @@ func TestNewCloudWrongTokenSize(t *testing.T) {
 }
 
 func TestNewCloudConnectionNotPossible(t *testing.T) {
-	resetEnv := Setenv(t,
+	resetEnv := testsupport.Setenv(t,
 		"HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1",
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"HCLOUD_METRICS_ENABLED", "false",
@@ -116,7 +117,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	resetEnv := Setenv(t,
+	resetEnv := testsupport.Setenv(t,
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"HCLOUD_METRICS_ENABLED", "false",
@@ -143,7 +144,7 @@ func TestCloud(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	resetEnv := Setenv(t,
+	resetEnv := testsupport.Setenv(t,
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"HCLOUD_METRICS_ENABLED", "false",
@@ -244,7 +245,7 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("RoutesWithNetworks", func(t *testing.T) {
-		resetEnv := Setenv(t,
+		resetEnv := testsupport.Setenv(t,
 			"HCLOUD_NETWORK", "1",
 			"HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "true",
 			"HCLOUD_METRICS_ENABLED", "false",
