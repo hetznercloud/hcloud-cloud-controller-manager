@@ -51,7 +51,6 @@ const (
 	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 	hcloudMetricsEnabledENVVar               = "HCLOUD_METRICS_ENABLED"
 	hcloudMetricsAddress                     = ":8233"
-	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
 )
 
@@ -75,10 +74,6 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 	if len(token) != 64 {
 		return nil, fmt.Errorf("entered token is invalid (must be exactly 64 characters long)")
-	}
-	nodeName := os.Getenv(nodeNameENVVar)
-	if nodeName == "" {
-		return nil, fmt.Errorf("environment variable %q is required", nodeNameENVVar)
 	}
 
 	opts := []hcloud.ClientOption{

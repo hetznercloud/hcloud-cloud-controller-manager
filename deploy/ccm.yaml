@@ -72,10 +72,6 @@ spec:
                 secretKeyRef:
                   key: token
                   name: hcloud
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
           image: hetznercloud/hcloud-cloud-controller-manager:v1.18.0 # x-release-please-version
           ports:
             - name: metrics
