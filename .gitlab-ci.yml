@@ -32,8 +32,6 @@ test:lint:
 test:unit:
   stage: test
   image: golang:1.21
-  variables:
-    NODE_NAME: "test"
   script:
     - go test ./... -v
 

@@ -29,10 +29,6 @@ env:
       secretKeyRef:
         name: hcloud
         key: token
-  NODE_NAME:
-    valueFrom:
-      fieldRef:
-        fieldPath: spec.nodeName
 
 image:
   repository: hetznercloud/hcloud-cloud-controller-manager

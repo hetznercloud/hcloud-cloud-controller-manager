@@ -75,10 +75,6 @@ spec:
                 secretKeyRef:
                   key: token
                   name: hcloud
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
             - name: HCLOUD_NETWORK
               valueFrom:
                 secretKeyRef:
