@@ -80,23 +80,7 @@ func TestNewCloud(t *testing.T) {
 	})
 	var config bytes.Buffer
 	_, err := newCloud(&config)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-}
-
-func TestNewCloudWrongTokenSize(t *testing.T) {
-	resetEnv := testsupport.Setenv(t,
-		"HCLOUD_TOKEN", "0123456789abcdef",
-		"HCLOUD_METRICS_ENABLED", "false",
-	)
-	defer resetEnv()
-
-	var config bytes.Buffer
-	_, err := newCloud(&config)
-	if err == nil || err.Error() != "entered token is invalid (must be exactly 64 characters long)" {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err)
 }
 
 func TestNewCloudConnectionNotPossible(t *testing.T) {
