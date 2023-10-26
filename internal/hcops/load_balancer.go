@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -70,14 +71,7 @@ type LoadBalancerOps struct {
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
-	Defaults      LoadBalancerDefaults
-}
-
-// LoadBalancerDefaults stores cluster-wide default values for load balancers.
-type LoadBalancerDefaults struct {
-	Location     string
-	NetworkZone  string
-	UsePrivateIP bool
+	Cfg           config.LoadBalancerConfiguration
 }
 
 // GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service
@@ -170,8 +164,8 @@ func (l *LoadBalancerOps) Create(
 	if v, ok := annotation.LBType.StringFromService(svc); ok {
 		opts.LoadBalancerType.Name = v
 	}
-	if l.Defaults.Location != "" {
-		opts.Location = &hcloud.Location{Name: l.Defaults.Location}
+	if l.Cfg.Location != "" {
+		opts.Location = &hcloud.Location{Name: l.Cfg.Location}
 	}
 	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
 		if v == "" {
@@ -182,7 +176,7 @@ func (l *LoadBalancerOps) Create(
 			opts.Location = &hcloud.Location{Name: v}
 		}
 	}
-	opts.NetworkZone = hcloud.NetworkZone(l.Defaults.NetworkZone)
+	opts.NetworkZone = hcloud.NetworkZone(l.Cfg.NetworkZone)
 	if v, ok := annotation.LBNetworkZone.StringFromService(svc); ok {
 		opts.NetworkZone = hcloud.NetworkZone(v)
 	}
@@ -664,7 +658,7 @@ func (l *LoadBalancerOps) getUsePrivateIP(svc *corev1.Service) (bool, error) {
 	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
 	if err != nil {
 		if errors.Is(err, annotation.ErrNotSet) {
-			return l.Defaults.UsePrivateIP, nil
+			return l.Cfg.UsePrivateIP, nil
 		}
 		return false, err
 	}
