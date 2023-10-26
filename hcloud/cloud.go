@@ -41,11 +41,9 @@ const (
 var providerVersion = "unknown"
 
 type cloud struct {
-	client       *hcloud.Client
-	instances    *instances
-	loadBalancer *loadBalancers
-	cfg          config.HCCMConfiguration
-	networkID    int64
+	client    *hcloud.Client
+	cfg       config.HCCMConfiguration
+	networkID int64
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
@@ -109,32 +107,12 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	lbOps := &hcops.LoadBalancerOps{
-		LBClient:      &client.LoadBalancer,
-		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
-		ActionClient:  &client.Action,
-		NetworkClient: &client.Network,
-		NetworkID:     networkID,
-		Defaults: hcops.LoadBalancerDefaults{
-			Location:     cfg.LoadBalancer.Location,
-			NetworkZone:  cfg.LoadBalancer.NetworkZone,
-			UsePrivateIP: cfg.LoadBalancer.UsePrivateIP,
-		},
-	}
-
-	var loadBalancers *loadBalancers
-	if cfg.LoadBalancer.Enabled {
-		loadBalancers = newLoadBalancers(lbOps, cfg.LoadBalancer.DisablePrivateIngress, cfg.LoadBalancer.DisableIPv6)
-	}
-
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
 	return &cloud{
-		client:       client,
-		instances:    newInstances(client, cfg.Instance.AddressFamily, networkID),
-		loadBalancer: loadBalancers,
-		cfg:          cfg,
-		networkID:    networkID,
+		client:    client,
+		cfg:       cfg,
+		networkID: networkID,
 	}, nil
 }
 
@@ -147,7 +125,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return c.instances, true
+	return newInstances(c.client, c.cfg.Instance.AddressFamily, c.networkID), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
@@ -156,10 +134,24 @@ func (c *cloud) Zones() (cloudprovider.Zones, bool) {
 }
 
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
-	if c.loadBalancer == nil {
+	if !c.cfg.LoadBalancer.Enabled {
 		return nil, false
 	}
-	return c.loadBalancer, true
+
+	lbOps := &hcops.LoadBalancerOps{
+		LBClient:      &c.client.LoadBalancer,
+		CertOps:       &hcops.CertificateOps{CertClient: &c.client.Certificate},
+		ActionClient:  &c.client.Action,
+		NetworkClient: &c.client.Network,
+		NetworkID:     c.networkID,
+		Defaults: hcops.LoadBalancerDefaults{
+			Location:     c.cfg.LoadBalancer.Location,
+			NetworkZone:  c.cfg.LoadBalancer.NetworkZone,
+			UsePrivateIP: c.cfg.LoadBalancer.UsePrivateIP,
+		},
+	}
+
+	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6), true
 }
 
 func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
@@ -167,15 +159,17 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 }
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
-	if c.networkID > 0 && c.cfg.Route.Enabled {
-		r, err := newRoutes(c.client, c.networkID)
-		if err != nil {
-			klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
-			return nil, false
-		}
-		return r, true
+	if c.networkID == 0 || !c.cfg.Route.Enabled {
+		// If no network is configured, disable the routes controller
+		return nil, false
 	}
-	return nil, false // If no network is configured, disable the routes part
+
+	r, err := newRoutes(c.client, c.networkID)
+	if err != nil {
+		klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
+		return nil, false
+	}
+	return r, true
 }
 
 func (c *cloud) ProviderName() string {
