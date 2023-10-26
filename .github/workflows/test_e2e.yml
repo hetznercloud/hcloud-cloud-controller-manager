@@ -49,4 +49,4 @@ jobs:
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
           tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
           skaffold deploy --images=hetznercloud/hcloud-cloud-controller-manager=$tag
-          go test ./... -tags e2e -v -timeout 60m
+          go test ./tests/e2e -tags e2e -v -timeout 60m

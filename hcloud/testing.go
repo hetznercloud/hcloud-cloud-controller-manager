@@ -2,7 +2,6 @@ package hcloud
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -14,57 +13,6 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
-
-// Setenv prepares the environment for testing the
-// hcloud-cloud-controller-manager.
-func Setenv(t *testing.T, args ...string) func() {
-	if len(args)%2 != 0 {
-		t.Fatal("Sentenv: uneven number of args")
-	}
-
-	newVars := make([]string, 0, len(args)/2)
-	oldEnv := make(map[string]string, len(newVars))
-
-	for i := 0; i < len(args); i += 2 {
-		k, v := args[i], args[i+1]
-		newVars = append(newVars, k)
-
-		if old, ok := os.LookupEnv(k); ok {
-			oldEnv[k] = old
-		}
-		if err := os.Setenv(k, v); err != nil {
-			t.Fatalf("Setenv failed: %v", err)
-		}
-	}
-
-	return func() {
-		for _, k := range newVars {
-			v, ok := oldEnv[k]
-			if !ok {
-				if err := os.Unsetenv(k); err != nil {
-					t.Errorf("Unsetenv failed: %v", err)
-				}
-				continue
-			}
-			if err := os.Setenv(k, v); err != nil {
-				t.Errorf("Setenv failed: %v", err)
-			}
-		}
-	}
-}
-
-// SkipEnv skips t if any of the passed vars is not set as an environment
-// variable.
-//
-// SkipEnv uses os.LookupEnv. The empty string is therefore a valid value.
-func SkipEnv(t *testing.T, vars ...string) {
-	for _, v := range vars {
-		if _, ok := os.LookupEnv(v); !ok {
-			t.Skipf("Environment variable not set: %s", v)
-			return
-		}
-	}
-}
 
 type LoadBalancerTestCase struct {
 	Name string

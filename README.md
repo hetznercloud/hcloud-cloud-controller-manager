@@ -237,7 +237,7 @@ export KEEP_SERVER_ON_FAILURE=yes # Keep the test server after a test failure.
 2. Run the tests
 
 ```bash
-go test ./... -tags e2e -v -timeout 60m
+go test ./tests/e2e -tags e2e -v -timeout 60m
 ```
 
 The tests will now run and cleanup themselves afterward. Sometimes it might happen that you need to clean up the

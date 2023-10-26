@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cloudprovider "k8s.io/cloud-provider"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
@@ -58,7 +59,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 		json.NewEncoder(w).Encode(schema.ServerListResponse{Servers: servers})
 	})
 
-	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, config.AddressFamilyIPv4, 0)
 
 	tests := []struct {
 		name     string
@@ -131,7 +132,7 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, config.AddressFamilyIPv4, 0)
 
 	tests := []struct {
 		name     string
@@ -188,7 +189,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, config.AddressFamilyIPv4, 0)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
@@ -216,14 +217,14 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 func TestNodeAddresses(t *testing.T) {
 	tests := []struct {
 		name           string
-		addressFamily  addressFamily
+		addressFamily  config.AddressFamily
 		server         *hcloud.Server
 		privateNetwork int64
 		expected       []corev1.NodeAddress
 	}{
 		{
 			name:          "hostname",
-			addressFamily: AddressFamilyIPv4,
+			addressFamily: config.AddressFamilyIPv4,
 			server: &hcloud.Server{
 				Name: "foobar",
 			},
@@ -233,7 +234,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:          "public ipv4",
-			addressFamily: AddressFamilyIPv4,
+			addressFamily: config.AddressFamilyIPv4,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PublicNet: hcloud.ServerPublicNet{
@@ -252,7 +253,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:          "no public ipv4",
-			addressFamily: AddressFamilyIPv4,
+			addressFamily: config.AddressFamilyIPv4,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PublicNet: hcloud.ServerPublicNet{
@@ -267,7 +268,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:          "public ipv6",
-			addressFamily: AddressFamilyIPv6,
+			addressFamily: config.AddressFamilyIPv6,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PublicNet: hcloud.ServerPublicNet{
@@ -286,7 +287,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:          "no public ipv6",
-			addressFamily: AddressFamilyIPv6,
+			addressFamily: config.AddressFamilyIPv6,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PublicNet: hcloud.ServerPublicNet{
@@ -301,7 +302,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:          "public dual stack",
-			addressFamily: AddressFamilyDualStack,
+			addressFamily: config.AddressFamilyDualStack,
 			server: &hcloud.Server{
 				Name: "foobar",
 				PublicNet: hcloud.ServerPublicNet{
@@ -322,7 +323,7 @@ func TestNodeAddresses(t *testing.T) {
 
 		{
 			name:           "unknown private network",
-			addressFamily:  AddressFamilyIPv4,
+			addressFamily:  config.AddressFamilyIPv4,
 			privateNetwork: 1,
 			server: &hcloud.Server{
 				Name: "foobar",
@@ -333,7 +334,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:           "server attached to private network",
-			addressFamily:  AddressFamilyIPv4,
+			addressFamily:  config.AddressFamilyIPv4,
 			privateNetwork: 1,
 			server: &hcloud.Server{
 				Name: "foobar",
@@ -354,7 +355,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			name:           "server not attached to private network",
-			addressFamily:  AddressFamilyIPv4,
+			addressFamily:  config.AddressFamilyIPv4,
 			privateNetwork: 1,
 			server: &hcloud.Server{
 				Name: "foobar",
