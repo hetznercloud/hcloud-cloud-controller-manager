@@ -71,7 +71,7 @@ type LoadBalancerOps struct {
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
-	Cfg           config.LoadBalancerConfiguration
+	Cfg           config.HCCMConfiguration
 }
 
 // GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service
@@ -164,8 +164,8 @@ func (l *LoadBalancerOps) Create(
 	if v, ok := annotation.LBType.StringFromService(svc); ok {
 		opts.LoadBalancerType.Name = v
 	}
-	if l.Cfg.Location != "" {
-		opts.Location = &hcloud.Location{Name: l.Cfg.Location}
+	if l.Cfg.LoadBalancer.Location != "" {
+		opts.Location = &hcloud.Location{Name: l.Cfg.LoadBalancer.Location}
 	}
 	if v, ok := annotation.LBLocation.StringFromService(svc); ok {
 		if v == "" {
@@ -176,7 +176,7 @@ func (l *LoadBalancerOps) Create(
 			opts.Location = &hcloud.Location{Name: v}
 		}
 	}
-	opts.NetworkZone = hcloud.NetworkZone(l.Cfg.NetworkZone)
+	opts.NetworkZone = hcloud.NetworkZone(l.Cfg.LoadBalancer.NetworkZone)
 	if v, ok := annotation.LBNetworkZone.StringFromService(svc); ok {
 		opts.NetworkZone = hcloud.NetworkZone(v)
 	}
@@ -658,7 +658,7 @@ func (l *LoadBalancerOps) getUsePrivateIP(svc *corev1.Service) (bool, error) {
 	usePrivateIP, err := annotation.LBUsePrivateIP.BoolFromService(svc)
 	if err != nil {
 		if errors.Is(err, annotation.ErrNotSet) {
-			return l.Cfg.UsePrivateIP, nil
+			return l.Cfg.LoadBalancer.UsePrivateIP, nil
 		}
 		return false, err
 	}

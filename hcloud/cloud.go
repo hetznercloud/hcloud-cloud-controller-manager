@@ -144,7 +144,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 		ActionClient:  &c.client.Action,
 		NetworkClient: &c.client.Network,
 		NetworkID:     c.networkID,
-		Cfg:           c.cfg.LoadBalancer,
+		Cfg:           c.cfg,
 	}
 
 	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6), true

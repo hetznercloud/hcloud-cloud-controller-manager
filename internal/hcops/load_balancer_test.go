@@ -244,7 +244,7 @@ func TestGetByK8SServiceUID(t *testing.T) {
 func TestLoadBalancerOps_Create(t *testing.T) {
 	type testCase struct {
 		name               string
-		cfg                config.LoadBalancerConfiguration
+		cfg                config.HCCMConfiguration
 		serviceAnnotations map[annotation.Name]interface{}
 		createOpts         hcloud.LoadBalancerCreateOpts
 		mock               func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture)
@@ -254,8 +254,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 	tests := []testCase{
 		{
 			name: "create with with location name (and default set)",
-			cfg: config.LoadBalancerConfiguration{
-				Location: "hel1",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					Location: "hel1",
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation: "fsn1",
@@ -274,8 +276,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "create with network zone name only (and default set)",
-			cfg: config.LoadBalancerConfiguration{
-				NetworkZone: "eu-central",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					NetworkZone: "eu-central",
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBNetworkZone: "eu-central",
@@ -292,8 +296,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "create with location as default only",
-			cfg: config.LoadBalancerConfiguration{
-				Location: "fsn1",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					Location: "fsn1",
+				},
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "some-lb",
@@ -309,8 +315,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "create with network zone as default only",
-			cfg: config.LoadBalancerConfiguration{
-				NetworkZone: "eu-central",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					NetworkZone: "eu-central",
+				},
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "some-lb",
@@ -324,8 +332,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "create with network zone and reset default location",
-			cfg: config.LoadBalancerConfiguration{
-				Location: "hel1",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					Location: "hel1",
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation:    "",
@@ -343,8 +353,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "create with location and reset default network zone",
-			cfg: config.LoadBalancerConfiguration{
-				NetworkZone: "eu-central",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					NetworkZone: "eu-central",
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation:    "fsn1",
@@ -590,7 +602,7 @@ func TestLoadBalancerOps_Delete(t *testing.T) {
 
 type LBReconcilementTestCase struct {
 	name               string
-	cfg                config.LoadBalancerConfiguration
+	cfg                config.HCCMConfiguration
 	serviceUID         string
 	serviceAnnotations map[annotation.Name]interface{}
 	servicePorts       []corev1.ServicePort
@@ -1189,9 +1201,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 		},
 		{
 			name: "enable use of private network via default",
-			cfg: config.LoadBalancerConfiguration{
-				// Make sure the annotation overrides the default
-				UsePrivateIP: true,
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					// Make sure the annotation overrides the default
+					UsePrivateIP: true,
+				},
 			},
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
@@ -1219,9 +1233,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 		},
 		{
 			name: "enable use of private network via annotation",
-			cfg: config.LoadBalancerConfiguration{
-				// Make sure the annotation overrides the default
-				UsePrivateIP: false,
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					// Make sure the annotation overrides the default
+					UsePrivateIP: false,
+				},
 			},
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
@@ -1252,9 +1268,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 		},
 		{
 			name: "disable use of private network via annotation",
-			cfg: config.LoadBalancerConfiguration{
-				// Make sure the annotation overrides the default
-				UsePrivateIP: true,
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					// Make sure the annotation overrides the default
+					UsePrivateIP: true,
+				},
 			},
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
