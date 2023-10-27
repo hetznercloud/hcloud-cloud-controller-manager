@@ -155,7 +155,7 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 }
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
-	if c.networkID == 0 || !c.cfg.Route.Enabled {
+	if !c.cfg.Route.Enabled {
 		// If no network is configured, disable the routes controller
 		return nil, false
 	}
