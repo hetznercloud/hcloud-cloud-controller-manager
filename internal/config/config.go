@@ -134,9 +134,12 @@ func Read() (HCCMConfiguration, error) {
 		errs = append(errs, err)
 	}
 
-	cfg.Route.Enabled, err = getEnvBool(hcloudNetworkRoutesEnabled, true)
-	if err != nil {
-		errs = append(errs, err)
+	// Enabling Routes only makes sense when a Network is configured, otherwise there is no network to add the routes to.
+	if cfg.Network.NameOrID != "" {
+		cfg.Route.Enabled, err = getEnvBool(hcloudNetworkRoutesEnabled, true)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if len(errs) > 0 {

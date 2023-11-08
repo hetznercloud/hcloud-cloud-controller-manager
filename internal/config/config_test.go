@@ -23,7 +23,6 @@ func TestRead(t *testing.T) {
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
-				Route:        RouteConfiguration{Enabled: true},
 			},
 			wantErr: nil,
 		},
@@ -62,7 +61,6 @@ func TestRead(t *testing.T) {
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
-				Route:        RouteConfiguration{Enabled: true},
 			},
 			wantErr: nil,
 		},
@@ -75,7 +73,6 @@ func TestRead(t *testing.T) {
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
-				Route:        RouteConfiguration{Enabled: true},
 			},
 			wantErr: nil,
 		},
@@ -100,13 +97,17 @@ func TestRead(t *testing.T) {
 		{
 			name: "route",
 			env: []string{
+				"HCLOUD_NETWORK", "foobar",
 				"HCLOUD_NETWORK_ROUTES_ENABLED", "false",
 			},
 			want: HCCMConfiguration{
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
-				Route:        RouteConfiguration{Enabled: false},
+				Network: NetworkConfiguration{
+					NameOrID: "foobar",
+				},
+				Route: RouteConfiguration{Enabled: false},
 			},
 			wantErr: nil,
 		},
@@ -131,13 +132,15 @@ func TestRead(t *testing.T) {
 					UsePrivateIP:          true,
 					DisableIPv6:           true,
 				},
-				Route: RouteConfiguration{Enabled: true},
 			},
 			wantErr: nil,
 		},
 		{
 			name: "error parsing bool values",
 			env: []string{
+				// Required to parse HCLOUD_NETWORK_ROUTES_ENABLED
+				"HCLOUD_NETWORK", "foobar",
+
 				"HCLOUD_DEBUG", "foo",
 				"HCLOUD_METRICS_ENABLED", "bar",
 				"HCLOUD_LOAD_BALANCERS_ENABLED", "nej",
