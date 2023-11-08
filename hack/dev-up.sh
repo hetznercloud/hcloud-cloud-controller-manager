@@ -29,6 +29,7 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
   network_cidr=${NETWORK_CIDR:-10.0.0.0/8}
   subnet_cidr=${SUBNET_CIDR:-10.0.0.0/24}
   cluster_cidr=${CLUSTER_CIDR:-10.244.0.0/16}
+  routes_enabled=${ROUTES_ENABLED:-true}
   scope="${SCOPE:-dev}"
   scope=${scope//[^a-zA-Z0-9_]/-}
   scope_name=hccm-${scope}
@@ -95,7 +96,12 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
       $ssh_command root@$ip 'mkdir -p /etc/rancher/k3s && cat > /etc/rancher/k3s/registries.yaml' < $SCRIPT_DIR/k3s-registries.yaml
 
       private_ip=$(hcloud server describe $server_name -o format="{{ (index .PrivateNet 0).IP }}")
-      k3s_node_ip_opts="--node-external-ip ${ip} --node-ip ${private_ip}"
+      k3s_node_ip_opts="--node-ip ${ip}"
+      if [[ "$routes_enabled" == "true" ]]; then
+        # Only advertise the private IP if we have routing enabled, to avoid issues where the nodes can
+        # not communicate with each other on the advertised addresses (ie. Robot Servers)
+        k3s_node_ip_opts="--node-external-ip ${ip} --node-ip ${private_ip}"
+      fi
 
       if [[ "$num" == "1" ]]; then
         # First node is control plane.
@@ -142,10 +148,17 @@ if [[ -n "${DEBUG:-}" ]]; then set -x; fi
     # Install Cilium.
     ( trap error ERR
       if ! helm status -n kube-system cilium >/dev/null 2>&1; then
-        helm upgrade -install cilium cilium --repo https://helm.cilium.io/ -n kube-system --version 1.13.1 \
-          --set tunnel=disabled \
-          --set ipv4NativeRoutingCIDR=$cluster_cidr \
+        values=(
           --set ipam.mode=kubernetes
+        )
+        if [[ "$routes_enabled" == "true" ]]; then
+          # When using the Network Routes, we do not need (or want) Cilium to handle these ranges
+          values+=(
+            --set tunnel=disabled
+            --set ipv4NativeRoutingCIDR="$cluster_cidr"
+          )
+        fi
+        helm upgrade -install cilium cilium --repo https://helm.cilium.io/ -n kube-system --version 1.13.1 "${values[@]}"
       fi) &
 
     # Create HCLOUD_TOKEN Secret for hcloud-cloud-controller-manager.
