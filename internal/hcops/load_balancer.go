@@ -628,6 +628,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		}
 	}
 
+	numberOfTargets := len(lb.Targets)
+
 	// Extract IDs of the hc Load Balancer's server targets. Along the way,
 	// Remove all server targets from the HC Load Balancer which are currently
 	// not assigned as nodes to the K8S Load Balancer.
@@ -651,6 +653,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
 			}
 			changed = true
+			numberOfTargets--
 		}
 
 		// Cleanup of IP Targets happens whether Robot Support is enabled or not.
@@ -685,6 +688,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				return changed, e
 			}
 			changed = true
+			numberOfTargets--
 		}
 	}
 
@@ -694,6 +698,11 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		// Don't assign the node again if it is already assigned to the HC load
 		// balancer.
 		if hclbTargetIDs[id] {
+			continue
+		}
+
+		if numberOfTargets >= lb.LoadBalancerType.MaxTargets {
+			klog.InfoS("cannot add server target because max number of targets have been reached", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
 			continue
 		}
 
@@ -714,6 +723,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
 		}
 		changed = true
+		numberOfTargets++
 	}
 
 	if l.Cfg.Robot.Enabled {
@@ -748,6 +758,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
 			}
 			changed = true
+			numberOfTargets++
 		}
 	}
 

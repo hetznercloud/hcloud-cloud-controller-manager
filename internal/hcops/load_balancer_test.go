@@ -1147,6 +1147,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			robotServers: []robotmodels.Server{
 				{
@@ -1268,6 +1271,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
@@ -1306,6 +1312,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
@@ -1350,6 +1359,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 						UsePrivateIP: true,
 					},
 				},
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 1}, nil)
@@ -1388,6 +1400,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 4,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
@@ -1427,6 +1442,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 10,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificates: []string{"1"},
@@ -1462,6 +1480,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 10,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificates: []string{"some-cert"},
