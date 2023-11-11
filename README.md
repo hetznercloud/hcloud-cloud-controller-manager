@@ -2,9 +2,11 @@
 
 [![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
 
-The Hetzner Cloud controller manager integrates your Kubernetes cluster with the Hetzner Cloud API.
+The Hetzner Cloud [cloud-controller-manager](#TODO) integrates your Kubernetes cluster with the Hetzner Cloud & Robot APIs.
 
 ## Features
+
+> TODO Rework, use actual Controller Names or The functionality, Zones is outdated
 
 * **instances interface**: adds the server type to the `node.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
 * **zones interface**: makes Kubernetes aware of the failure domain of the server by setting the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels on the node.
