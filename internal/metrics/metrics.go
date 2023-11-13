@@ -18,10 +18,17 @@ package metrics
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/klog/v2"
+)
+
+const (
+	readTimeout    = 5 * time.Second
+	requestTimeout = 10 * time.Second
+	writeTimeout   = 20 * time.Second
 )
 
 var (
@@ -37,9 +44,7 @@ func GetRegistry() *prometheus.Registry {
 	return registry
 }
 
-func Serve(address string) {
-	klog.Info("Starting metrics server at ", address)
-
+func GetHandler() http.Handler {
 	registry.MustRegister(OperationCalled)
 
 	gatherers := prometheus.Gatherers{
@@ -47,9 +52,23 @@ func Serve(address string) {
 		registry,
 	}
 
-	http.Handle("/metrics", promhttp.HandlerFor(gatherers, promhttp.HandlerOpts{}))
-	// TODO: Setup proper timeouts for metrics server and remove nolint:gosec
-	if err := http.ListenAndServe(address, nil); err != nil { //nolint:gosec
+	return promhttp.HandlerFor(gatherers, promhttp.HandlerOpts{})
+}
+
+func Serve(address string) {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", GetHandler())
+
+	server := &http.Server{
+		Addr:         address,
+		Handler:      http.TimeoutHandler(mux, requestTimeout, "timeout"),
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+	}
+
+	klog.Info("Starting metrics server at ", server.Addr)
+
+	if err := server.ListenAndServe(); err != nil {
 		klog.ErrorS(err, "create metrics service")
 	}
 }
