@@ -85,7 +85,11 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	var robotClient robot.Client
 	if cfg.Robot.Enabled {
 		c := hrobot.NewBasicAuthClient(cfg.Robot.User, cfg.Robot.Password)
-		robotClient = robot.NewClient(c, cfg.Robot.CacheTimeout)
+
+		robotClient = robot.NewRateLimitedClient(
+			cfg.Robot.RateLimitWaitTime,
+			robot.NewCachedClient(cfg.Robot.CacheTimeout, c),
+		)
 	}
 
 	var networkID int64

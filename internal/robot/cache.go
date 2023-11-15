@@ -4,12 +4,11 @@ import (
 	"sync"
 	"time"
 
-	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 )
 
 type cacheRobotClient struct {
-	robotClient hrobot.RobotClient
+	robotClient Client
 	timeout     time.Duration
 
 	lastUpdate time.Time
@@ -21,7 +20,7 @@ type cacheRobotClient struct {
 	serversByID map[int]*hrobotmodels.Server
 }
 
-func NewClient(robotClient hrobot.RobotClient, cacheTimeout time.Duration) Client {
+func NewCachedClient(cacheTimeout time.Duration, robotClient Client) Client {
 	return &cacheRobotClient{
 		timeout:     cacheTimeout,
 		robotClient: robotClient,

@@ -74,14 +74,16 @@ func TestRead(t *testing.T) {
 				"ROBOT_ENABLED", "true",
 				"ROBOT_USER", "foobar",
 				"ROBOT_PASSWORD", "secret-password",
+				"ROBOT_RATE_LIMIT_WAIT_TIME", "5m",
 				"ROBOT_CACHE_TIMEOUT", "1m",
 			},
 			want: HCCMConfiguration{
 				Robot: RobotConfiguration{
-					Enabled:      true,
-					User:         "foobar",
-					Password:     "secret-password",
-					CacheTimeout: 1 * time.Minute,
+					Enabled:           true,
+					User:              "foobar",
+					Password:          "secret-password",
+					CacheTimeout:      1 * time.Minute,
+					RateLimitWaitTime: 5 * time.Minute,
 				},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
@@ -194,8 +196,10 @@ failed to parse HCLOUD_NETWORK_ROUTES_ENABLED: strconv.ParseBool: parsing "si": 
 			name: "error parsing duration values",
 			env: []string{
 				"ROBOT_CACHE_TIMEOUT", "biweekly",
+				"ROBOT_RATE_LIMIT_WAIT_TIME", "42fortnights",
 			},
-			wantErr: errors.New(`failed to parse ROBOT_CACHE_TIMEOUT: time: invalid duration "biweekly"`),
+			wantErr: errors.New(`failed to parse ROBOT_CACHE_TIMEOUT: time: invalid duration "biweekly"
+failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in duration "42fortnights"`),
 		},
 	}
 
