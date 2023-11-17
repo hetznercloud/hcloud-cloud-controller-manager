@@ -62,7 +62,43 @@ jobs:
         run: |
           go test ./tests/e2e -tags e2e -v -timeout 60m
 
+      - name: Download logs & events
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir debug-logs
+          kubectl logs \
+            --namespace kube-system \
+            --selector app.kubernetes.io/name=hcloud-cloud-controller-manager \
+            --all-containers \
+            --prefix=true \
+            --tail=-1 \
+            > debug-logs/hccm.log
+          
+          kubectl get events \
+            --all-namespaces \
+            --sort-by=.firstTimestamp \
+            --output yaml \
+          > debug-logs/events.yaml
+
+      - name: Show HCCM Logs on Failure
+        if: failure()
+        continue-on-error: true
+        run: |
+          echo "::group::hccm.log"
+          cat debug-logs/hccm.log
+          echo "::endgroup::"
+
       - name: Cleanup test environment
         if: always()
+        continue-on-error: true
         run: |
           hack/dev-down.sh
+
+      - name: Persist debug artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-logs-${{ env.SCOPE }}
+          path: debug-logs/
