@@ -13,6 +13,15 @@ jobs:
       matrix:
         k3s: [ v1.25, v1.26, v1.27, v1.28 ]
       fail-fast: false
+
+    env:
+      K3S_CHANNEL: ${{ matrix.k3s }}
+      SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
+
+      # Domain must be available in the account running the tests. This domain is available in the account
+      # running the public integration tests.
+      CERT_DOMAIN: hc-integrations-test.de
+
     steps:
       - uses: actions/setup-go@v4
         with:
@@ -31,22 +40,65 @@ jobs:
           helm: v3.11.2
           kubectl: v1.28.1
           skaffold: v2.3.0
-
-      - name: Run tests
-        env:
-          K3S_CHANNEL: ${{ matrix.k3s }}
-          SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
-
-          # Domain must be available in the account running the tests. This domain is available in the account
-          # running the public integration tests.
-          CERT_DOMAIN: hc-integrations-test.de
+      - name: Install k3sup
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-          trap "hack/dev-down.sh" EXIT
+      - name: Setup test environment
+        run: |
           source <(hack/dev-up.sh)
+          
+          # make exported env variables available to following jobs
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          echo "SKAFFOLD_DEFAULT_REPO=$SKAFFOLD_DEFAULT_REPO" >> "$GITHUB_ENV"
 
+      - name: Build and Deploy HCCM
+        run: |
           skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
           tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
           skaffold deploy --images=hetznercloud/hcloud-cloud-controller-manager=$tag
+
+      - name: Run tests
+        run: |
           go test ./tests/e2e -tags e2e -v -timeout 60m
+
+      - name: Download logs & events
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir debug-logs
+          kubectl logs \
+            --namespace kube-system \
+            --selector app.kubernetes.io/name=hcloud-cloud-controller-manager \
+            --all-containers \
+            --prefix=true \
+            --tail=-1 \
+            > debug-logs/hccm.log
+          
+          kubectl get events \
+            --all-namespaces \
+            --sort-by=.firstTimestamp \
+            --output yaml \
+          > debug-logs/events.yaml
+
+      - name: Show HCCM Logs on Failure
+        if: failure()
+        continue-on-error: true
+        run: |
+          echo "::group::hccm.log"
+          cat debug-logs/hccm.log
+          echo "::endgroup::"
+
+      - name: Cleanup test environment
+        if: always()
+        continue-on-error: true
+        run: |
+          hack/dev-down.sh
+
+      - name: Persist debug artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-logs-${{ env.SCOPE }}
+          path: debug-logs/
