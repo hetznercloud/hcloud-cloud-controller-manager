@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"github.com/stretchr/testify/mock"
+	hrobotmodels "github.com/syself/hrobot-go/models"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -36,6 +37,14 @@ func getLoadBalancerPtrS(args mock.Arguments, i int) []*hcloud.LoadBalancer {
 		return nil
 	}
 	return v.([]*hcloud.LoadBalancer)
+}
+
+func getRobotServers(args mock.Arguments, i int) []hrobotmodels.Server {
+	v := args.Get(i)
+	if v == nil {
+		return nil
+	}
+	return v.([]hrobotmodels.Server)
 }
 
 func getNetworkPtr(args mock.Arguments, i int) *hcloud.Network {

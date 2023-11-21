@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -50,6 +52,9 @@ type HCloudLoadBalancerClient interface {
 	AddServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServerTargetOpts) (*hcloud.Action, *hcloud.Response, error)
 	RemoveServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, server *hcloud.Server) (*hcloud.Action, *hcloud.Response, error)
 
+	AddIPTarget(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddIPTargetOpts) (*hcloud.Action, *hcloud.Response, error)
+	RemoveIPTarget(ctx context.Context, lb *hcloud.LoadBalancer, server net.IP) (*hcloud.Action, *hcloud.Response, error)
+
 	AttachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAttachToNetworkOpts) (*hcloud.Action, *hcloud.Response, error)
 	DetachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerDetachFromNetworkOpts) (*hcloud.Action, *hcloud.Response, error)
 
@@ -68,6 +73,7 @@ type LoadBalancerOps struct {
 	LBClient      HCloudLoadBalancerClient
 	ActionClient  HCloudActionClient
 	NetworkClient HCloudNetworkClient
+	RobotClient   robot.Client
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
@@ -363,7 +369,6 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 	}
 
 	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv4.IP.String(), &rdns)
-
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -389,7 +394,6 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 	}
 
 	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv6.IP.String(), &rdns)
-
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -565,14 +569,23 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	var (
 		// Set of all K8S server IDs currently assigned as nodes to this
 		// cluster.
-		k8sNodeIDs   = make(map[int64]bool)
-		k8sNodeNames = make(map[int64]string)
+		k8sNodeIDsHCloud = make(map[int64]bool)
+		k8sNodeIDsRobot  = make(map[int]bool)
+		k8sNodeNames     = make(map[int64]string)
 
+		robotIPsToIDs = make(map[string]int)
+		robotIDToIPv4 = make(map[int]string)
 		// Set of server IDs assigned as targets to the HC Load Balancer. Some
 		// of the entries may get deleted during reconcilement. In this case
 		// the hclbTargetIDs[id] is always false. If hclbTargetIDs[id] is true,
 		// the node with this server id is assigned to the K8S cluster.
 		hclbTargetIDs = make(map[int64]bool)
+
+		// Set of server IPs assigned as targets to the HC Load Balancer. Some
+		// of the entries may get deleted during reconcilement. In this case
+		// the hclbTargetIPs[id] is always false. If hclbTargetIPs[id] is true,
+		// the node with this server id is assigned to the K8S cluster.
+		hclbTargetIPs = make(map[string]bool)
 
 		changed bool
 	)
@@ -587,45 +600,96 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 	// Extract HC server IDs of all K8S nodes assigned to the K8S cluster.
 	for _, node := range nodes {
-		id, err := providerid.ToServerID(node.Spec.ProviderID)
+		id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
 		if err != nil {
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
-		k8sNodeIDs[id] = true
+		if isCloudServer {
+			k8sNodeIDsHCloud[id] = true
+		} else {
+			k8sNodeIDsRobot[int(id)] = true
+		}
 		k8sNodeNames[id] = node.Name
+	}
+
+	// List all robot servers to check whether the ip targets of the load balancer
+	// correspond to a dedicated server
+
+	if l.Cfg.Robot.Enabled {
+		dedicatedServers, err := l.RobotClient.ServerGetList()
+		if err != nil {
+			return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
+		}
+
+		for _, s := range dedicatedServers {
+			robotIPsToIDs[s.ServerIP] = s.ServerNumber
+			robotIDToIPv4[s.ServerNumber] = s.ServerIP
+		}
 	}
 
 	// Extract IDs of the hc Load Balancer's server targets. Along the way,
 	// Remove all server targets from the HC Load Balancer which are currently
 	// not assigned as nodes to the K8S Load Balancer.
 	for _, target := range lb.Targets {
-		if target.Type != hcloud.LoadBalancerTargetTypeServer {
-			continue
+		if target.Type == hcloud.LoadBalancerTargetTypeServer {
+			id := target.Server.Server.ID
+			recreate := target.UsePrivateIP != usePrivateIP
+			hclbTargetIDs[id] = k8sNodeIDsHCloud[id] && !recreate
+			if hclbTargetIDs[id] {
+				continue
+			}
+
+			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
+			// Target needs to be re-created or node currently not in use by k8s
+			// Load Balancer. Remove it from the HC Load Balancer
+			a, _, err := l.LBClient.RemoveServerTarget(ctx, lb, target.Server.Server)
+			if err != nil {
+				return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
+			}
+			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+				return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
+			}
+			changed = true
 		}
 
-		id := target.Server.Server.ID
-		recreate := target.UsePrivateIP != usePrivateIP
-		hclbTargetIDs[id] = k8sNodeIDs[id] && !recreate
-		if hclbTargetIDs[id] {
-			continue
-		}
+		// Cleanup of IP Targets happens whether Robot Support is enabled or not.
+		// If it is not enabled, we remove all IP targets.
+		if target.Type == hcloud.LoadBalancerTargetTypeIP {
+			ip := target.IP.IP
+			id, foundServer := robotIPsToIDs[ip]
+			hclbTargetIPs[ip] = foundServer && k8sNodeIDsRobot[id]
+			if hclbTargetIPs[ip] {
+				continue
+			}
 
-		klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
-		// Target needs to be re-created or node currently not in use by k8s
-		// Load Balancer. Remove it from the HC Load Balancer
-		a, _, err := l.LBClient.RemoveServerTarget(ctx, lb, target.Server.Server)
-		if err != nil {
-			return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
+			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)])
+			// Node currently not in use by k8s Load Balancer. Remove it from the HC Load Balancer.
+			a, _, err := l.LBClient.RemoveIPTarget(ctx, lb, net.ParseIP(ip))
+			if err != nil {
+				var e error
+				if foundServer {
+					e = fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[int64(id)], err)
+				} else {
+					e = fmt.Errorf("%s: targetIP: %s: %w", op, ip, err)
+				}
+				return changed, e
+			}
+			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+				var e error
+				if foundServer {
+					e = fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[int64(id)], err)
+				} else {
+					e = fmt.Errorf("%s: targetIP: %s: %w", op, ip, err)
+				}
+				return changed, e
+			}
+			changed = true
 		}
-		if err := WatchAction(ctx, l.ActionClient, a); err != nil {
-			return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodeNames[id], err)
-		}
-		changed = true
 	}
 
 	// Assign the servers which are currently assigned as nodes
 	// to the K8S Load Balancer as server targets to the HC Load Balancer.
-	for id := range k8sNodeIDs {
+	for id := range k8sNodeIDsHCloud {
 		// Don't assign the node again if it is already assigned to the HC load
 		// balancer.
 		if hclbTargetIDs[id] {
@@ -649,6 +713,41 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
 		}
 		changed = true
+	}
+
+	if l.Cfg.Robot.Enabled {
+		// Assign the dedicated servers which are currently assigned as nodes
+		// to the K8S Load Balancer as IP targets to the HC Load Balancer.
+		for id := range k8sNodeIDsRobot {
+			ip := robotIDToIPv4[id]
+
+			// Don't assign the node again if it is already assigned to the HC load
+			// balancer.
+			if hclbTargetIPs[ip] {
+				continue
+			}
+			if ip == "" {
+				klog.InfoS("k8s node found but no corresponding server in robot", "id", id)
+				continue
+			}
+
+			klog.InfoS("add target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)], "ip", ip)
+			opts := hcloud.LoadBalancerAddIPTargetOpts{
+				IP: net.ParseIP(ip),
+			}
+			a, _, err := l.LBClient.AddIPTarget(ctx, lb, opts)
+			if err != nil {
+				if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
+					klog.InfoS("resource limit exceeded", "err", err.Error(), "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)])
+					return false, nil
+				}
+				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
+			}
+			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
+			}
+			changed = true
+		}
 	}
 
 	return changed, nil

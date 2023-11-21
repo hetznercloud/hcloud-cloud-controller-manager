@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	hrobot "github.com/syself/hrobot-go"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -33,9 +34,10 @@ import (
 )
 
 type testEnv struct {
-	Server *httptest.Server
-	Mux    *http.ServeMux
-	Client *hcloud.Client
+	Server      *httptest.Server
+	Mux         *http.ServeMux
+	Client      *hcloud.Client
+	RobotClient hrobot.RobotClient
 }
 
 func (env *testEnv) Teardown() {
@@ -43,6 +45,7 @@ func (env *testEnv) Teardown() {
 	env.Server = nil
 	env.Mux = nil
 	env.Client = nil
+	env.RobotClient = nil
 }
 
 func newTestEnv() testEnv {
@@ -54,10 +57,13 @@ func newTestEnv() testEnv {
 		hcloud.WithBackoffFunc(func(_ int) time.Duration { return 0 }),
 		hcloud.WithDebugWriter(os.Stdout),
 	)
+	robotClient := hrobot.NewBasicAuthClient("", "")
+	robotClient.SetBaseURL(server.URL + "/robot")
 	return testEnv{
-		Server: server,
-		Mux:    mux,
-		Client: client,
+		Server:      server,
+		Mux:         mux,
+		Client:      client,
+		RobotClient: robotClient,
 	}
 }
 
@@ -131,13 +137,15 @@ func TestCloud(t *testing.T) {
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 		"HCLOUD_METRICS_ENABLED", "false",
+		"ROBOT_USER", "user",
+		"ROBOT_PASSWORD", "pass123",
 	)
 	defer resetEnv()
 	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(
 			schema.ServerListResponse{
 				Servers: []schema.Server{
-					schema.Server{
+					{
 						ID:              1,
 						Name:            "test",
 						Status:          "running",
@@ -232,6 +240,8 @@ func TestCloud(t *testing.T) {
 			"HCLOUD_NETWORK", "1",
 			"HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "true",
 			"HCLOUD_METRICS_ENABLED", "false",
+			"ROBOT_USER", "",
+			"ROBOT_PASSWORD", "",
 		)
 		defer resetEnv()
 

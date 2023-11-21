@@ -23,12 +23,14 @@ import (
 	"os"
 	"strings"
 
+	hrobot "github.com/syself/hrobot-go"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
@@ -41,9 +43,10 @@ const (
 var providerVersion = "unknown"
 
 type cloud struct {
-	client    *hcloud.Client
-	cfg       config.HCCMConfiguration
-	networkID int64
+	client      *hcloud.Client
+	robotClient robot.Client
+	cfg         config.HCCMConfiguration
+	networkID   int64
 }
 
 func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
@@ -79,6 +82,12 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
 
+	var robotClient robot.Client
+	if cfg.Robot.Enabled {
+		c := hrobot.NewBasicAuthClient(cfg.Robot.User, cfg.Robot.Password)
+		robotClient = robot.NewClient(c, cfg.Robot.CacheTimeout)
+	}
+
 	var networkID int64
 	if cfg.Network.NameOrID != "" {
 		n, _, err := client.Network.Get(context.Background(), cfg.Network.NameOrID)
@@ -110,9 +119,10 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
 	return &cloud{
-		client:    client,
-		cfg:       cfg,
-		networkID: networkID,
+		client:      client,
+		robotClient: robotClient,
+		cfg:         cfg,
+		networkID:   networkID,
 	}, nil
 }
 
@@ -125,7 +135,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.cfg.Instance.AddressFamily, c.networkID), true
+	return newInstances(c.client, c.robotClient, c.cfg.Instance.AddressFamily, c.networkID), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
@@ -140,6 +150,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &c.client.LoadBalancer,
+		RobotClient:   c.robotClient,
 		CertOps:       &hcops.CertificateOps{CertClient: &c.client.Certificate},
 		ActionClient:  &c.client.Action,
 		NetworkClient: &c.client.Network,
