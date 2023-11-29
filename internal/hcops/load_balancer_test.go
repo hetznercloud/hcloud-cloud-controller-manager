@@ -1147,6 +1147,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			robotServers: []hrobotmodels.Server{
 				{
@@ -1254,6 +1257,35 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
 		},
 		{
+			name: "too many targets",
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 2,
+				Targets: []hcloud.LoadBalancerTarget{
+					{
+						Type:   hcloud.LoadBalancerTargetTypeServer,
+						Server: &hcloud.LoadBalancerTargetServer{Server: &hcloud.Server{ID: 1}},
+					},
+				},
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 1,
+				},
+			},
+			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+				// Nothing to mock because no action will be taken besides logging an info message,
+				// will fail if an action would be taken instead.
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
+		},
+		{
 			name: "enable use of private network via default",
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
@@ -1268,6 +1300,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
@@ -1306,6 +1341,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
@@ -1350,6 +1388,9 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 						UsePrivateIP: true,
 					},
 				},
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 1}, nil)
@@ -1388,6 +1429,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 4,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
@@ -1427,6 +1471,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 10,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificates: []string{"1"},
@@ -1462,6 +1509,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 10,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
 			},
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificates: []string{"some-cert"},
