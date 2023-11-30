@@ -1,0 +1,160 @@
+name: E2E Test
+description: "Runs the e2e test"
+
+inputs:
+  k3s-channel:
+    description: "k3s [channel](https://docs.k3s.io/upgrades/manual#release-channels) to use for Kubernetes"
+    required: true
+  scope:
+    description: "Unique prefix for resources created by this test run"
+    required: true
+  cert-domain:
+    description: "Domain to use for the certificate, must be available in the account running the tests. If not set, tests using it will be skipped."
+    required: true
+
+  hcloud-token:
+    description: "Hetzner Cloud API token, overrides TPS."
+    required: false
+
+  routes-enabled:
+    description: "Enable Routes & Private networks in hcloud-cloud-controller-manager"
+    required: false
+    default: "true"
+
+  robot-enabled:
+    description: "Enable Robot support in hcloud-cloud-controller-manager"
+    required: false
+    default: "false"
+
+  robot-server-number:
+    description: "Number of the Robot server to use. Required if robot-enabled is true."
+    required: false
+
+  robot-user:
+    description: "Username for Robot API. Required if robot-enabled is true."
+    required: false
+
+  robot-password:
+    description: "Password for Robot API. Required if robot-enabled is true."
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v4
+      with:
+        go-version: "1.21"
+    - uses: hetznercloud/tps-action@main
+      with:
+        token: ${{ inputs.hcloud-token  }}
+    - uses: 3bit/setup-hcloud@v2
+    - uses: yokawasa/action-setup-kube-tools@v0.9.3
+      with:
+        setup-tools: |
+          helm
+          kubectl
+          skaffold
+        helm: v3.11.2
+        kubectl: v1.28.1
+        skaffold: v2.3.0
+    - name: Install k3sup
+      shell: bash
+      run: |
+        curl -sLS https://get.k3sup.dev | sh
+
+    - name: Setup test environment
+      shell: bash
+      env:
+        ROBOT_USER: ${{ inputs.robot-user }}
+        ROBOT_PASSWORD: ${{ inputs.robot-password }}
+      run: |
+        source <(hack/dev-up.sh)
+        
+        # make exported env variables available to following jobs
+        echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+        echo "SKAFFOLD_DEFAULT_REPO=$SKAFFOLD_DEFAULT_REPO" >> "$GITHUB_ENV"
+        echo "CONTROL_IP=$CONTROL_IP" >> "$GITHUB_ENV"
+
+    - name: Build and Deploy HCCM
+      shell: bash
+      env:
+        SKAFFOLD_PROFILES: ${{ inputs.robot-enabled == true && '--profile=robot' || '' }}
+      run: |
+        # Build image
+        skaffold build --tag="e2e-${{ inputs.scope }}"
+        tag=$(skaffold build --tag="e2e-${{ inputs.scope }}" --quiet --output="{{ (index .Builds 0).Tag }}")
+
+        # Deploy hccm
+        skaffold deploy $SKAFFOLD_PROFILES --images=hetznercloud/hcloud-cloud-controller-manager=$tag
+
+    - name: Setup Robot Server
+      shell: bash
+      if: inputs.robot-enabled == true
+      env:
+        ROBOT_USER: ${{ inputs.robot-user }}
+        ROBOT_PASSWORD: ${{ inputs.robot-password }}
+
+        # Nicer output
+        PY_COLORS: "true"
+        ANSIBLE_FORCE_COLOR: "true"
+      working-directory: hack/robot-e2e
+      run: |
+        ansible-galaxy install -r requirements.yml
+        echo "::group::ansible-playbook e2e-setup-robot-server.yml"
+        ansible-playbook e2e-setup-robot-server.yml -e scope=${{ inputs.scope }} -e server_number=${{ inputs.robot-server-number }} -vvv
+        echo "::endgroup::"
+
+    - name: Run tests
+      shell: bash
+      env:
+        ROBOT_USER: ${{ inputs.robot-user }}
+        ROBOT_PASSWORD: ${{ inputs.robot-password }}
+
+        BUILD_TAGS: ${{ inputs.robot-enabled == true && 'e2e' || 'e2e,robot' }}
+      run: |
+        go test ./tests/e2e -tags $BUILD_TAGS -v -timeout 60m
+
+    - name: Download logs & events
+      shell: bash
+      if: always()
+      continue-on-error: true
+      run: |
+        mkdir debug-logs
+        kubectl logs \
+          --namespace kube-system \
+          --selector app.kubernetes.io/name=hcloud-cloud-controller-manager \
+          --all-containers \
+          --prefix=true \
+          --tail=-1 \
+          > debug-logs/hccm.log
+        
+        kubectl get events \
+          --all-namespaces \
+          --sort-by=.firstTimestamp \
+          --output yaml \
+        > debug-logs/events.yaml
+
+
+    - name: Show HCCM Logs on Failure
+      shell: bash
+      if: failure()
+      continue-on-error: true
+      run: |
+        echo "::group::hccm.log"
+        cat debug-logs/hccm.log
+        echo "::endgroup::"
+
+    - name: Cleanup test environment
+      shell: bash
+      if: always()
+      continue-on-error: true
+      run: |
+        hack/dev-down.sh
+
+    - name: Persist debug artifacts
+      if: always()
+      continue-on-error: true
+      uses: actions/upload-artifact@v3
+      with:
+        name: debug-logs-${{ inputs.scope }}
+        path: debug-logs/
