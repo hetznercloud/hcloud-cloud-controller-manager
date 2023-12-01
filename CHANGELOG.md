@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.19.0-rc.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.18.0...v1.19.0-rc.0) (2023-12-01)
+
+
+### Features
+
+* **chart:** add daemonset and node selector ([#537](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/537)) ([a94384f](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/a94384feb782529e4f0c2424fb037704f495fb83))
+* **config:** stricter validation for settings `HCLOUD_LOAD_BALANCERS_ENABLED`, `HCLOUD_METRICS_ENABLED` & `HCLOUD_NETWORK_ROUTES_ENABLED` ([#546](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/546)) ([335a2c9](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/335a2c98e5ad1ca97e8e17e5eaebf2906cda8e60))
+* **helm:** remove "v" prefix from chart version ([#565](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/565)) ([f11aa0d](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f11aa0df8056e7c406fd214570e032820f0559d7)), closes [#529](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/529)
+* **load-balancer:** handle planned targets exceedings max targets ([#570](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/570)) ([8bb131f](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/8bb131ff66dcd657b6d3e58f0937a7f266553667))
+* remove unused variable NODE_NAME ([#545](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/545)) ([a659408](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/a65940830c4c92d53e55df9258a4bcc0a0a72abe))
+* **robot:** handle ratelimiting with constant backoff ([#572](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/572)) ([2ddc201](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/2ddc201a6134f91a11e555d6fcbc2d2048b669a6))
+* support for Robot servers ([#561](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/561)) ([65dea11](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/65dea11f93ce6ff413cea468b3c8d59487dde346))
+
 ## [1.18.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.17.2...v1.18.0) (2023-09-18)
 
 
