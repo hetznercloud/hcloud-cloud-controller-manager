@@ -50,7 +50,7 @@ env:
 
 image:
   repository: hetznercloud/hcloud-cloud-controller-manager
-  tag: '{{ $.Chart.Version }}'
+  tag: 'v{{ $.Chart.Version }}'
 
 monitoring:
   # When enabled, the hccm Pod will serve metrics on port :8233
