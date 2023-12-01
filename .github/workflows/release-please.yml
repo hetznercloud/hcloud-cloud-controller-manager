@@ -17,6 +17,12 @@ jobs:
           release-type: go
           package-name: hcloud-cloud-controller-manager
 
+          # We published a 1.19.0-rc.0 to verify the build process and provide
+          # people with a test version. We would like to have the full changelog
+          # since the last proper release v1.18.0 (this sha).
+          last-release-sha: 9e2926c6f0c4194d359b831975c17759e3033caf
+          release-as: 1.19.0
+
           # These files reference the version in the OCI image tag.
           extra-files: |
             deploy/ccm.yaml
