@@ -2,18 +2,23 @@
 
 [![GitHub Actions status](https://github.com/hetznercloud/hcloud-cloud-controller-manager/workflows/Run%20tests/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions)
 
-The Hetzner Cloud controller manager integrates your Kubernetes cluster with the Hetzner Cloud API.
+The Hetzner Cloud [cloud-controller-manager](https://kubernetes.io/docs/concepts/architecture/cloud-controller/) integrates your Kubernetes cluster with the Hetzner Cloud & Robot APIs.
 
 ## Features
 
-* **instances interface**: adds the server type to the `node.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
-* **zones interface**: makes Kubernetes aware of the failure domain of the server by setting the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels on the node.
-* **Private Networks**: allows to use Hetzner Cloud Private Networks for your pods traffic.
-* **Load Balancers**: allows to use Hetzner Cloud Load Balancers with Kubernetes Services
+- **Node**:
+  - Updates your `Node` objects with information about the server from the Cloud & Robot API.
+  - Instance Type, Location, Datacenter, Server ID, IPs.
+- **Node Lifecycle**:
+  - Cleans up stale `Node` objects when the server is deleted in the API.
+- **Routes** (if enabled):
+  - Routes traffic to the pods through Hetzner Cloud Networks. Removes one layer of indirection in CNIs that support this.
+- **Load Balancer**:
+  - Watches Services with `type: LoadBalancer` and creates Hetzner Cloud Load Balancers for them, adds Kubernetes Nodes as targets for the Load Balancer.
 
 Read more about cloud controllers in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
 
-## Example
+### Node Metadata Example
 
 ```yaml
 apiVersion: v1

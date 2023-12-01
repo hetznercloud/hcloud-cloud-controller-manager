@@ -1,5 +1,8 @@
 # hccm program command line arguments.
-# The "--allocate-node-cidrs" + "--cluster-cidr" + "--leader-elect" arguments are managed by the chart and should *not* be set directly here.
+# The following flags are managed by the chart and should *not* be set directly here:
+# --allocate-node-cidrs
+# --cluster-cidr
+# --leader-elect
 args:
   cloud-provider: hcloud
   allow-untagged-cloud: ""
@@ -21,7 +24,7 @@ replicaCount: 1
 
 # hccm environment variables
 env:
-  # The following two variables should *not* be set here:
+  # The following variables are managed by the chart and should *not* be set here:
   # HCLOUD_METRICS_ENABLED - see monitoring.enabled
   # HCLOUD_NETWORK - see networking.enabled
   # ROBOT_ENABLED - see robot.enabled
