@@ -4,7 +4,7 @@
 before:
   hooks:
     - go mod tidy
-    - ./scripts/release-generate-deployment-yamls.sh {{ if not .IsSnapshot }}{{ end }}{{ .Version }}
+    - ./scripts/release-generate-deployment-yamls.sh {{ .Version }}
 
 builds:
   - id: hcloud-cloud-controller-manager
@@ -59,6 +59,6 @@ publishers:
     ids: [""]
     checksum: true
 
-    cmd: ./scripts/publish-helm-chart.sh hcloud-cloud-controller-manager-{{ if not .IsSnapshot }}{{ end }}{{ .Version }}.tgz
+    cmd: ./scripts/publish-helm-chart.sh hcloud-cloud-controller-manager-{{ .Version }}.tgz
     env:
       - CHART_REPO_REMOTE={{ .Env.CHART_REPO_REMOTE }}
