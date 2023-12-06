@@ -46,4 +46,4 @@ Could not create route xy-xy-xy-xy-xy 10.244.0.0/24 for node xy.example.com afte
 ```
 
 Solution:
-Make sure the cluster-cidr does not overlap with the Hetzner Cloud Subnet. Check [Considerations on the IP Ranges](#considerations-on-the-ip-ranges) for more information.
+Make sure the cluster-cidr does not overlap with any subnet created in the Hetzner Cloud Network. Check [Considerations on the IP Ranges](#considerations-on-the-ip-ranges) for more information.
