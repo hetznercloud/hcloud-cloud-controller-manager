@@ -35,6 +35,11 @@ Some example values:
     - Node 1: `10.0.16.0/24`, Node 2: `10.0.17.0/24`, ...
 - Service CIDR: `10.0.8.0/21` (up to 2046 `ClusterIP` services)
 
+Some further restrictions and considerations are explained in the Hetzner Cloud Docs:
+
+- [Which IP addresses can I use?](https://docs.hetzner.com/cloud/networks/faq#which-ip-addresses-can-i-use)
+- [Are any IP addresses reserved?](https://docs.hetzner.com/cloud/networks/faq/#are-any-ip-addresses-reserved)
+
 ## Common Issues
 
 ### FailedToCreateRoute
