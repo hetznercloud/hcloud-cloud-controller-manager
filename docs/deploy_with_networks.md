@@ -19,12 +19,36 @@ When deploying Cilium, make sure that you have set `tunnel: disabled` and `nativ
 
 After this, you should be able to see the correct routes in the [Hetzner Cloud Console](https://console.hetzner.cloud) or via `hcloud-cli` (`hcloud network describe <hcloud Network_ID_or_Name>`).
 
+## Considerations on the IP Ranges
+
+The `cluster-cidr` Range must be **within the Hetzner Cloud Network Range**, but **must not overlap with any created subnets**. By default, Kubernetes assigns a `/24` (254 addresses) per Node. Changing the range later on is possible, but requires some work. You should assign a range that is large enough to fit enough nodes. For example, if you plan to use a cluster with 10 nodes, you need to assign at least a `/20` (16 x `/24`) to the `cluster-cidr` flag.
+
+The `service-cidr` Range can be within the Hetzner Cloud Network Range, as long as it does not overlap with any other Subnets. 
+
+Some example values:
+
+- Hetzner Cloud Network Range: `10.0.0.0/16`
+- Subnet for Cloud Servers & Load Balancers: `10.0.1.0/24` (254 Servers & LBs, API maximum is 100 members)
+- Subnet for Robot vSwitch: `10.0.2.0/24` (254 Servers, API maximum is 100 members)
+- Cluster CIDR: `10.0.16.0/20` (up to 16 Nodes)
+  - Kubernetes will assign a `/24` to every node:
+    - Node 1: `10.0.16.0/24`, Node 2: `10.0.17.0/24`, ...
+- Service CIDR: `10.0.8.0/21` (up to 2046 `ClusterIP` services)
+
+Some further restrictions and considerations are explained in the Hetzner Cloud Docs:
+
+- [Which IP addresses can I use?](https://docs.hetzner.com/cloud/networks/faq#which-ip-addresses-can-i-use)
+- [Are any IP addresses reserved?](https://docs.hetzner.com/cloud/networks/faq/#are-any-ip-addresses-reserved)
+
 ## Common Issues
-#### FailedToCreateRoute
+
+### FailedToCreateRoute
+
 Error Message:
+
 ```
 Could not create route xy-xy-xy-xy-xy 10.244.0.0/24 for node xy.example.com after 1s: hcloud/CreateRoute: network route destination overlaps with another subnetwork or network route (invalid_input)
 ```
+
 Solution:
-Make sure the cluster-cidr does not overlap with the Hetzner Cloud Network.
-For example your Subnetwork could be `10.10.10.0/24` when the *cluster-cidr* is set to `10.244.0.0/16`.
+Make sure the cluster-cidr does not overlap with any subnet created in the Hetzner Cloud Network. Check [Considerations on the IP Ranges](#considerations-on-the-ip-ranges) for more information.
