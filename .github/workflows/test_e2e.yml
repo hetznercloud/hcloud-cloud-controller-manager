@@ -23,7 +23,7 @@ jobs:
       CERT_DOMAIN: hc-integrations-test.de
 
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.21"
       - uses: actions/checkout@master
@@ -124,7 +124,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.21"
       - uses: actions/checkout@master
