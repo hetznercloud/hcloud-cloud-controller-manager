@@ -1,6 +1,6 @@
 module github.com/hetznercloud/hcloud-cloud-controller-manager
 
-go 1.21.1
+go 1.21.5
 
 require (
 	github.com/hetznercloud/hcloud-go/v2 v2.4.0
