@@ -80,6 +80,7 @@ func (i *instances) lookupServer(
 			return nil, errMissingRobotClient
 		}
 		server, err := getRobotServerByID(i.robotClient, int(serverID), node)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to get robot server \"%d\": %w", serverID, err)
 		}

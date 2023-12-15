@@ -19,6 +19,7 @@ package hcloud
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog/v2"
 	"strings"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
@@ -91,6 +92,7 @@ func getRobotServerByID(c robot.Client, id int, node *corev1.Node) (*hrobotmodel
 
 	// check whether name matches - otherwise this server does not belong to the respective node anymore
 	if server.Name != node.Name {
+		klog.Warningf("%s: server %d has name %q, but node %q has name %q. if you want node to be matched with node in Hetzner Robot you should rename it.", op, id, server.Name, node.Name, node.Name)
 		return nil, nil
 	}
 
