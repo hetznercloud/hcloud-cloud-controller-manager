@@ -61,7 +61,10 @@ jobs:
 
       - name: Run tests
         run: |
-          go test ./tests/e2e -tags e2e -v -timeout 60m
+          go test ./tests/e2e -tags e2e -v -race -timeout 60m -coverprofile=coverage.txt
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
 
       - name: Download logs & events
         if: always()
