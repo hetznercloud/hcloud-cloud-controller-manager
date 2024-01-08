@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k3s: [ v1.26, v1.27, v1.28 ]
+        k3s: [ v1.26, v1.27, v1.28, v1.29 ]
       fail-fast: false
 
     env:
@@ -38,7 +38,7 @@ jobs:
             kubectl
             skaffold
           helm: v3.11.2
-          kubectl: v1.28.1
+          kubectl: v1.29.0
           skaffold: v2.3.0
       - name: Install k3sup
         run: |
@@ -117,7 +117,7 @@ jobs:
     environment: e2e-robot
 
     env:
-      K3S_CHANNEL: v1.28
+      K3S_CHANNEL: v1.29
       SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
 
       # Disable routes in dev-env, not supported for Robot.
@@ -142,7 +142,7 @@ jobs:
             kubectl
             skaffold
           helm: v3.11.2
-          kubectl: v1.28.1
+          kubectl: v1.29.0
           skaffold: v2.3.0
       - name: Install k3sup
         run: |
