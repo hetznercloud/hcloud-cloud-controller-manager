@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k3s: [ v1.25, v1.26, v1.27, v1.28 ]
+        k3s: [ v1.26, v1.27, v1.28 ]
       fail-fast: false
 
     env:
