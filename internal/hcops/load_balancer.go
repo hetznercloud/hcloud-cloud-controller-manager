@@ -701,6 +701,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		}
 
 		if numberOfTargets >= lb.LoadBalancerType.MaxTargets {
+			// TODO: Event
 			klog.InfoS("cannot add server target because max number of targets have been reached", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
 			continue
 		}
@@ -714,6 +715,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		if err != nil {
 			if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
 				klog.InfoS("resource limit exceeded", "err", err.Error(), "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[id])
+				// TODO: Event
+				// TODO: continue?
 				return false, nil
 			}
 			return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[id], err)
@@ -737,11 +740,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				continue
 			}
 			if ip == "" {
+				// TODO: Event
 				klog.InfoS("k8s node found but no corresponding server in robot", "id", id)
 				continue
 			}
 
 			if numberOfTargets >= lb.LoadBalancerType.MaxTargets {
+				// TODO: Event
 				klog.InfoS("cannot add ip target because max number of targets have been reached", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)])
 				continue
 			}
@@ -754,6 +759,8 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if err != nil {
 				if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
 					klog.InfoS("resource limit exceeded", "err", err.Error(), "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodeNames[int64(id)])
+					// TODO: Event
+					// TODO: continue?
 					return false, nil
 				}
 				return changed, fmt.Errorf("%s: target %s: %w", op, k8sNodeNames[int64(id)], err)
