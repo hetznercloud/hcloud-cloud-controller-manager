@@ -165,12 +165,13 @@ See https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/212
 
 ## Versioning policy
 
-We aim to support the latest three versions of Kubernetes. After a new
-Kubernetes version has been released we will stop supporting the oldest
-previously supported version. This does not necessarily mean that the
-Cloud Controller Manager does not still work with this version. However,
-it means that we do not test that version anymore. Additionally, we will
+We aim to support the latest three versions of Kubernetes. When a Kubernetes
+version is marked as _End Of Life_, we will stop support for it and remove the
+version from our CI tests. This does not necessarily mean that the
+Cloud Controller Manager does not still work with this version. We will
 not fix bugs related only to an unsupported version.
+
+Current Kubernetes Releases: https://kubernetes.io/releases/
 
 ### With Networks support
 
