@@ -168,6 +168,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 		NetworkClient: &c.client.Network,
 		NetworkID:     c.networkID,
 		Cfg:           c.cfg,
+		Recorder:      c.recorder,
 	}
 
 	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6), true
