@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
@@ -48,13 +49,25 @@ func newInstances(client *hcloud.Client, robotClient robot.Client, addressFamily
 	return &instances{client, robotClient, addressFamily, networkID}
 }
 
-// lookupServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server] for a given [*corev1.Node].
+// lookupServer attempts to locate the corresponding [*hcloud.Server], [*hrobotmodels.Server] or [*mockServer] for a given [*corev1.Node].
 // It returns an error if the Node has an invalid provider ID or if API requests failed.
 // It can return nil server if neither the ProviderID nor the Name matches an existing server.
 func (i *instances) lookupServer(
 	ctx context.Context,
 	node *corev1.Node,
 ) (genericServer, error) {
+	if node.Labels["instance.hetzner.cloud/use-server-labels"] != "" {
+		return mockServer{
+			InstanceType:   node.Labels["instance.hetzner.cloud/instance-type"],
+			NodeExternalIP: node.Labels["instance.hetzner.cloud/external-ip"],
+			NodeInternalIP: node.Labels["instance.hetzner.cloud/internal-ip"],
+			Zone:           node.Labels["instance.hetzner.cloud/zone"],
+			Region:         node.Labels["instance.hetzner.cloud/region"],
+			ServerID:       node.Labels["instance.hetzner.cloud/server-id"],
+			HostName:       node.Labels["instance.hetzner.cloud/hostname"],
+		}, nil
+	}
+
 	if node.Spec.ProviderID != "" {
 		var serverID int64
 		serverID, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
@@ -296,5 +309,50 @@ func (s robotServer) Metadata(addressFamily config.AddressFamily, _ int64) (*clo
 		NodeAddresses: robotNodeAddresses(addressFamily, s.Server),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
+	}, nil
+}
+
+type mockServer struct {
+	InstanceType   string
+	NodeExternalIP string
+	NodeInternalIP string
+	Zone           string
+	Region         string
+	ServerID       string
+	HostName       string
+}
+
+func (s mockServer) IsShutdown() (bool, error) {
+	return false, nil
+}
+
+func (s mockServer) Metadata(addressFamily config.AddressFamily, networkID int64) (*cloudprovider.InstanceMetadata, error) {
+	var addresses []corev1.NodeAddress
+	addresses = append(
+		addresses,
+		corev1.NodeAddress{Type: corev1.NodeHostName, Address: s.HostName},
+	)
+
+	addresses = append(
+		addresses,
+		corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: s.NodeExternalIP},
+	)
+
+	addresses = append(
+		addresses,
+		corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: s.NodeInternalIP},
+	)
+
+	serverId, err := strconv.Atoi(s.ServerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse server ID: %v", err)
+	}
+
+	return &cloudprovider.InstanceMetadata{
+		ProviderID:    providerid.FromRobotServerNumber(serverId),
+		InstanceType:  s.InstanceType,
+		NodeAddresses: addresses,
+		Zone:          s.Zone,
+		Region:        s.Region,
 	}, nil
 }
