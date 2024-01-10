@@ -643,15 +643,23 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				continue
 			}
 
-			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", k8sNodes[id].Name)
+			// k8sNodes[id] can be nil if the node is currently being deleted.
+			var nodeName string
+			if node := k8sNodes[id]; node != nil {
+				nodeName = node.Name
+			} else {
+				nodeName = fmt.Sprintf("%d", id)
+			}
+
+			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", nodeName)
 			// Target needs to be re-created or node currently not in use by k8s
 			// Load Balancer. Remove it from the HC Load Balancer
 			a, _, err := l.LBClient.RemoveServerTarget(ctx, lb, target.Server.Server)
 			if err != nil {
-				return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodes[id].Name, err)
+				return changed, fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
 			}
 			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
-				return changed, fmt.Errorf("%s: target: %s: %w", op, k8sNodes[id].Name, err)
+				return changed, fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
 			}
 			changed = true
 			numberOfTargets--
@@ -666,15 +674,22 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if hclbTargetIPs[ip] {
 				continue
 			}
-			node := k8sNodes[int64(id)]
 
-			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", node.Name)
+			// k8sNodes[id] can be nil if the node is currently being deleted.
+			var nodeName string
+			if node := k8sNodes[int64(id)]; node != nil {
+				nodeName = node.Name
+			} else {
+				nodeName = fmt.Sprintf("%d", id)
+			}
+
+			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", nodeName)
 			// Node currently not in use by k8s Load Balancer. Remove it from the HC Load Balancer.
 			a, _, err := l.LBClient.RemoveIPTarget(ctx, lb, net.ParseIP(ip))
 			if err != nil {
 				var e error
 				if foundServer {
-					e = fmt.Errorf("%s: target: %s: %w", op, node.Name, err)
+					e = fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
 				} else {
 					e = fmt.Errorf("%s: targetIP: %s: %w", op, ip, err)
 				}
@@ -683,7 +698,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
 				var e error
 				if foundServer {
-					e = fmt.Errorf("%s: target: %s: %w", op, node, err)
+					e = fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
 				} else {
 					e = fmt.Errorf("%s: targetIP: %s: %w", op, ip, err)
 				}
