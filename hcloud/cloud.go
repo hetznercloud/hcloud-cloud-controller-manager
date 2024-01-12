@@ -24,6 +24,9 @@ import (
 	"strings"
 
 	hrobot "github.com/syself/hrobot-go"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
@@ -46,6 +49,7 @@ type cloud struct {
 	client      *hcloud.Client
 	robotClient robot.Client
 	cfg         config.HCCMConfiguration
+	recorder    record.EventRecorder
 	networkID   int64
 }
 
@@ -122,11 +126,15 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	eventBroadcaster := record.NewBroadcaster()
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
+
 	return &cloud{
 		client:      client,
 		robotClient: robotClient,
 		cfg:         cfg,
 		networkID:   networkID,
+		recorder:    recorder,
 	}, nil
 }
 
@@ -139,7 +147,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.cfg.Instance.AddressFamily, c.networkID), true
+	return newInstances(c.client, c.robotClient, c.recorder, c.cfg.Instance.AddressFamily, c.networkID), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
@@ -160,6 +168,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 		NetworkClient: &c.client.Network,
 		NetworkID:     c.networkID,
 		Cfg:           c.cfg,
+		Recorder:      c.recorder,
 	}
 
 	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6), true

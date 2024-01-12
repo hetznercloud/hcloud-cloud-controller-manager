@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -49,6 +50,7 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 		ActionClient:  fx.ActionClient,
 		NetworkClient: fx.NetworkClient,
 		RobotClient:   fx.RobotClient,
+		Recorder:      &record.FakeRecorder{},
 	}
 
 	return fx

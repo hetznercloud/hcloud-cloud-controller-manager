@@ -23,6 +23,7 @@ import (
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -35,6 +36,7 @@ import (
 type instances struct {
 	client        *hcloud.Client
 	robotClient   robot.Client
+	recorder      record.EventRecorder
 	addressFamily config.AddressFamily
 	networkID     int64
 }
@@ -44,8 +46,8 @@ var (
 	errMissingRobotClient = errors.New("no robot client configured, make sure to enable Robot support in the configuration")
 )
 
-func newInstances(client *hcloud.Client, robotClient robot.Client, addressFamily config.AddressFamily, networkID int64) *instances {
-	return &instances{client, robotClient, addressFamily, networkID}
+func newInstances(client *hcloud.Client, robotClient robot.Client, recorder record.EventRecorder, addressFamily config.AddressFamily, networkID int64) *instances {
+	return &instances{client, robotClient, recorder, addressFamily, networkID}
 }
 
 // lookupServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server] for a given [*corev1.Node].
@@ -107,6 +109,7 @@ func (i *instances) lookupServer(
 	}
 
 	if cloudServer != nil && hrobotServer != nil {
+		i.recorder.Eventf(node, corev1.EventTypeWarning, "InstanceLookupFailed", "Node %s could not be uniquely associated with a Cloud or Robot server, as a server with this name exists in both APIs", node.Name)
 		return nil, fmt.Errorf("found both a cloud & robot server for name %q", node.Name)
 	}
 

@@ -27,6 +27,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	hrobot "github.com/syself/hrobot-go"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -38,6 +41,7 @@ type testEnv struct {
 	Mux         *http.ServeMux
 	Client      *hcloud.Client
 	RobotClient hrobot.RobotClient
+	Recorder    record.EventRecorder
 }
 
 func (env *testEnv) Teardown() {
@@ -46,6 +50,7 @@ func (env *testEnv) Teardown() {
 	env.Mux = nil
 	env.Client = nil
 	env.RobotClient = nil
+	env.Recorder = nil
 }
 
 func newTestEnv() testEnv {
@@ -59,11 +64,13 @@ func newTestEnv() testEnv {
 	)
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
+	recorder := record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
 	return testEnv{
 		Server:      server,
 		Mux:         mux,
 		Client:      client,
 		RobotClient: robotClient,
+		Recorder:    recorder,
 	}
 }
 

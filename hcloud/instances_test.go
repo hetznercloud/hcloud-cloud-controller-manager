@@ -89,7 +89,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
 
 	tests := []struct {
 		name     string
@@ -209,7 +209,7 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
 	env.Mux.HandleFunc("/robot/server/3", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(hrobotmodels.ServerResponse{
 			Server: hrobotmodels.Server{
@@ -343,7 +343,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
@@ -384,7 +384,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
