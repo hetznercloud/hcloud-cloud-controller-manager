@@ -791,6 +791,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	return changed, nil
 }
 
+//nolint:unparam ops might get set to different values in the future
 func (l *LoadBalancerOps) emitMaxTargetsReachedError(node *corev1.Node, svc *corev1.Service, op string) {
 	l.Recorder.Eventf(node, corev1.EventTypeWarning, "MaxTargetsReached",
 		"Node could not be added to Load Balancer for service %s because the max number of targets has been reached",
