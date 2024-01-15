@@ -58,20 +58,21 @@ guide](https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/),
 which these instructions are meant to augment and the [kubeadm
 documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/).
 
-1. The cloud controller manager adds its labels when a node is added to
+1. The cloud controller manager adds the labels when a node is added to
    the cluster. For current Kubernetes versions, this means we
-   have to add the `--cloud-provider=external` flag to the `kubelet`
-   before initializing the control plane with `kubeadm init`. To do
-   accomplish this we add this systemd drop-in unit
-   `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`:
+   have to add the `--cloud-provider=external` flag to the `kubelet`. How you
+   do this depends on your Kubernetes distribution. With `kubeadm` you can
+   either set it in the kubeadm config
+   ([`nodeRegistration.kubeletExtraArgs`][kubeadm-config]) or through a systemd
+   drop-in unit `/etc/systemd/system/kubelet.service.d/20-hcloud.conf`:
 
-    ```
-    [Service]
-    Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
-    ```
+   ```ini
+   [Service]
+   Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
+   ```
 
    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
-   will see a log message regarding this. For now (v1.26) it is still required.
+   will see a log message regarding this. For now (v1.29) it is still required.
 
 2. Now the control plane can be initialized:
 
@@ -122,6 +123,8 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
     ```sh
     kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
+
+[kubeadm-config]: https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/#kubeadm-k8s-io-v1beta4-NodeRegistrationOptions
 
 ## Networks support
 
