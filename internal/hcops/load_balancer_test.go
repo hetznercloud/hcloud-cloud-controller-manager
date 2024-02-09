@@ -34,7 +34,7 @@ func TestLoadBalancerOps_GetByName(t *testing.T) {
 		{
 			name:   "client responds with hcloud.ErrorCodeNotFound",
 			lbName: "some-lb",
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				err := hcloud.Error{Code: hcloud.ErrorCodeNotFound}
 				fx.LBClient.
 					On("GetByName", fx.Ctx, "some-lb").
@@ -45,7 +45,7 @@ func TestLoadBalancerOps_GetByName(t *testing.T) {
 		{
 			name:   "Load Balancer is nil",
 			lbName: "some-lb",
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBClient.
 					On("GetByName", fx.Ctx, "some-lb").
 					Return(nil, nil, nil)
@@ -55,7 +55,7 @@ func TestLoadBalancerOps_GetByName(t *testing.T) {
 		{
 			name:   "Load Balancer found",
 			lbName: "some-lb",
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				lb := &hcloud.LoadBalancer{ID: 1}
 				fx.LBClient.
 					On("GetByName", fx.Ctx, "some-lb").
@@ -66,7 +66,7 @@ func TestLoadBalancerOps_GetByName(t *testing.T) {
 		{
 			name:   "client returns other error",
 			lbName: "some-lb",
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBClient.
 					On("GetByName", fx.Ctx, "some-lb").
 					Return(nil, nil, errTestLbClient)
@@ -104,7 +104,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 		{
 			name: "client responds with hcloud.ErrorCodeNotFound",
 			lbID: 1,
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				err := hcloud.Error{Code: hcloud.ErrorCodeNotFound}
 				fx.LBClient.
 					On("GetByID", fx.Ctx, int64(1)).
@@ -115,7 +115,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 		{
 			name: "Load Balancer is nil",
 			lbID: 2,
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBClient.
 					On("GetByID", fx.Ctx, int64(2)).
 					Return(nil, nil, nil)
@@ -125,7 +125,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 		{
 			name: "Load Balancer found",
 			lbID: 3,
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				lb := &hcloud.LoadBalancer{ID: 3}
 				fx.LBClient.
 					On("GetByID", fx.Ctx, int64(3)).
@@ -136,7 +136,7 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 		{
 			name: "client returns other error",
 			lbID: 4,
-			mock: func(t *testing.T, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBClient.
 					On("GetByID", fx.Ctx, int64(4)).
 					Return(nil, nil, errTestLbClient)
@@ -455,7 +455,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					hcops.LabelServiceUID: "lb-with-priv-uid",
 				},
 			},
-			mock: func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBOps.NetworkID = tt.createOpts.Network.ID
 				fx.NetworkClient.
 					On("GetByID", fx.Ctx, fx.LBOps.NetworkID).
@@ -471,7 +471,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation: "nbg1",
 			},
-			mock: func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, _ *testCase, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBOps.NetworkID = 4711
 				fx.NetworkClient.On("GetByID", fx.Ctx, fx.LBOps.NetworkID).Return(nil, nil, nil)
 			},
@@ -482,7 +482,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation: "nbg1",
 			},
-			mock: func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, _ *testCase, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBOps.NetworkID = 4712
 				fx.NetworkClient.On("GetByID", fx.Ctx, fx.LBOps.NetworkID).Return(nil, nil, errTestLbClient)
 			},
@@ -507,7 +507,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					hcops.LabelServiceUID: "lb-with-priv-uid",
 				},
 			},
-			mock: func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
+			mock: func(_ *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
 				fx.LBOps.NetworkID = tt.createOpts.Network.ID
 
 				fx.NetworkClient.On("GetByID", fx.Ctx, fx.LBOps.NetworkID).Return(tt.createOpts.Network, nil, nil)
@@ -528,7 +528,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			fx.LBOps.Cfg = tt.cfg
 
 			if tt.mock == nil {
-				tt.mock = func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
+				tt.mock = func(_ *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
 					if tt.createOpts.Name == "" {
 						return
 					}
@@ -655,7 +655,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Type: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerChangeAlgorithmOpts{Type: hcloud.LoadBalancerAlgorithmTypeLeastConnections}
 
 				action := &hcloud.Action{ID: 4711}
@@ -716,7 +716,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Name: "lb11",
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerChangeTypeOpts{
 					LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
 				}
@@ -785,7 +785,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := &hcloud.Action{ID: rand.Int63()}
 				newRDNS := "new-name-lb.example.com"
 				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("1.2.3.4").String(), &newRDNS).Return(action, nil, nil)
@@ -832,7 +832,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := &hcloud.Action{ID: rand.Int63()}
 				newRDNS := "new-name-lb.example.com"
 				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("fe80::1").String(), &newRDNS).Return(action, nil, nil)
@@ -854,7 +854,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerDetachFromNetworkOpts{
 					Network: &hcloud.Network{ID: 14, Name: "some-network"},
 				}
@@ -878,7 +878,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = tt.initialLB.PrivateNet[0].Network.ID
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
@@ -890,7 +890,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		{
 			name:      "attach Load Balancer to network",
 			initialLB: &hcloud.LoadBalancer{ID: 4},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
 				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
 
@@ -910,7 +910,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		{
 			name:      "re-try attach to network on conflict",
 			initialLB: &hcloud.LoadBalancer{ID: 5},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
 				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
 
@@ -939,7 +939,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		{
 			name:      "re-try attach to network on locked error",
 			initialLB: &hcloud.LoadBalancer{ID: 5},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
 				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
 
@@ -975,7 +975,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = tt.initialLB.PrivateNet[0].Network.ID
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
@@ -995,7 +995,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Enabled: true,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.
 					On("DisablePublicInterface", tt.fx.Ctx, tt.initialLB).
@@ -1036,7 +1036,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Enabled: false,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.
 					On("EnablePublicInterface", tt.fx.Ctx, tt.initialLB).
@@ -1075,7 +1075,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					"some-label": "some-value",
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				updated := *tt.initialLB
 				updated.Labels = map[string]string{
 					hcops.LabelServiceUID: tt.serviceUID,
@@ -1112,7 +1112,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					hcops.LabelServiceUID: "11",
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				updated := *tt.initialLB
 				updated.Name = "new-name"
 				opts := hcloud.LoadBalancerUpdateOpts{Name: "new-name"}
@@ -1165,7 +1165,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 					ServerIPv6Net: "2a01:f48:111:4222::",
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(false)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
 				tt.fx.MockWatchProgress(action, nil)
@@ -1237,7 +1237,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 					ServerIPv6Net: "2a01:f48:111:4222::",
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 3}, nil)
 				tt.fx.MockWatchProgress(action, nil)
 
@@ -1274,7 +1274,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 					MaxTargets: 1,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, _ *LBReconcilementTestCase) {
 				// Nothing to mock because no action will be taken besides logging an info message,
 				// will fail if an action would be taken instead.
 			},
@@ -1304,7 +1304,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
 
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
@@ -1345,7 +1345,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = 4711
 
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
@@ -1392,7 +1392,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 1}, nil)
 				tt.fx.MockWatchProgress(action, nil)
 
@@ -1433,7 +1433,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					ListenPort:      hcloud.Ptr(80),
@@ -1478,7 +1478,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificates: []string{"1"},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					ListenPort:      hcloud.Ptr(443),
@@ -1516,7 +1516,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBSvcHTTPCertificates: []string{"some-cert"},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				cert := &hcloud.Certificate{ID: 1}
 
 				opts := hcloud.LoadBalancerAddServiceOpts{
@@ -1552,7 +1552,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				annotation.LBSvcHTTPManagedCertificateDomains: []string{"example.com", "*.example.com"},
 			},
 			serviceUID: "some service uid",
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				cert := &hcloud.Certificate{ID: 1}
 
 				tt.fx.CertClient.
@@ -1612,7 +1612,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					{ListenPort: 443, DestinationPort: 8443},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 					ListenPort:      hcloud.Ptr(81),
@@ -1661,7 +1661,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					{ListenPort: 443, DestinationPort: 8443},
 				},
 			},
-			mock: func(t *testing.T, tt *LBReconcilementTestCase) {
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
 					DestinationPort: hcloud.Ptr(8081),
