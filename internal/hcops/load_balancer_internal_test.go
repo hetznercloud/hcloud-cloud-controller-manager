@@ -128,7 +128,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcProtocol:         hcloud.LoadBalancerServiceProtocolHTTPS,
 				annotation.LBSvcHTTPCertificates: []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
 			},
-			mock: func(t *testing.T, tt *testCase) {
+			mock: func(_ *testing.T, tt *testCase) {
 				tt.certClient.
 					On("Get", mock.Anything, "cert-1").
 					Return(&hcloud.Certificate{ID: 1, Name: "cert-1"}, nil, nil)
@@ -169,7 +169,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHTTPCertificateType:           "managed",
 				annotation.LBSvcHTTPManagedCertificateDomains: []string{"*.example.com", "example.com"},
 			},
-			mock: func(t *testing.T, tt *testCase) {
+			mock: func(_ *testing.T, tt *testCase) {
 				tt.certClient.
 					On("AllWithOpts", mock.Anything, hcloud.CertificateListOpts{
 						ListOpts: hcloud.ListOpts{

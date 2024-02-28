@@ -84,7 +84,7 @@ func TestNewCloud(t *testing.T) {
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(
 			schema.ServerListResponse{
 				Servers: []schema.Server{},
@@ -119,7 +119,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(
@@ -148,7 +148,7 @@ func TestCloud(t *testing.T) {
 		"ROBOT_PASSWORD", "pass123",
 	)
 	defer resetEnv()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(
 			schema.ServerListResponse{
 				Servers: []schema.Server{
@@ -177,7 +177,7 @@ func TestCloud(t *testing.T) {
 			},
 		)
 	})
-	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(
 			schema.NetworkGetResponse{
 				Network: schema.Network{

@@ -39,7 +39,7 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 					IPv4: hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
@@ -66,7 +66,7 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 					IPv6: hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
@@ -86,7 +86,7 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 		{
 			Name:       "get load balancer with host name",
 			ServiceUID: "2",
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
@@ -108,7 +108,7 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 		{
 			Name:       "load balancer not found",
 			ServiceUID: "3",
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(nil, hcops.ErrNotFound)
@@ -122,7 +122,7 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 		{
 			Name:       "lookup failed",
 			ServiceUID: "4",
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(nil, errors.New("some error"))
@@ -163,7 +163,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 		{
 			Name:       "check for existing Load Balancer fails",
 			ServiceUID: "1",
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(nil, errors.New("test error"))
@@ -190,7 +190,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				setupSuccessMocks(tt, "pub-net-only-no-ipv6")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -221,7 +221,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				setupSuccessMocks(tt, "pub-net-only")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -263,7 +263,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				setupSuccessMocks(tt, "with-priv-net")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -307,7 +307,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -350,7 +350,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				setupSuccessMocks(tt, "with-priv-net-no-priv-ingress")
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -388,7 +388,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					},
 				},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(nil, hcops.ErrNotFound)
@@ -437,7 +437,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
@@ -459,7 +459,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
@@ -482,7 +482,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(true, nil)
@@ -505,7 +505,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
@@ -529,7 +529,7 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
 				tt.LBOps.On("GetByName", tt.Ctx, "pre-existing-lb").Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
@@ -555,7 +555,7 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			ServiceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBName: "test-lb",
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
 				tt.LBOps.On("GetByName", tt.Ctx, "test-lb").Return(nil, hcops.ErrNotFound)
 			},
@@ -575,7 +575,7 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
 				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
@@ -597,7 +597,7 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
 				tt.LBOps.On("GetByName", tt.Ctx, "previously-created-lb").Return(tt.LB, nil)
 				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
@@ -623,7 +623,7 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 				ID:   1,
 				Name: "delete me",
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
@@ -639,7 +639,7 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 		{
 			Name:       "delete missing load balancer",
 			ServiceUID: "2",
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(nil, hcops.ErrNotFound)
@@ -656,7 +656,7 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 				ID:   3,
 				Name: "someone else deleted me",
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
@@ -677,7 +677,7 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 				Name:       "deletion protection enabled",
 				Protection: hcloud.LoadBalancerProtection{Delete: true},
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
@@ -690,7 +690,7 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 		{
 			Name:       "load balancer lookup fails",
 			ServiceUID: "5",
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(nil, errors.New("lookup error"))
@@ -707,7 +707,7 @@ func TestLoadBalancers_EnsureLoadBalancerDeleted(t *testing.T) {
 				ID:   6,
 				Name: "can't be deleted",
 			},
-			Mock: func(t *testing.T, tt *LoadBalancerTestCase) {
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)

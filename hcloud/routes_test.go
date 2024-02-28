@@ -15,7 +15,7 @@ import (
 func TestRoutes_CreateRoute(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.ServerListResponse{
 			Servers: []schema.Server{
 				{
@@ -31,7 +31,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 			},
 		})
 	})
-	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
 			Network: schema.Network{
 				ID:      1,
@@ -40,7 +40,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 			},
 		})
 	})
-	env.Mux.HandleFunc("/actions/1", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/actions/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkActionAddRouteResponse{
 			Action: schema.Action{
 				ID:       1,
@@ -86,7 +86,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 func TestRoutes_ListRoutes(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.ServerListResponse{
 			Servers: []schema.Server{
 				{
@@ -102,7 +102,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 			},
 		})
 	})
-	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
 			Network: schema.Network{
 				ID:      1,
@@ -140,7 +140,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 func TestRoutes_DeleteRoute(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
-	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
 			Network: schema.Network{
 				ID:      1,
@@ -155,7 +155,7 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 			},
 		})
 	})
-	env.Mux.HandleFunc("/actions/1", func(w http.ResponseWriter, r *http.Request) {
+	env.Mux.HandleFunc("/actions/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkActionAddRouteResponse{
 			Action: schema.Action{
 				ID:       1,
