@@ -31,7 +31,7 @@ test:lint:
 
 test:unit:
   stage: test
-  image: golang:1.21
+  image: golang:1.22
   script:
     - go test ./... -v
 
