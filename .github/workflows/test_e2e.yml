@@ -11,11 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k3s: [ v1.26, v1.27, v1.28, v1.29 ]
+        # All k3s after January 2024 break our e2e tests, we hardcode
+        # the versions for now until we can fix the source of this.
+        k3s: [ v1.26.12+k3s1, v1.27.9+k3s1, v1.28.5+k3s1, v1.29.0+k3s1 ]
       fail-fast: false
 
     env:
-      K3S_CHANNEL: ${{ matrix.k3s }}
+      K3S_VERSION: ${{ matrix.k3s }}
       SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
 
       # Domain must be available in the account running the tests. This domain is available in the account
@@ -119,7 +121,7 @@ jobs:
     environment: e2e-robot
 
     env:
-      K3S_CHANNEL: v1.29
+      K3S_VERSION: v1.29.0+k3s1
       SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
 
       # Disable routes in dev-env, not supported for Robot.
