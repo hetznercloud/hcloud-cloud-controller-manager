@@ -33,7 +33,7 @@ jobs:
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
       - uses: hetznercloud/setup-hcloud@v1
-      - uses: yokawasa/action-setup-kube-tools@v0.10.0
+      - uses: yokawasa/action-setup-kube-tools@v0.11.1
         with:
           setup-tools: |
             helm
@@ -139,7 +139,7 @@ jobs:
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
       - uses: hetznercloud/setup-hcloud@v1
-      - uses: yokawasa/action-setup-kube-tools@v0.10.0
+      - uses: yokawasa/action-setup-kube-tools@v0.11.1
         with:
           setup-tools: |
             helm
