@@ -14,6 +14,7 @@ import (
 	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
+	"github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -640,10 +641,14 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 	// List all robot servers to check whether the ip targets of the load balancer
 	// correspond to a dedicated server
-	dedicatedServers, err := l.RobotClient.ServerGetList()
-	if err != nil {
-		HandleRateLimitExceededError(err, svc)
-		return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
+	var dedicatedServers []models.Server
+
+	if l.RobotClient != nil {
+		dedicatedServers, err = l.RobotClient.ServerGetList()
+		if err != nil {
+			HandleRateLimitExceededError(err, svc)
+			return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
+		}
 	}
 
 	for _, s := range dedicatedServers {
