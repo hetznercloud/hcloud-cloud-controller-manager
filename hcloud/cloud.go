@@ -147,8 +147,8 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
 
-	robotUserName, foundRobotUserName := os.LookupEnv(robotUserNameENVVar)
-	robotPassword, foundRobotPassword := os.LookupEnv(robotPasswordENVVar)
+	robotUserName := os.Getenv(robotUserNameENVVar)
+	robotPassword := os.Getenv(robotPasswordENVVar)
 
 	cacheTimeout, err := util.GetEnvDuration(CacheTimeout)
 	if err != nil {
@@ -160,7 +160,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	var robotClient robotclient.Client
-	if foundRobotUserName && foundRobotPassword {
+	if robotUserName != "" && robotPassword != "" {
 		client := &http.Client{
 			Transport: &LoggingTransport{
 				roundTripper: http.DefaultTransport,
@@ -168,6 +168,8 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		}
 		c := hrobot.NewBasicAuthClientWithCustomHttpClient(robotUserName, robotPassword, client)
 		robotClient = cache.NewClient(c, cacheTimeout)
+	} else {
+		klog.Infof("Hetzner robot is not support because of insufficient credentials. Robot user name specified: %v. Robot password specified: %v", robotUserName != "", robotPassword != "")
 	}
 
 	var networkID int64
