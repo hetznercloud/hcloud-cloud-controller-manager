@@ -138,7 +138,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 			return fmt.Errorf("%s: %w", op, err)
 		}
 
-		if err := hcops.WatchAction(ctx, &r.client.Action, action); err != nil {
+		if err := r.client.Action.WaitFor(ctx, action); err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
@@ -198,7 +198,7 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if err := hcops.WatchAction(ctx, &r.client.Action, action); err != nil {
+	if err := r.client.Action.WaitFor(ctx, action); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
@@ -256,7 +256,7 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 					return false, fmt.Errorf("%s: %w", op, err)
 				}
 
-				if err := hcops.WatchAction(ctx, &r.client.Action, action); err != nil {
+				if err := r.client.Action.WaitFor(ctx, action); err != nil {
 					return false, fmt.Errorf("%s: %w", op, err)
 				}
 			}

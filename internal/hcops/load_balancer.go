@@ -225,7 +225,7 @@ func (l *LoadBalancerOps) Create(
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	if err := WatchAction(ctx, l.ActionClient, result.Action); err != nil {
+	if err := l.ActionClient.WaitFor(ctx, result.Action); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -374,7 +374,7 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	err = WatchAction(ctx, l.ActionClient, action)
+	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -399,7 +399,7 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	err = WatchAction(ctx, l.ActionClient, action)
+	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -426,7 +426,7 @@ func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBa
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	err = WatchAction(ctx, l.ActionClient, action)
+	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -450,7 +450,7 @@ func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalance
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	err = WatchAction(ctx, l.ActionClient, action)
+	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -476,7 +476,7 @@ func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.Load
 		if err != nil {
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
-		if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+		if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
 		changed = true
@@ -520,7 +520,7 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+	if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -554,7 +554,7 @@ func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+	if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	return true, nil
@@ -658,7 +658,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if err != nil {
 				return changed, fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
 			}
-			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+			if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 				return changed, fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
 			}
 			changed = true
@@ -695,7 +695,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				}
 				return changed, e
 			}
-			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+			if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 				var e error
 				if foundServer {
 					e = fmt.Errorf("%s: target: %s: %w", op, nodeName, err)
@@ -738,7 +738,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			}
 			return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
 		}
-		if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+		if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 			return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
 		}
 		changed = true
@@ -780,7 +780,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				}
 				return changed, fmt.Errorf("%s: target %s: %w", op, node, err)
 			}
-			if err := WatchAction(ctx, l.ActionClient, a); err != nil {
+			if err := l.ActionClient.WaitFor(ctx, a); err != nil {
 				return changed, fmt.Errorf("%s: target %s: %w", op, node, err)
 			}
 			changed = true
@@ -870,7 +870,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 			}
 		}
 
-		if err = WatchAction(ctx, l.ActionClient, action); err != nil {
+		if err = l.ActionClient.WaitFor(ctx, action); err != nil {
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
 		changed = true
@@ -883,7 +883,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		if err != nil {
 			return changed, fmt.Errorf("%s: port %d: %w", op, p, err)
 		}
-		err = WatchAction(ctx, l.ActionClient, a)
+		err = l.ActionClient.WaitFor(ctx, a)
 		if err != nil {
 			return changed, fmt.Errorf("%s: port: %d: %w", op, p, err)
 		}
