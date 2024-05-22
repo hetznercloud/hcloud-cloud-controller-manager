@@ -69,7 +69,7 @@ The service controller watches Services with `type: LoadBalancer` and creates Cl
 
 #### Routes & Private Networks
 
-Adding support for Routing Pod CIDRs through the (Cloud) Networks and (Robot) vSwitches is not currently supported. You will need to use your own CNI for this. 
+Adding support for Routing Pod CIDRs through the (Cloud) Networks and (Robot) vSwitches is not currently supported. You will need to use your own CNI for this.
 
 > If you are interested in this, we are looking for contributors to help design & implement this.
 
@@ -104,7 +104,7 @@ stringData:
 
 If you only plan to use a single Robot server, you can also use an "Admin login" (see the `Admin login` tab on the [server administration page](https://robot.hetzner.com/server)) for this server instead of the account credentials.
 
-Then you can enable the Robot Support through the environment variable `ROBOT_ENABLE=true` or the Helm Chart value `robot.enabled: true`.
+Then you can enable the Robot Support through the environment variable `ROBOT_ENABLED=true` or the Helm Chart value `robot.enabled: true`.
 
 You will also need to [disable Network support](#routes--private-networks) through the Helm Chart value `network.enabled: false`. If you use plain Kubernetes manifests, make sure you use the `ccm.yaml` and not the `ccm-network.yaml`.
 
@@ -121,7 +121,7 @@ The secret is called `hcloud` in hcloud-cloud-controller-manager, while it was c
 
 #### Enable Robot Support
 
-It is now required to explicitly enable support for Robot features. This is done by setting the environment variable `ROBOT_ENABLE=true` on the container, or by setting the value `robot.enabled: true` in the Helm Chart.
+It is now required to explicitly enable support for Robot features. This is done by setting the environment variable `ROBOT_ENABLED=true` on the container, or by setting the value `robot.enabled: true` in the Helm Chart.
 
 ### Feature & behaviour changes
 
