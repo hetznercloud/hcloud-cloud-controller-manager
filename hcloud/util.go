@@ -19,6 +19,7 @@ package hcloud
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -156,7 +157,16 @@ func getInstanceTypeOfRobotServer(bmServer *models.Server) string {
 	if bmServer == nil {
 		panic("getInstanceTypeOfRobotServer called with nil server")
 	}
-	return strings.ReplaceAll(bmServer.Product, " ", "-")
+	return stringToLabelValue(bmServer.Product)
+}
+
+var stringToLabelValueRegex = regexp.MustCompile(`[^a-zA-Z0-9_.]+`)
+
+func stringToLabelValue(s string) string {
+	s = stringToLabelValueRegex.ReplaceAllString(s, "-")
+	trimChars := "_.-"
+	s = strings.Trim(s, trimChars)
+	return s
 }
 
 func getZoneOfRobotServer(bmServer *models.Server) string {
