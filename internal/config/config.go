@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -96,6 +97,18 @@ type HCCMConfiguration struct {
 	Route        RouteConfiguration
 }
 
+func readFromEnvOrFile(envVar string) (string, error) {
+	value := os.Getenv(envVar)
+	if strings.HasPrefix(value, "file:") {
+		valueBytes, err := os.ReadFile(strings.TrimPrefix(value, "file:"))
+		if err != nil {
+			return "", errors.New("failed to read " + envVar + " from file: " + err.Error())
+		}
+		return strings.TrimSpace(string(valueBytes)), nil
+	}
+	return value, nil
+}
+
 // Read evaluates all environment variables and returns a [HCCMConfiguration]. It only validates as far as
 // it needs to parse the values. For business logic validation, check out [HCCMConfiguration.Validate].
 func Read() (HCCMConfiguration, error) {
@@ -106,7 +119,10 @@ func Read() (HCCMConfiguration, error) {
 	var errs []error
 	var cfg HCCMConfiguration
 
-	cfg.HCloudClient.Token = os.Getenv(hcloudToken)
+	cfg.HCloudClient.Token, err = readFromEnvOrFile(hcloudToken)
+	if err != nil {
+		errs = append(errs, err)
+	}
 	cfg.HCloudClient.Endpoint = os.Getenv(hcloudEndpoint)
 	cfg.HCloudClient.Debug, err = getEnvBool(hcloudDebug, false)
 	if err != nil {
@@ -117,8 +133,14 @@ func Read() (HCCMConfiguration, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.Robot.User = os.Getenv(robotUser)
-	cfg.Robot.Password = os.Getenv(robotPassword)
+	cfg.Robot.User, err = readFromEnvOrFile(robotUser)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	cfg.Robot.Password, err = readFromEnvOrFile(robotPassword)
+	if err != nil {
+		errs = append(errs, err)
+	}
 	cfg.Robot.CacheTimeout, err = getEnvDuration(robotCacheTimeout)
 	if err != nil {
 		errs = append(errs, err)

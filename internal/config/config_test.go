@@ -49,6 +49,25 @@ func TestRead(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "secrets from file",
+			env: []string{
+				"HCLOUD_TOKEN", "file:/etc/hetzner/token",
+				"ROBOT_USER", "file:/etc/hetzner/user",
+				"ROBOT_PASSWORD", "file:/etc/hetzner/password",
+			},
+			want: HCCMConfiguration{
+				HCloudClient: HCloudClientConfiguration{Token: ""},
+				Robot:        RobotConfiguration{User: "", Password: "", CacheTimeout: 0},
+				Metrics:      MetricsConfiguration{Enabled: false},
+				Instance:     InstanceConfiguration{},
+				LoadBalancer: LoadBalancerConfiguration{Enabled: false},
+				Route:        RouteConfiguration{Enabled: false},
+			},
+			wantErr: errors.New(`failed to read HCLOUD_TOKEN from file: open /etc/hetzner/token: no such file or directory
+failed to read ROBOT_USER from file: open /etc/hetzner/user: no such file or directory
+failed to read ROBOT_PASSWORD from file: open /etc/hetzner/password: no such file or directory`),
+		},
+		{
 			name: "client",
 			env: []string{
 				"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
