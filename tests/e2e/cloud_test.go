@@ -251,7 +251,7 @@ func TestRouteDeleteCorrectRoutes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := hcops.WatchAction(ctx, &testCluster.hcloud.Action, action); err != nil {
+			if err := testCluster.hcloud.Action.WaitFor(ctx, action); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -264,7 +264,7 @@ func TestRouteDeleteCorrectRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := hcops.WatchAction(ctx, &testCluster.hcloud.Action, action); err != nil {
+	if err := testCluster.hcloud.Action.WaitFor(ctx, action); err != nil {
 		t.Fatal(err)
 	}
 
@@ -275,7 +275,7 @@ func TestRouteDeleteCorrectRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := hcops.WatchAction(ctx, &testCluster.hcloud.Action, action); err != nil {
+	if err := testCluster.hcloud.Action.WaitFor(ctx, action); err != nil {
 		t.Fatal(err)
 	}
 
