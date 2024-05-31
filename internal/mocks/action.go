@@ -13,6 +13,7 @@ type ActionClient struct {
 }
 
 func (m *ActionClient) WaitFor(ctx context.Context, actions ...*hcloud.Action) error {
-	args := m.Called(ctx, actions)
+	// The mock library does not support variadic arguments, ignore for now
+	args := m.Called(ctx, mock.Anything)
 	return args.Error(0)
 }
