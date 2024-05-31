@@ -43,9 +43,9 @@ jobs:
             helm
             kubectl
             skaffold
-          helm: v3.11.2
+          helm: v3.15.1
           kubectl: v1.29.0
-          skaffold: v2.3.0
+          skaffold: v2.12.0
       - name: Install k3sup
         run: |
           curl -sLS https://get.k3sup.dev | sh
@@ -153,9 +153,9 @@ jobs:
             helm
             kubectl
             skaffold
-          helm: v3.11.2
+          helm: v3.15.1
           kubectl: v1.29.0
-          skaffold: v2.3.0
+          skaffold: v2.12.0
       - name: Install k3sup
         run: |
           curl -sLS https://get.k3sup.dev | sh
