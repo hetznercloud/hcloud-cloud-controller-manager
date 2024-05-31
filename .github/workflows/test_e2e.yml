@@ -25,11 +25,12 @@ jobs:
       CERT_DOMAIN: hc-integrations-test.de
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
-      - uses: actions/checkout@master
       - uses: hetznercloud/tps-action@main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
@@ -132,11 +133,12 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
-      - uses: actions/checkout@master
       - uses: hetznercloud/tps-action@main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
