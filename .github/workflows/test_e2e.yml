@@ -25,14 +25,18 @@ jobs:
       CERT_DOMAIN: hc-integrations-test.de
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
-      - uses: actions/checkout@master
+          go-version-file: go.mod
+
+      - uses: hetznercloud/setup-hcloud@v1
+
       - uses: hetznercloud/tps-action@main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
-      - uses: hetznercloud/setup-hcloud@v1
+
       - uses: yokawasa/action-setup-kube-tools@v0.11.1
         with:
           setup-tools: |
@@ -131,14 +135,18 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
-      - uses: actions/checkout@master
+          go-version-file: go.mod
+
+      - uses: hetznercloud/setup-hcloud@v1
+
       - uses: hetznercloud/tps-action@main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
-      - uses: hetznercloud/setup-hcloud@v1
+
       - uses: yokawasa/action-setup-kube-tools@v0.11.1
         with:
           setup-tools: |
