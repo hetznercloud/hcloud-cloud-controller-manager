@@ -129,10 +129,6 @@ func (fx *LoadBalancerOpsFixture) MockListRobotServers(
 	fx.RobotClient.On("ServerGetList").Return(serverList, err)
 }
 
-func (fx *LoadBalancerOpsFixture) MockWatchProgress(a *hcloud.Action, err error) {
-	fx.ActionClient.MockWatchProgress(fx.Ctx, a, err)
-}
-
 func (fx *LoadBalancerOpsFixture) AssertExpectations() {
 	fx.ActionClient.AssertExpectations(fx.T)
 	fx.LBClient.AssertExpectations(fx.T)
