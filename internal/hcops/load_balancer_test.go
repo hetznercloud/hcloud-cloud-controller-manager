@@ -462,7 +462,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Return(tt.createOpts.Network, nil, nil)
 				action := fx.MockCreate(tt.createOpts, tt.lb, nil)
 				fx.MockGetByID(tt.lb, nil)
-				fx.MockWatchProgress(action, nil)
+				fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(nil)
 			},
 			lb: &hcloud.LoadBalancer{ID: 5},
 		},
@@ -514,7 +514,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 
 				action := fx.MockCreate(tt.createOpts, tt.lb, nil)
 				fx.MockGetByID(tt.lb, nil)
-				fx.MockWatchProgress(action, nil)
+				fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(nil)
 			},
 			lb: &hcloud.LoadBalancer{ID: 6},
 		},
@@ -534,7 +534,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					}
 					action := fx.MockCreate(tt.createOpts, tt.lb, nil)
 					fx.MockGetByID(tt.lb, nil)
-					fx.MockWatchProgress(action, nil)
+					fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(nil)
 				}
 			}
 			tt.mock(t, &tt, fx)
@@ -662,7 +662,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBClient.
 					On("ChangeAlgorithm", tt.fx.Ctx, tt.initialLB, opts).
 					Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -725,7 +725,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBClient.
 					On("ChangeType", tt.fx.Ctx, tt.initialLB, opts).
 					Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -789,7 +789,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				action := &hcloud.Action{ID: rand.Int63()}
 				newRDNS := "new-name-lb.example.com"
 				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("1.2.3.4").String(), &newRDNS).Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -836,7 +836,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				action := &hcloud.Action{ID: rand.Int63()}
 				newRDNS := "new-name-lb.example.com"
 				tt.fx.LBClient.On("ChangeDNSPtr", tt.fx.Ctx, tt.initialLB, net.ParseIP("fe80::1").String(), &newRDNS).Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -860,7 +860,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				}
 				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.On("DetachFromNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -899,7 +899,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
 				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -928,7 +928,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(action, nil, nil).
 					Once()
 
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -957,7 +957,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(action, nil, nil).
 					Once()
 
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1000,7 +1000,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBClient.
 					On("DisablePublicInterface", tt.fx.Ctx, tt.initialLB).
 					Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1041,7 +1041,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBClient.
 					On("EnablePublicInterface", tt.fx.Ctx, tt.initialLB).
 					Return(action, nil, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1168,19 +1168,19 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(false)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(false)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				optsIP := hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("1.2.3.4")}
 				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				optsIP = hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("1.2.3.5")}
 				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				tt.fx.MockListRobotServers(tt.robotServers, nil)
 			},
@@ -1239,13 +1239,13 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 3}, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				action = tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 4}, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				action = tt.fx.MockRemoveIPTarget(tt.initialLB, net.ParseIP("1.2.3.4"), nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				tt.fx.MockListRobotServers(tt.robotServers, nil)
 			},
@@ -1309,11 +1309,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(true)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				tt.fx.MockListRobotServers(nil, nil)
 			},
@@ -1350,11 +1350,11 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 
 				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
 				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts = hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 2}, UsePrivateIP: hcloud.Ptr(true)}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				tt.fx.MockListRobotServers(nil, nil)
 			},
@@ -1394,14 +1394,14 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				action := tt.fx.MockRemoveServerTarget(tt.initialLB, &hcloud.Server{ID: 1}, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts := hcloud.LoadBalancerAddServerTargetOpts{
 					Server:       &hcloud.Server{ID: 1},
 					UsePrivateIP: hcloud.Ptr(false),
 				}
 				action = tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				tt.fx.MockListRobotServers(nil, nil)
 			},
@@ -1444,7 +1444,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts = hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
@@ -1456,7 +1456,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1494,7 +1494,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1535,7 +1535,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					On("Get", mock.Anything, "some-cert").
 					Return(cert, nil, nil)
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1588,7 +1588,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1623,7 +1623,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts = hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
@@ -1635,12 +1635,12 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				action = tt.fx.MockDeleteService(tt.initialLB, 80, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 				action = tt.fx.MockDeleteService(tt.initialLB, 443, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -1671,7 +1671,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action := tt.fx.MockUpdateService(opts, tt.initialLB, 80, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
 				opts = hcloud.LoadBalancerUpdateServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
@@ -1682,7 +1682,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					},
 				}
 				action = tt.fx.MockUpdateService(opts, tt.initialLB, 443, nil)
-				tt.fx.MockWatchProgress(action, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
