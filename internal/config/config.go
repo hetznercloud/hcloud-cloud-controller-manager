@@ -102,7 +102,7 @@ func readFromEnvOrFile(envVar string) (string, error) {
 	if strings.HasPrefix(value, "file:") {
 		valueBytes, err := os.ReadFile(strings.TrimPrefix(value, "file:"))
 		if err != nil {
-			return "", errors.New("failed to read " + envVar + " from file: " + err.Error())
+			return "", fmt.Errorf("failed to read %s from file: %w", envVar, err) 
 		}
 		return strings.TrimSpace(string(valueBytes)), nil
 	}
