@@ -14,6 +14,7 @@ func TestRead(t *testing.T) {
 	tests := []struct {
 		name    string
 		env     []string
+		files   map[string]string
 		want    HCCMConfiguration
 		wantErr error
 	}{
@@ -50,6 +51,34 @@ func TestRead(t *testing.T) {
 		},
 		{
 			name: "secrets from file",
+			env: []string{
+				"HCLOUD_TOKEN", "file:hetzner-token",
+				"ROBOT_USER", "file:hetzner-user",
+				"ROBOT_PASSWORD", "file:hetzner-password",
+			},
+			files: map[string]string{
+				"hetzner-token":    "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+				"hetzner-user":     "foobar",
+				"hetzner-password": `secret-password`,
+			},
+			want: HCCMConfiguration{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Robot: RobotConfiguration{
+					Enabled:           false,
+					User:              "foobar",
+					Password:          "secret-password",
+					CacheTimeout:      5 * time.Minute,
+					RateLimitWaitTime: 0,
+				},
+				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
+				Route:        RouteConfiguration{Enabled: false},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "secrets from unknown file",
 			env: []string{
 				"HCLOUD_TOKEN", "file:/etc/hetzner/token",
 				"ROBOT_USER", "file:/etc/hetzner/user",
@@ -226,6 +255,8 @@ failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in d
 		t.Run(tt.name, func(t *testing.T) {
 			resetEnv := testsupport.Setenv(t, tt.env...)
 			defer resetEnv()
+			resetFiles := testsupport.Setfiles(t, tt.files)
+			defer resetFiles()
 
 			got, err := Read()
 			if tt.wantErr == nil {
