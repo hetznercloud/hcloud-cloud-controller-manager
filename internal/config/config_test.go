@@ -52,9 +52,9 @@ func TestRead(t *testing.T) {
 		{
 			name: "secrets from file",
 			env: []string{
-				"HCLOUD_TOKEN", "file:hetzner-token",
-				"ROBOT_USER", "file:hetzner-user",
-				"ROBOT_PASSWORD", "file:hetzner-password",
+				"HCLOUD_TOKEN_FILE", "/tmp/hetzner-token",
+				"ROBOT_USER_FILE", "/tmp/hetzner-user",
+				"ROBOT_PASSWORD_FILE", "/tmp/hetzner-password",
 			},
 			files: map[string]string{
 				"hetzner-token":    "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
@@ -80,10 +80,11 @@ func TestRead(t *testing.T) {
 		{
 			name: "secrets from unknown file",
 			env: []string{
-				"HCLOUD_TOKEN", "file:/etc/hetzner/token",
-				"ROBOT_USER", "file:/etc/hetzner/user",
-				"ROBOT_PASSWORD", "file:/etc/hetzner/password",
+				"HCLOUD_TOKEN_FILE", "/tmp/hetzner-token",
+				"ROBOT_USER_FILE", "/tmp/hetzner-user",
+				"ROBOT_PASSWORD_FILE", "/tmp/hetzner-password",
 			},
+			files: map[string]string{}, // don't create files
 			want: HCCMConfiguration{
 				HCloudClient: HCloudClientConfiguration{Token: ""},
 				Robot:        RobotConfiguration{User: "", Password: "", CacheTimeout: 0},
@@ -92,9 +93,9 @@ func TestRead(t *testing.T) {
 				LoadBalancer: LoadBalancerConfiguration{Enabled: false},
 				Route:        RouteConfiguration{Enabled: false},
 			},
-			wantErr: errors.New(`failed to read HCLOUD_TOKEN from file: open /etc/hetzner/token: no such file or directory
-failed to read ROBOT_USER from file: open /etc/hetzner/user: no such file or directory
-failed to read ROBOT_PASSWORD from file: open /etc/hetzner/password: no such file or directory`),
+			wantErr: errors.New(`failed to read HCLOUD_TOKEN_FILE: open /tmp/hetzner-token: no such file or directory
+failed to read ROBOT_USER_FILE: open /tmp/hetzner-user: no such file or directory
+failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or directory`),
 		},
 		{
 			name: "client",
