@@ -14,6 +14,7 @@ func TestRead(t *testing.T) {
 	tests := []struct {
 		name    string
 		env     []string
+		files   map[string]string
 		want    HCCMConfiguration
 		wantErr error
 	}{
@@ -47,6 +48,54 @@ func TestRead(t *testing.T) {
 				Route:        RouteConfiguration{Enabled: true},
 			},
 			wantErr: nil,
+		},
+		{
+			name: "secrets from file",
+			env: []string{
+				"HCLOUD_TOKEN_FILE", "/tmp/hetzner-token",
+				"ROBOT_USER_FILE", "/tmp/hetzner-user",
+				"ROBOT_PASSWORD_FILE", "/tmp/hetzner-password",
+			},
+			files: map[string]string{
+				"hetzner-token":    "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+				"hetzner-user":     "foobar",
+				"hetzner-password": `secret-password`,
+			},
+			want: HCCMConfiguration{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Robot: RobotConfiguration{
+					Enabled:           false,
+					User:              "foobar",
+					Password:          "secret-password",
+					CacheTimeout:      5 * time.Minute,
+					RateLimitWaitTime: 0,
+				},
+				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
+				Route:        RouteConfiguration{Enabled: false},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "secrets from unknown file",
+			env: []string{
+				"HCLOUD_TOKEN_FILE", "/tmp/hetzner-token",
+				"ROBOT_USER_FILE", "/tmp/hetzner-user",
+				"ROBOT_PASSWORD_FILE", "/tmp/hetzner-password",
+			},
+			files: map[string]string{}, // don't create files
+			want: HCCMConfiguration{
+				HCloudClient: HCloudClientConfiguration{Token: ""},
+				Robot:        RobotConfiguration{User: "", Password: "", CacheTimeout: 0},
+				Metrics:      MetricsConfiguration{Enabled: false},
+				Instance:     InstanceConfiguration{},
+				LoadBalancer: LoadBalancerConfiguration{Enabled: false},
+				Route:        RouteConfiguration{Enabled: false},
+			},
+			wantErr: errors.New(`failed to read HCLOUD_TOKEN_FILE: open /tmp/hetzner-token: no such file or directory
+failed to read ROBOT_USER_FILE: open /tmp/hetzner-user: no such file or directory
+failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or directory`),
 		},
 		{
 			name: "client",
@@ -207,6 +256,8 @@ failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in d
 		t.Run(tt.name, func(t *testing.T) {
 			resetEnv := testsupport.Setenv(t, tt.env...)
 			defer resetEnv()
+			resetFiles := testsupport.SetFiles(t, tt.files)
+			defer resetFiles()
 
 			got, err := Read()
 			if tt.wantErr == nil {

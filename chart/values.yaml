@@ -29,6 +29,16 @@ env:
   # HCLOUD_NETWORK - see networking.enabled
   # ROBOT_ENABLED - see robot.enabled
 
+  # You can also use a file to provide secrets to the hcloud-cloud-controller-manager.
+  # This is currently possible for HCLOUD_TOKEN, ROBOT_USER, and ROBOT_PASSWORD.
+  # Use the env var appended with _FILE (e.g. HCLOUD_TOKEN_FILE) and set the value to the file path that should be read
+  # The file must be provided externally (e.g. via secret injection).
+  # Example:
+  # HCLOUD_TOKEN_FILE:
+  #   value: "/etc/hetzner/token"
+  # to disable reading the token from the secret you have to disable the original env var:
+  # HCLOUD_TOKEN: null
+
   HCLOUD_TOKEN:
     valueFrom:
       secretKeyRef:
@@ -103,3 +113,7 @@ nodeSelector: {}
 robot:
   # Set to true to enable support for Robot (Dedicated) servers.
   enabled: false
+
+podLabels: {}
+
+podAnnotations: {}

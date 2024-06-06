@@ -13,6 +13,13 @@ spec:
     metadata:
       labels:
         {{- include "hcloud-cloud-controller-manager.selectorLabels" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+        {{- end }}
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "hcloud-cloud-controller-manager.name" . }}
       dnsPolicy: Default

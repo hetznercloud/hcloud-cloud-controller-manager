@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -96,6 +97,32 @@ type HCCMConfiguration struct {
 	Route        RouteConfiguration
 }
 
+// read values from environment variables or from file set via _FILE env var
+// values set directly via env var take precedence over values set via file.
+func readFromEnvOrFile(envVar string) (string, error) {
+	// check if the value is set directly via env (e.g. HCLOUD_TOKEN)
+	value, ok := os.LookupEnv(envVar)
+	if ok {
+		return value, nil
+	}
+
+	// check if the value is set via a file (e.g. HCLOUD_TOKEN_FILE)
+	value, ok = os.LookupEnv(envVar + "_FILE")
+	if !ok {
+		// return no error here, the values could be optional
+		// and the function "Validate()" below checks that all required variables are set
+		return "", nil
+	}
+
+	// read file content
+	valueBytes, err := os.ReadFile(value)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %s: %w", envVar+"_FILE", err)
+	}
+
+	return strings.TrimSpace(string(valueBytes)), nil
+}
+
 // Read evaluates all environment variables and returns a [HCCMConfiguration]. It only validates as far as
 // it needs to parse the values. For business logic validation, check out [HCCMConfiguration.Validate].
 func Read() (HCCMConfiguration, error) {
@@ -106,7 +133,10 @@ func Read() (HCCMConfiguration, error) {
 	var errs []error
 	var cfg HCCMConfiguration
 
-	cfg.HCloudClient.Token = os.Getenv(hcloudToken)
+	cfg.HCloudClient.Token, err = readFromEnvOrFile(hcloudToken)
+	if err != nil {
+		errs = append(errs, err)
+	}
 	cfg.HCloudClient.Endpoint = os.Getenv(hcloudEndpoint)
 	cfg.HCloudClient.Debug, err = getEnvBool(hcloudDebug, false)
 	if err != nil {
@@ -117,8 +147,14 @@ func Read() (HCCMConfiguration, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.Robot.User = os.Getenv(robotUser)
-	cfg.Robot.Password = os.Getenv(robotPassword)
+	cfg.Robot.User, err = readFromEnvOrFile(robotUser)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	cfg.Robot.Password, err = readFromEnvOrFile(robotPassword)
+	if err != nil {
+		errs = append(errs, err)
+	}
 	cfg.Robot.CacheTimeout, err = getEnvDuration(robotCacheTimeout)
 	if err != nil {
 		errs = append(errs, err)
