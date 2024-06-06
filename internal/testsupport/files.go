@@ -7,7 +7,7 @@ import (
 
 // SetFiles can be used to temporarily create files on the local file system.
 // It returns a function that will clean up all files it created.
-func Setfiles(t *testing.T, files map[string]string) func() {
+func SetFiles(t *testing.T, files map[string]string) func() {
 	for file, content := range files {
 		filepath := os.TempDir() + "/" + file
 

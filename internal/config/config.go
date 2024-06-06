@@ -98,7 +98,7 @@ type HCCMConfiguration struct {
 }
 
 // read values from environment variables or from file set via _FILE env var
-// values set directly via env var take precedence over values set via file
+// values set directly via env var take precedence over values set via file.
 func readFromEnvOrFile(envVar string) (string, error) {
 	// check if the value is set directly via env (e.g. HCLOUD_TOKEN)
 	value, ok := os.LookupEnv(envVar)

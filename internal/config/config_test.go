@@ -256,7 +256,7 @@ failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in d
 		t.Run(tt.name, func(t *testing.T) {
 			resetEnv := testsupport.Setenv(t, tt.env...)
 			defer resetEnv()
-			resetFiles := testsupport.Setfiles(t, tt.files)
+			resetFiles := testsupport.SetFiles(t, tt.files)
 			defer resetFiles()
 
 			got, err := Read()
