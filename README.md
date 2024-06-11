@@ -26,7 +26,7 @@ apiVersion: v1
 kind: Node
 metadata:
   labels:
-    node.kubernetes.io/instance-type: cx11
+    node.kubernetes.io/instance-type: cx22
     topology.kubernetes.io/region: fsn1
     topology.kubernetes.io/zone: fsn1-dc8
   name: node
@@ -295,7 +295,7 @@ hcloud ssh-key create --name ssh-key-ccm-test --public-key-from-file ~/.ssh/id_r
 
 2. Create a server
 ```
-hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-key-ccm-test --type cx11 
+hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-key-ccm-test --type cx22 
 ```
 
 3. Setup k3s on this server
