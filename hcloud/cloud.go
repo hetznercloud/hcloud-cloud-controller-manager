@@ -49,6 +49,7 @@ const (
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
+	robotDebugENVVar     = "ROBOT_DEBUG"
 
 	robotUserNameENVVar = "ROBOT_USER_NAME"
 	robotPasswordENVVar = "ROBOT_PASSWORD"
@@ -106,7 +107,7 @@ func (lt *LoggingTransport) RoundTrip(req *http.Request) (resp *http.Response, e
 		klog.InfoS("hetzner robot API. Error.", "err", err, "method", req.Method, "url", req.URL, "stack", stack)
 		return resp, err
 	}
-	klog.InfoS("hetzner robot API called.", "statusCode", resp.StatusCode, "method", req.Method, "url", req.URL, "stack", stack)
+	klog.V(1).InfoS("hetzner robot API called.", "statusCode", resp.StatusCode, "method", req.Method, "url", req.URL, "stack", stack)
 	return resp, nil
 }
 
@@ -161,12 +162,19 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	var robotClient robotclient.Client
 	if robotUserName != "" && robotPassword != "" {
-		client := &http.Client{
-			Transport: &LoggingTransport{
-				roundTripper: http.DefaultTransport,
-			},
+		var c hrobot.RobotClient
+		if os.Getenv(robotDebugENVVar) == "true" {
+			client := &http.Client{
+				Transport: &LoggingTransport{
+					roundTripper: http.DefaultTransport,
+				},
+			}
+			c = hrobot.NewBasicAuthClientWithCustomHttpClient(robotUserName, robotPassword, client)
+			klog.Info("Enabled robot API debugging")
+		} else {
+			c = hrobot.NewBasicAuthClient(robotUserName, robotPassword)
+			klog.Infof("Not enabling robot API debugging. Set env var %s=true to enable it.", robotDebugENVVar)
 		}
-		c := hrobot.NewBasicAuthClientWithCustomHttpClient(robotUserName, robotPassword, client)
 		robotClient = cache.NewClient(c, cacheTimeout)
 	} else {
 		klog.Infof("Hetzner robot is not support because of insufficient credentials. Robot user name specified: %v. Robot password specified: %v", robotUserName != "", robotPassword != "")

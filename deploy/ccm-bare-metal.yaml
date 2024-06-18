@@ -132,5 +132,7 @@ spec:
                   key: robot-password
             - name: HCLOUD_DEBUG
               value: "false"
+            - name: ROBOT_DEBUG
+              value: "false"
             - name: HCLOUD_LOAD_BALANCERS_ENABLED
               value: "true"
