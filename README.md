@@ -91,7 +91,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
 4. Deploy the flannel CNI plugin:
 
     ```sh
-    kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+    kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
     ```
 
 5. Patch the flannel deployment to tolerate the `uninitialized` taint:
