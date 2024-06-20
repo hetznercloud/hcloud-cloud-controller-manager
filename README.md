@@ -210,12 +210,6 @@ go test ./...
 
 Check that your go version is up-to-date, tests might fail if it is not.
 
-If in doubt, check which go version is installed in the [ci.yaml](.github/workflows/ci.yaml) GitHub Actions Workflow:
-
-```yaml
-go-version: "1.21"
-```
-
 ## E2E Tests
 
 The Hetzner Cloud cloud controller manager was tested against all
@@ -232,7 +226,7 @@ that will be billed.
 
 1x CPX21 (Ubuntu 18.04)
 
-**Requirements: Docker and Go 1.21**
+**Requirements: Docker and Go 1.22**
 
 1. Configure your environment correctly
 
