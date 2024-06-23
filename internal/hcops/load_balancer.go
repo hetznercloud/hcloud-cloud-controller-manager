@@ -1016,7 +1016,7 @@ func (b *hclbServiceOptsBuilder) extract() {
 
 	b.do(func() error {
 		certtyp, ok := annotation.LBSvcHTTPCertificateType.StringFromService(b.Service)
-		if ok && certtyp == string(hcloud.CertificateTypeManaged) {
+		if ok && certtyp != string(hcloud.CertificateTypeManaged) {
 			// Continue with managed certificates below
 			return nil
 		}
