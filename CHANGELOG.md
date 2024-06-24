@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.20.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.19.0...v1.20.0) (2024-06-24)
+
+
+### Features
+
+* add support & tests for Kubernetes 1.29 ([#600](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/600)) ([e8fabda](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/e8fabda9ab2e607bcb9a88a7e4e3454d10f1e2a0))
+* drop tests for kubernetes v1.25 ([#597](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/597)) ([58261ec](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/58261ec84252da0291770095081fbf49c3e6f659))
+* emit Kubernetes events for error conditions ([#598](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/598)) ([e8f9199](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/e8f9199975fe4a458f962a73caa4e4a7091093ee))
+* read HCLOUD_TOKEN from file ([#652](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/652)) ([a4343b8](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/a4343b84ea3fc6662f1f263f41325eea2e749c41))
+
 ## [1.19.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.18.0...v1.19.0) (2023-12-07)
 
 
