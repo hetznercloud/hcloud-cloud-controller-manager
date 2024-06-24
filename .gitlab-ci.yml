@@ -52,14 +52,14 @@ test:unit:
 build:goreleaser:snapshot:
   <<: *build-goreleaser
   script: |
-    goreleaser build --rm-dist --snapshot
+    goreleaser build --clean --snapshot
   except:
     - tags
 
 build:goreleaser:tags:
   <<: *build-goreleaser
   script: |
-    goreleaser build --rm-dist
+    goreleaser build --clean
   only:
     - tags
 
