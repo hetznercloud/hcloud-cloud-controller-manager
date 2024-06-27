@@ -36,8 +36,9 @@ jobs:
         run: |
           ansible-galaxy install -r requirements.yml
 
+          install --mode=600 <(echo -n "$ROBOT_SSH_KEY") ssh_key
           eval "$(ssh-agent -s)"
-          ssh-add <(echo -n "$ROBOT_SSH_KEY")
+          ssh-add ssh_key
           trap "kill $SSH_AGENT_PID" EXIT
 
           ansible-playbook -vv install.yml
