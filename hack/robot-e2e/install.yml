@@ -117,3 +117,7 @@
         owner: root
         group: root
         mode: "0644"
+
+    - name: Reboot
+      ansible.builtin.reboot:
+        reboot_timeout: 300

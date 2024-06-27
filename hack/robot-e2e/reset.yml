@@ -1,0 +1,35 @@
+---
+- name: Reset server
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Reboot
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+
+    - name: Create k3s directory
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Configure local registry
+      ansible.builtin.copy:
+        content: |
+          mirrors:
+            localhost:30666:
+              endpoint: ["http://10.43.0.2:5000"]
+        dest: /etc/rancher/k3s/registries.yaml
+        mode: "0644"
+
+    - name: Join Kubernetes Cluster
+      delegate_to: localhost
+      ansible.builtin.command: >-
+        k3sup join
+          --server-ip='{{ lookup('ansible.builtin.env', 'CONTROL_IP') }}'
+          --ip='{{ ansible_host }}'
+          --k3s-channel='stable'
+          --k3s-extra-args="
+            --kubelet-arg cloud-provider=external
+            --node-label instance.hetzner.cloud/is-root-server=true"
+    # --ssh-key ../.ssh-{{ scope }}
