@@ -1,0 +1,119 @@
+---
+- name: Boot to rescue
+  hosts: all
+  gather_facts: false
+
+  vars:
+    # SSH keys to add to the server. Must already exist in Robot.
+    authorized_keys:
+      - fc:3c:b4:42:c9:bf:f9:6e:be:58:d3:12:40:c7:13:b2 # julian.toelle
+      - 21:ea:a3:5c:02:a6:0c:42:0b:ef:b5:60:ae:5b:07:9b # jonas.lammler
+
+  module_defaults:
+    group/community.hrobot.robot:
+      hetzner_user: "{{ lookup('ansible.builtin.env', 'ROBOT_USER') }}"
+      hetzner_password: "{{ lookup('ansible.builtin.env', 'ROBOT_PASSWORD') }}"
+
+  tasks:
+    - name: Upload CI SSH Key # noqa args[module]
+      delegate_to: localhost
+      community.hrobot.ssh_key:
+        name: hcloud-cloud-controller-manager
+        public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/+QBJNjrtqJjdsOqOwfELUS+3M3g0QRbn7pQaXfw7f ci@2024-06-27
+        state: present
+      register: ci_ssh_key
+
+    - name: Enable rescue system # noqa args[module]
+      delegate_to: localhost
+      community.hrobot.boot:
+        server_number: "{{ server_number }}"
+        rescue:
+          authorized_keys: "{{ authorized_keys + [ci_ssh_key.fingerprint] }}"
+          os: linux
+      # do not log rescue password
+      no_log: "{{ lookup('ansible.builtin.env', 'CI', default=false) | bool }}"
+
+    - name: Reboot into rescue system # noqa args[module]
+      delegate_to: localhost
+      community.hrobot.reset:
+        server_number: "{{ server_number }}"
+        reset_type: hardware # only type that does not require a separate reset for starting again
+
+    - name: Wait for the server to be reachable
+      ansible.builtin.wait_for_connection:
+        delay: 5
+
+- name: Install server from rescue
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Deploy installimage autosetup
+      ansible.builtin.copy:
+        content: |
+          HOSTNAME {{ inventory_hostname }}
+
+          DRIVE1 /dev/sda
+          DRIVE2 /dev/sdb
+
+          SWRAID 1
+          SWRAIDLEVEL 0
+
+          BOOTLOADER grub
+
+          PART /boot ext4 1024M
+          PART lvm   vg0  all
+
+          LV vg0 root / ext4 10G
+
+          IMAGE /root/.oldroot/nfs/images/Ubuntu-2404-noble-amd64-base.tar.gz
+        dest: /autosetup
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Run installimage
+      ansible.builtin.command:
+        # -t => Take over rescue system SSH public keys
+        cmd: /root/.oldroot/nfs/install/installimage -t yes
+      changed_when: true
+
+    - name: Reboot
+      ansible.builtin.reboot:
+
+    - name: Wait for the server to be reachable
+      ansible.builtin.wait_for_connection:
+        delay: 5
+
+- name: Configure server
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Run apt update
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Removed uneeded packages
+      ansible.builtin.apt:
+        name: [snapd, unattended-upgrades, ubuntu-pro-client]
+        purge: true
+        state: absent
+
+    - name: Run apt upgrade # noqa package-latest
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+
+    - name: Removed orphan packages
+      ansible.builtin.apt:
+        autoremove: true
+        purge: true
+        state: absent
+
+    - name: Deploy overlayroot config
+      ansible.builtin.copy:
+        content: |
+          overlayroot=tmpfs
+        dest: /etc/overlayroot.conf
+        owner: root
+        group: root
+        mode: "0644"
