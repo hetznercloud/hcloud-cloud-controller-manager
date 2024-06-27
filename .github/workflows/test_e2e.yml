@@ -120,8 +120,8 @@ jobs:
     permissions:
       id-token: write
 
-    # Make sure that only one Job is using the server at a time
-    concurrency: robot-test-server
+    # Make sure that only one job is using the server at a time
+    concurrency: robot
     environment: e2e-robot
 
     env:
@@ -180,20 +180,15 @@ jobs:
             --profile=robot \
             --images=hetznercloud/hcloud-cloud-controller-manager=$tag
 
-      - name: Setup Robot Server
+      - name: Reset robot server
         env:
-          ROBOT_USER: ${{ secrets.ROBOT_USER }}
-          ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
-
-          # Nicer output
+          ROBOT_SSH_KEY: ${{ secrets.ROBOT_SSH_KEY }}
           PY_COLORS: true
           ANSIBLE_FORCE_COLOR: true
-        working-directory: hack/robot-e2e
+        working-directory: dev/robot
         run: |
-          ansible-galaxy install -r requirements.yml
-          echo "::group::ansible-playbook e2e-setup-robot-server.yml"
-          ansible-playbook e2e-setup-robot-server.yml -e scope=$SCOPE -e server_number=$SERVER_NUMBER -vvv
-          echo "::endgroup::"
+          # Will work again in the next commit
+          exit 1
 
       - name: Run tests
         env:

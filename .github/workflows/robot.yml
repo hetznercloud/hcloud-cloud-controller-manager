@@ -1,0 +1,44 @@
+name: Robot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/robot.yml
+      - dev/robot/**
+  schedule:
+    # https://crontab.guru/#30_12_*_*_1
+    - cron: "30 12 * * 1"
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+
+    concurrency: robot
+    environment: e2e-robot
+
+    defaults:
+      run:
+        working-directory: dev/robot
+
+    env:
+      PY_COLORS: true
+      ANSIBLE_FORCE_COLOR: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install robot server
+        env:
+          ROBOT_USER: ${{ secrets.ROBOT_USER }}
+          ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
+          ROBOT_SSH_KEY: ${{ secrets.ROBOT_SSH_KEY }}
+        run: |
+          ansible-galaxy install -r requirements.yml
+
+          install --mode=600 <(echo -n "$ROBOT_SSH_KEY") ./ssh_key
+          eval "$(ssh-agent -s)"
+          ssh-add ./ssh_key
+          trap "rm -f ./ssh_key; kill $SSH_AGENT_PID" EXIT
+
+          ansible-playbook -vv install.yml
