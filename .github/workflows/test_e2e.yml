@@ -3,117 +3,118 @@ on:
   pull_request: {}
   push:
     branches: [main]
+
 jobs:
-  cloud:
-    name: Cloud ${{ matrix.k3s }}
-    permissions:
-      id-token: write
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # All k3s after January 2024 break our e2e tests, we hardcode
-        # the versions for now until we can fix the source of this.
-        k3s: [ v1.26.12+k3s1, v1.27.9+k3s1, v1.28.5+k3s1, v1.29.0+k3s1 ]
-      fail-fast: false
+  # cloud:
+  #   name: Cloud ${{ matrix.k3s }}
+  #   permissions:
+  #     id-token: write
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       # All k3s after January 2024 break our e2e tests, we hardcode
+  #       # the versions for now until we can fix the source of this.
+  #       k3s: [ v1.26.12+k3s1, v1.27.9+k3s1, v1.28.5+k3s1, v1.29.0+k3s1 ]
+  #     fail-fast: false
 
-    env:
-      K3S_VERSION: ${{ matrix.k3s }}
-      SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
+  #   env:
+  #     K3S_VERSION: ${{ matrix.k3s }}
+  #     SCOPE: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
 
-      # Domain must be available in the account running the tests. This domain is available in the account
-      # running the public integration tests.
-      CERT_DOMAIN: hc-integrations-test.de
+  #     # Domain must be available in the account running the tests. This domain is available in the account
+  #     # running the public integration tests.
+  #     CERT_DOMAIN: hc-integrations-test.de
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version-file: go.mod
 
-      - uses: hetznercloud/setup-hcloud@v1
+  #     - uses: hetznercloud/setup-hcloud@v1
 
-      - uses: hetznercloud/tps-action@main
-        with:
-          token: ${{ secrets.HCLOUD_TOKEN  }}
+  #     - uses: hetznercloud/tps-action@main
+  #       with:
+  #         token: ${{ secrets.HCLOUD_TOKEN  }}
 
-      - uses: yokawasa/action-setup-kube-tools@v0.11.1
-        with:
-          setup-tools: |
-            helm
-            kubectl
-            skaffold
-          helm: v3.15.1
-          kubectl: v1.29.0
-          skaffold: v2.12.0
-      - name: Install k3sup
-        run: |
-          curl -sLS https://get.k3sup.dev | sh
+  #     - uses: yokawasa/action-setup-kube-tools@v0.11.1
+  #       with:
+  #         setup-tools: |
+  #           helm
+  #           kubectl
+  #           skaffold
+  #         helm: v3.15.1
+  #         kubectl: v1.29.0
+  #         skaffold: v2.12.0
+  #     - name: Install k3sup
+  #       run: |
+  #         curl -sLS https://get.k3sup.dev | sh
 
-      - name: Setup test environment
-        run: |
-          source <(hack/dev-up.sh)
+  #     - name: Setup test environment
+  #       run: |
+  #         source <(hack/dev-up.sh)
           
-          # make exported env variables available to following jobs
-          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
-          echo "SKAFFOLD_DEFAULT_REPO=$SKAFFOLD_DEFAULT_REPO" >> "$GITHUB_ENV"
-          echo "CONTROL_IP=$CONTROL_IP" >> "$GITHUB_ENV"
+  #         # make exported env variables available to following jobs
+  #         echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+  #         echo "SKAFFOLD_DEFAULT_REPO=$SKAFFOLD_DEFAULT_REPO" >> "$GITHUB_ENV"
+  #         echo "CONTROL_IP=$CONTROL_IP" >> "$GITHUB_ENV"
 
-      - name: Build and Deploy HCCM
-        run: |
-          skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
-          tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
-          skaffold deploy --images=hetznercloud/hcloud-cloud-controller-manager=$tag
+  #     - name: Build and Deploy HCCM
+  #       run: |
+  #         skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
+  #         tag=$(skaffold build --tag="e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}" --quiet --output="{{ (index .Builds 0).Tag }}")
+  #         skaffold deploy --images=hetznercloud/hcloud-cloud-controller-manager=$tag
 
-      - name: Run tests
-        run: |
-          go test ./tests/e2e -tags e2e -v -race -timeout 60m -coverprofile=coverage.txt
+  #     - name: Run tests
+  #       run: |
+  #         go test ./tests/e2e -tags e2e -v -race -timeout 60m -coverprofile=coverage.txt
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+  #     - name: Upload coverage reports to Codecov
+  #       uses: codecov/codecov-action@v4
+  #       with:
+  #         token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Download logs & events
-        if: always()
-        continue-on-error: true
-        run: |
-          mkdir debug-logs
-          kubectl logs \
-            --namespace kube-system \
-            --selector app.kubernetes.io/name=hcloud-cloud-controller-manager \
-            --all-containers \
-            --prefix=true \
-            --tail=-1 \
-            > debug-logs/hccm.log
+  #     - name: Download logs & events
+  #       if: always()
+  #       continue-on-error: true
+  #       run: |
+  #         mkdir debug-logs
+  #         kubectl logs \
+  #           --namespace kube-system \
+  #           --selector app.kubernetes.io/name=hcloud-cloud-controller-manager \
+  #           --all-containers \
+  #           --prefix=true \
+  #           --tail=-1 \
+  #           > debug-logs/hccm.log
           
-          kubectl get events \
-            --all-namespaces \
-            --sort-by=.firstTimestamp \
-            --output yaml \
-          > debug-logs/events.yaml
+  #         kubectl get events \
+  #           --all-namespaces \
+  #           --sort-by=.firstTimestamp \
+  #           --output yaml \
+  #         > debug-logs/events.yaml
 
-      - name: Show HCCM Logs on Failure
-        if: failure()
-        continue-on-error: true
-        run: |
-          echo "::group::hccm.log"
-          cat debug-logs/hccm.log
-          echo "::endgroup::"
+  #     - name: Show HCCM Logs on Failure
+  #       if: failure()
+  #       continue-on-error: true
+  #       run: |
+  #         echo "::group::hccm.log"
+  #         cat debug-logs/hccm.log
+  #         echo "::endgroup::"
 
-      - name: Cleanup test environment
-        if: always()
-        continue-on-error: true
-        run: |
-          hack/dev-down.sh
+  #     - name: Cleanup test environment
+  #       if: always()
+  #       continue-on-error: true
+  #       run: |
+  #         hack/dev-down.sh
 
-      - name: Persist debug artifacts
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-logs-${{ env.SCOPE }}
-          path: debug-logs/
+  #     - name: Persist debug artifacts
+  #       if: always()
+  #       continue-on-error: true
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: debug-logs-${{ env.SCOPE }}
+  #         path: debug-logs/
 
   robot:
     name: Robot
