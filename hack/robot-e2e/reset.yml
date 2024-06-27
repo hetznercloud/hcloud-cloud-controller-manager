@@ -32,4 +32,4 @@
           --k3s-extra-args="
             --kubelet-arg cloud-provider=external
             --node-label instance.hetzner.cloud/is-root-server=true"
-          --ssh-key ssh_key
+          --ssh-key ./ssh_key
