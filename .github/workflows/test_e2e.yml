@@ -193,7 +193,7 @@ jobs:
           ssh-add <(echo -n "$ROBOT_SSH_KEY")
           trap "kill $SSH_AGENT_PID" EXIT
 
-          ansible-playbook -vv reboot.yml
+          ansible-playbook -vv reset.yml
 
       - name: Run tests
         env:

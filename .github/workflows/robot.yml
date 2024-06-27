@@ -40,4 +40,4 @@ jobs:
           ssh-add <(echo -n "$ROBOT_SSH_KEY")
           trap "kill $SSH_AGENT_PID" EXIT
 
-          ansible-playbook -vv install.yml reboot.yml
+          ansible-playbook -vv install.yml
