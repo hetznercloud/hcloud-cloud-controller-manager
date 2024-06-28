@@ -1,0 +1,14 @@
+---
+- name: Reset server
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat k3s config directory
+      ansible.builtin.stat:
+        path: /etc/rancher/k3s
+      register: k3s_config
+
+    - name: Reboot
+      when: k3s_config.stat.exists
+      ansible.builtin.reboot:
+        reboot_timeout: 300

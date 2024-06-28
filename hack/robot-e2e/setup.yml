@@ -1,0 +1,41 @@
+---
+- name: Reset server
+  ansible.builtin.import_playbook: reset.yml
+
+- name: Setup server
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Create k3s directory
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Configure local registry
+      ansible.builtin.copy:
+        content: |
+          mirrors:
+            localhost:30666:
+              endpoint: ["http://10.43.0.2:5000"]
+        dest: /etc/rancher/k3s/registries.yaml
+        mode: "0644"
+
+    - name: Add cluster authorized key
+      ansible.posix.authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', '../../dev/files/id_ed25519.pub') }}"
+
+    - name: Join Kubernetes Cluster
+      delegate_to: localhost
+      ansible.builtin.command: >-
+        k3sup join
+          --server-ip='{{ control_server_ipv4 }}'
+          --ip='{{ ansible_host }}'
+          --k3s-channel='stable'
+          --k3s-extra-args="
+            --kubelet-arg cloud-provider=external
+            --node-label instance.hetzner.cloud/is-root-server=true
+            --snapshotter=native"
+          --ssh-key ../../dev/files/id_ed25519

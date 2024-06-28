@@ -1,3 +1,4 @@
 collections:
-  - name: community.hrobot
+  - name: ansible.posix
   - name: community.general
+  - name: community.hrobot

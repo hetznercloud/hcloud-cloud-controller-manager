@@ -1,3 +1,0 @@
-mirrors:
-  localhost:30666:
-    endpoint: ["http://10.43.0.2:5000"]

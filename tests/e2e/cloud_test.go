@@ -25,10 +25,10 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 
 	ctx := context.Background()
 
-	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
+	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, testCluster.ControlNodeName(), metav1.GetOptions{})
 	assert.NoError(t, err)
 
-	server, _, err := testCluster.hcloud.Server.Get(ctx, "hccm-"+testCluster.scope+"-1")
+	server, _, err := testCluster.hcloud.Server.Get(ctx, testCluster.ControlNodeName())
 	if err != nil {
 		return
 	}
@@ -191,12 +191,12 @@ func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 	t.Parallel()
 
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, "hccm-"+testCluster.scope+"-1", metav1.GetOptions{})
+		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, testCluster.ControlNodeName(), metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
-		network, _, err := testCluster.hcloud.Network.Get(ctx, "hccm-"+testCluster.scope)
+		network, _, err := testCluster.hcloud.Network.Get(ctx, testCluster.NetworkName())
 		if err != nil {
 			return false, err
 		}
@@ -239,7 +239,7 @@ func TestRouteDeleteCorrectRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	network, _, err := testCluster.hcloud.Network.Get(ctx, "hccm-"+testCluster.scope)
+	network, _, err := testCluster.hcloud.Network.Get(ctx, testCluster.NetworkName())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +280,7 @@ func TestRouteDeleteCorrectRoutes(t *testing.T) {
 	}
 
 	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-		network, _, err = testCluster.hcloud.Network.Get(ctx, "hccm-"+testCluster.scope)
+		network, _, err = testCluster.hcloud.Network.Get(ctx, testCluster.NetworkName())
 		if err != nil {
 			return false, err
 		}
