@@ -31,3 +31,9 @@ profiles:
       - op: add
         path: /manifests/helm/releases/0/setValues/robot.enabled
         value: true
+      - op: add
+        path: /manifests/helm/releases/0/setValues/env.ROBOT_USER.valueFrom.secretKeyRef.name
+        value: hcloud-robot
+      - op: add
+        path: /manifests/helm/releases/0/setValues/env.ROBOT_PASSWORD.valueFrom.secretKeyRef.name
+        value: hcloud-robot

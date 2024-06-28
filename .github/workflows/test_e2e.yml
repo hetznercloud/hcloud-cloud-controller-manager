@@ -130,7 +130,7 @@ jobs:
     environment: e2e-robot
 
     env:
-      K3S_CHANNEL: ${{ matrix.k3s }}
+      K3S_CHANNEL: v1.29
       ENV: gha-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k3s }}
 
       # Disable routes in dev-env, not supported for Robot.

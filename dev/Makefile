@@ -5,9 +5,11 @@ ENV ?= dev
 K3S_CHANNEL ?= stable
 
 env.auto.tfvars:
-	@echo 'name         = "$(ENV)"' > "$@"
-	@echo 'hcloud_token = "$(HCLOUD_TOKEN)"' >> "$@"
-	@echo 'k3s_channel  = "$(K3S_CHANNEL)"' >> "$@"
+	@echo 'name           = "$(ENV)"' > "$@"
+	@echo 'hcloud_token   = "$(HCLOUD_TOKEN)"' >> "$@"
+	@echo 'k3s_channel    = "$(K3S_CHANNEL)"' >> "$@"
+	@echo 'robot_user     = "$(ROBOT_USER)"' >> "$@"
+	@echo 'robot_password = "$(ROBOT_PASSWORD)"' >> "$@"
 
 .terraform:
 	tofu init
