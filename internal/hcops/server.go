@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/time/rate"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
@@ -22,6 +23,8 @@ type AllServersCache struct {
 	LoadFunc    func(context.Context) ([]*hcloud.Server, error)
 	LoadTimeout time.Duration
 	MaxAge      time.Duration
+	// Set to limit the amount of refreshes due to cache misses
+	CacheMissRefreshLimiter *rate.Limiter
 
 	// If set, only IPs in this network will be considered for [ByPrivateIP]
 	Network *hcloud.Network
@@ -97,8 +100,8 @@ func (c *AllServersCache) getFromCache(retrieveFromCacheMaps func() (*hcloud.Ser
 		return server, nil
 	}
 
-	// If the server was not in the cache, we want to refresh if we did not already in this call.
-	if !cacheRefreshed {
+	// If the server was not in the cache, we want to refresh if we did not already in this call and if there is available limit.
+	if !cacheRefreshed && c.CacheMissRefreshLimiter.Allow() {
 		if err := c.refreshCache(); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
