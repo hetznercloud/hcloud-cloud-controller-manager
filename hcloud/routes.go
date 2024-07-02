@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"golang.org/x/time/rate"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -14,6 +15,10 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+)
+
+var (
+	serversCacheMissRefreshRate = rate.Every(30 * time.Second)
 )
 
 type routes struct {
@@ -40,8 +45,9 @@ func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
 		serverCache: &hcops.AllServersCache{
 			// client.Server.All will load ALL the servers in the project, even those
 			// that are not part of the Kubernetes cluster.
-			LoadFunc: client.Server.All,
-			Network:  networkObj,
+			LoadFunc:                client.Server.All,
+			Network:                 networkObj,
+			CacheMissRefreshLimiter: rate.NewLimiter(serversCacheMissRefreshRate, 1),
 		},
 	}, nil
 }
