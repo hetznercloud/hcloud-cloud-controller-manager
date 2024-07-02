@@ -16,8 +16,8 @@ import (
 // AllServersCache caches the result of the LoadFunc and provides random access
 // to servers using select hcloud.Server attributes.
 //
-// To simplify things the allServersCache reloads all servers on every cache
-// miss, or whenever a timeout expired.
+// To simplify things the AllServersCache reloads all servers on every cache
+// miss, or whenever the data is older than MaxAge.
 type AllServersCache struct {
 	LoadFunc    func(context.Context) ([]*hcloud.Server, error)
 	LoadTimeout time.Duration
@@ -30,7 +30,7 @@ type AllServersCache struct {
 	byPrivIP    map[string]*hcloud.Server
 	byName      map[string]*hcloud.Server
 
-	mu sync.Mutex // protects by* maps
+	mu sync.Mutex
 }
 
 // ByPrivateIP obtains a server from the cache using the IP of one of its
@@ -38,12 +38,12 @@ type AllServersCache struct {
 //
 // Note that a pointer to the object stored in the cache is returned. Modifying
 // this object affects the cache and all other code parts holding a reference.
-// Furthermore modifying the returned server is not concurrency safe.
+// Furthermore, modifying the returned server is not concurrency safe.
 func (c *AllServersCache) ByPrivateIP(ip net.IP) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.ByPrivateIP"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := c.getCache(func() (*hcloud.Server, bool) {
+	srv, err := c.getFromCache(func() (*hcloud.Server, bool) {
 		srv, ok := c.byPrivIP[ip.String()]
 		return srv, ok
 	})
@@ -58,12 +58,12 @@ func (c *AllServersCache) ByPrivateIP(ip net.IP) (*hcloud.Server, error) {
 //
 // Note that a pointer to the object stored in the cache is returned. Modifying
 // this object affects the cache and all other code parts holding a reference.
-// Furthermore modifying the returned server is not concurrency safe.
+// Furthermore, modifying the returned server is not concurrency safe.
 func (c *AllServersCache) ByName(name string) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.ByName"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := c.getCache(func() (*hcloud.Server, bool) {
+	srv, err := c.getFromCache(func() (*hcloud.Server, bool) {
 		srv, ok := c.byName[name]
 		return srv, ok
 	})
@@ -74,20 +74,50 @@ func (c *AllServersCache) ByName(name string) (*hcloud.Server, error) {
 	return srv, nil
 }
 
-func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hcloud.Server, error) {
+// getFromCache wraps the cache maps with expiry time and "get-on-unavailable" functionality.
+func (c *AllServersCache) getFromCache(retrieveFromCacheMaps func() (*hcloud.Server, bool)) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.getCache"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// First try to get the value from the cache if the cache is not yet
-	// expired.
-	if srv, ok := getSrv(); ok && !c.isExpired() {
-		return srv, nil
+	cacheRefreshed := false
+
+	// Refresh the cache if its expired
+	if c.isExpired() {
+		if err := c.refreshCache(); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		cacheRefreshed = true
 	}
 
-	// Reload from the backend API if we didn't find srv.
+	server, ok := retrieveFromCacheMaps()
+	if ok {
+		return server, nil
+	}
+
+	// If the server was not in the cache, we want to refresh if we did not already in this call.
+	if !cacheRefreshed {
+		if err := c.refreshCache(); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		// Check once again if the server was found
+		server, ok = retrieveFromCacheMaps()
+		if ok {
+			return server, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
+}
+
+// Caller must hold the mutex.
+func (c *AllServersCache) refreshCache() error {
+	const op = "hcops/AllServersCache.refreshCache"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	to := c.LoadTimeout
 	if to == 0 {
 		to = 20 * time.Second
@@ -95,18 +125,18 @@ func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hclou
 	ctx, cancel := context.WithTimeout(context.Background(), to)
 	defer cancel()
 
-	srvs, err := c.LoadFunc(ctx)
+	servers, err := c.LoadFunc(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Re-initialize all maps. This effectively clears the current cache.
 	c.byPrivIP = make(map[string]*hcloud.Server)
 	c.byName = make(map[string]*hcloud.Server)
 
-	for _, srv := range srvs {
+	for _, server := range servers {
 		// Index servers by the IPs of their private networks
-		for _, n := range srv.PrivateNet {
+		for _, n := range server.PrivateNet {
 			if c.Network != nil {
 				if n.Network.ID != c.Network.ID {
 					// Only consider private IPs in the right network
@@ -117,22 +147,18 @@ func (c *AllServersCache) getCache(getSrv func() (*hcloud.Server, bool)) (*hclou
 				continue
 			}
 			if _, ok := c.byPrivIP[n.IP.String()]; ok {
-				klog.Warningf("Overriding AllServersCache entry for private ip %s with server %s\n", n.IP.String(), srv.Name)
+				klog.Warningf("Overriding AllServersCache entry for private ip %s with server %s\n", n.IP.String(), server.Name)
 			}
-			c.byPrivIP[n.IP.String()] = srv
+			c.byPrivIP[n.IP.String()] = server
 		}
 
 		// Index servers by their names.
-		c.byName[srv.Name] = srv
+		c.byName[server.Name] = server
 	}
 
 	c.lastRefresh = time.Now()
 
-	// Re-try to find the server after the reload.
-	if srv, ok := getSrv(); ok {
-		return srv, nil
-	}
-	return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
+	return nil
 }
 
 // InvalidateCache invalidates the cache so that on the next cache call the cache gets refreshed.
@@ -143,6 +169,7 @@ func (c *AllServersCache) InvalidateCache() {
 	c.lastRefresh = time.Time{}
 }
 
+// Caller must hold the mutex.
 func (c *AllServersCache) isExpired() bool {
 	maxAge := c.MaxAge
 	if maxAge == 0 {
