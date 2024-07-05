@@ -103,7 +103,7 @@ jobs:
             --all-namespaces \
             --sort-by=.firstTimestamp \
             --output yaml \
-          | tee debug-logs/events.yaml
+            | tee debug-logs/events.yaml
           echo "::endgroup::"
 
       - name: Cleanup
@@ -120,7 +120,7 @@ jobs:
           path: debug-logs/
 
   robot:
-    name: Robot
+    runs-on: ubuntu-latest
 
     permissions:
       id-token: write
@@ -133,10 +133,8 @@ jobs:
       K3S_CHANNEL: v1.29
       ENV: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
 
-      TF_VAR_setup_robot: "true"
       ROBOT_ENABLED: "true"
 
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -211,7 +209,7 @@ jobs:
             --all-namespaces \
             --sort-by=.firstTimestamp \
             --output yaml \
-          | tee debug-logs/events.yaml
+            | tee debug-logs/events.yaml
           echo "::endgroup::"
 
       - name: Cleanup

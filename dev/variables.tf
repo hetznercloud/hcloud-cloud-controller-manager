@@ -1,18 +1,23 @@
+# General
 variable "name" {
   type = string
-}
-variable "hcloud_token" {
-  type      = string
-  sensitive = true
 }
 variable "k3s_channel" {
   type = string
 }
-variable "setup_robot" {
+
+# Hetzner Cloud
+variable "hcloud_token" {
+  type      = string
+  sensitive = true
+}
+
+
+# Hetzner Robot
+variable "robot_enabled" {
   type    = bool
   default = false
 }
-# Hetzner Robot
 variable "robot_user" {
   type      = string
   sensitive = true

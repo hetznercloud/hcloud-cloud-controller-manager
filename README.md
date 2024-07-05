@@ -280,7 +280,6 @@ This requires that you have a Robot Server in the same account you use for the d
 1. Set these environment variables:
 
 ```shell
-export TF_VAR_setup_robot=true
 export ROBOT_ENABLED=true
 
 export ROBOT_USER=<Your Robot User>

@@ -1,11 +1,11 @@
 module "dev" {
-  source = "github.com/hetznercloud/terraform-k8s-dev?ref=v0.3.0"
+  source = "github.com/hetznercloud/kubernetes-dev-env?ref=v0.4.0"
 
   name         = "hccm-${replace(var.name, "/[^a-zA-Z0-9-_]/", "-")}"
   worker_count = 1
   # We deploy hccm through skaffold, its the application under development/test.
   deploy_hccm      = false
-  use_cloud_routes = !var.setup_robot
+  use_cloud_routes = !var.robot_enabled
 
   hcloud_token = var.hcloud_token
 

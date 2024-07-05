@@ -4,7 +4,7 @@ locals {
 }
 
 resource "null_resource" "reset_robot" {
-  count = var.setup_robot ? 1 : 0
+  count = var.robot_enabled ? 1 : 0
   triggers = {
     # Wait the control-plane to be initialized, and re-join the new cluster if the
     # control-plane server changed.
@@ -43,16 +43,16 @@ resource "null_resource" "reset_robot" {
 }
 
 module "registry_robot" {
-  count      = var.setup_robot ? 1 : 0
+  count      = var.robot_enabled ? 1 : 0
   depends_on = [null_resource.reset_robot]
 
-  source = "github.com/hetznercloud/terraform-k8s-dev//k3s_registry?ref=v0.3.0"
+  source = "github.com/hetznercloud/kubernetes-dev-env//k3s_registry?ref=v0.4.0"
 
   server = { id = "0", ipv4_address = local.robot_ipv4 }
 }
 
 resource "null_resource" "k3sup_robot" {
-  count      = var.setup_robot ? 1 : 0
+  count      = var.robot_enabled ? 1 : 0
   depends_on = [module.registry_robot.0]
 
   triggers = {
@@ -66,6 +66,11 @@ resource "null_resource" "k3sup_robot" {
   }
 
   provisioner "local-exec" {
+    // We already use overlayfs for the root file system on the server.
+    // This caused an issue with the overlayfs default snapshotter in
+    // containerd. `--snapshotter=native` avoids this issue. We have not
+    // noticed any negative performance impact from this, as the whole
+    // filesystem is only kept in memory.
     command = <<-EOT
       k3sup join \
         --ssh-key='${module.dev.ssh_private_key_filename}' \
@@ -81,17 +86,12 @@ resource "null_resource" "k3sup_robot" {
   }
 }
 
-data "local_sensitive_file" "kubeconfig" {
-  depends_on = [module.dev]
-  filename   = "${path.root}/files/kubeconfig.yaml"
-}
-
 provider "kubernetes" {
-  config_path = data.local_sensitive_file.kubeconfig.filename
+  config_path = module.dev.kubeconfig_filename
 }
 
 resource "kubernetes_secret_v1" "robot_credentials" {
-  count = var.setup_robot ? 1 : 0
+  count = var.robot_enabled ? 1 : 0
 
   metadata {
     name      = "robot"
