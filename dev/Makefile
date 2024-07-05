@@ -1,6 +1,4 @@
 SHELL = bash
-.SHELLFLAGS = -e -c
-.ONESHELL:
 
 ENV ?= dev
 K3S_CHANNEL ?= stable
@@ -25,11 +23,11 @@ up: .terraform env.auto.tfvars
 	$(MAKE) port-forward
 
 down: .terraform env.auto.tfvars
+	files/registry-port-forward.sh down
 	tofu destroy -auto-approve
 
 port-forward:
-	source files/env.sh
-	bash files/registry-port-forward.sh
+	source files/env.sh && files/registry-port-forward.sh up
 
 clean:
 	rm -Rf files/ .terraform/ terraform.tfstate* env.auto.tfvars

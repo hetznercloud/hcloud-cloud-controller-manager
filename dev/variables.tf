@@ -12,7 +12,6 @@ variable "hcloud_token" {
   sensitive = true
 }
 
-
 # Hetzner Robot
 variable "robot_enabled" {
   type    = bool
