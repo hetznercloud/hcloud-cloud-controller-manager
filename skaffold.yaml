@@ -4,7 +4,7 @@ metadata:
   name: cloud-controller-manager
 build:
   artifacts:
-    - image: docker.io/hetznercloud/hcloud-cloud-controller-manager
+    - image: hetznercloud/hcloud-cloud-controller-manager
       docker:
         dockerfile: dev/Dockerfile
   local:
