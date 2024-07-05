@@ -86,6 +86,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
+          source dev/files/env.sh
           mkdir debug-logs
 
           echo "::group::hccm.log"
@@ -192,6 +193,7 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
+          source dev/files/env.sh
           mkdir debug-logs
 
           echo "::group::hccm.log"
