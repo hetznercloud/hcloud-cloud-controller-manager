@@ -36,4 +36,4 @@ jobs:
         run: |
           ansible-galaxy install -r requirements.yml
 
-          with-ssh-agent ansible-playbook -vv install.yml
+          ./with-ssh-agent ansible-playbook -vv install.yml
