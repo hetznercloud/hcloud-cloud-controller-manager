@@ -175,13 +175,7 @@ jobs:
           ROBOT_USER: ${{ secrets.ROBOT_USER }}
           ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
         run: |
-          mkdir ~/.ssh # required for ssh-copy-id
-          install --mode=600 <(echo -n "$ROBOT_SSH_KEY") ./ssh_key
-          eval "$(ssh-agent -s)"
-          ssh-add ./ssh_key
-          trap "rm -f ./ssh_key; kill $SSH_AGENT_PID" EXIT
-
-          make -C dev up
+          dev/robot/with-ssh-agent make -C dev up
 
       - name: Run skaffold
         run: |
