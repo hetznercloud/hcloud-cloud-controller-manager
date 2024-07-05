@@ -1,19 +1,17 @@
-apiVersion: skaffold/v4beta3
+apiVersion: skaffold/v4beta11
 kind: Config
 metadata:
   name: cloud-controller-manager
 build:
   artifacts:
-    - image: hetznercloud/hcloud-cloud-controller-manager
-      runtimeType: go
+    - image: docker.io/hetznercloud/hcloud-cloud-controller-manager
       docker:
-        dockerfile: hack/Dockerfile
-        cacheFrom:
-          - hetznercloud/hcloud-cloud-controller-manager:buildcache
+        dockerfile: dev/Dockerfile
   local:
     useBuildkit: true
   insecureRegistries:
     - localhost:30666
+
 manifests:
   helm:
     releases:
@@ -33,3 +31,9 @@ profiles:
       - op: add
         path: /manifests/helm/releases/0/setValues/robot.enabled
         value: true
+      - op: add
+        path: /manifests/helm/releases/0/setValues/env.ROBOT_USER.valueFrom.secretKeyRef.name
+        value: robot
+      - op: add
+        path: /manifests/helm/releases/0/setValues/env.ROBOT_PASSWORD.valueFrom.secretKeyRef.name
+        value: robot

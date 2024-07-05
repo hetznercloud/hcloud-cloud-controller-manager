@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -ueo pipefail
+
+# required for ssh-copy-id
+mkdir -p ~/.ssh
+
+# start ssh agent
+eval "$(ssh-agent -s)"
+
+ssh_key_path="$(mktemp ./ssh_key.XXXXXXXXXX)"
+
+# ensure ssh agent and keys are cleaned on exit
+# shellcheck disable=SC2064
+trap "kill '$SSH_AGENT_PID'; rm -f '$ssh_key_path'" EXIT
+
+# load robot ssh key
+install --mode=600 <(echo -n "$ROBOT_SSH_KEY") "$ssh_key_path"
+ssh-add "$ssh_key_path"
+
+# run the wrapped command
+"$@"

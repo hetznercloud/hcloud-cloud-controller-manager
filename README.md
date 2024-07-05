@@ -200,132 +200,99 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 | 1.24       |                  v1.17.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.17.2/ccm.yaml |
 | 1.23       |                  v1.13.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm.yaml |
 
-## Unit tests
+## Development
 
-To run unit tests locally, execute
+### Setup a development environment
+
+To set up a development environment, make sure you installed the following tools:
+
+- [tofu](https://opentofu.org/)
+- [k3sup](https://github.com/alexellis/k3sup)
+- [docker](https://www.docker.com/)
+- [skaffold](https://skaffold.dev/)
+
+1. Configure a `HCLOUD_TOKEN` in your shell session.
+
+> [!WARNING]
+> The development environment runs on Hetzner Cloud servers which will induce costs.
+
+2. Deploy the development cluster:
+
+```sh
+make -C dev up
+```
+
+3. Load the generated configuration to access the development cluster:
+
+```sh
+source dev/files/env.sh
+```
+
+4. Check that the development cluster is healthy:
+
+```sh
+kubectl get nodes -o wide
+```
+
+5. Start developing hcloud-cloud-controller-manager in the development cluster:
+
+```sh
+skaffold dev
+```
+
+On code change, skaffold will rebuild the image, redeploy it and print all logs.
+
+⚠️ Do not forget to clean up the development cluster once are finished:
+
+```sh
+make -C dev down
+```
+
+### Run the unit tests
+
+To run the unit tests, make sure you installed the following tools:
+
+- [Go](https://go.dev/)
+
+1. Run the following command to run the unit tests:
 
 ```sh
 go test ./...
 ```
 
-Check that your go version is up-to-date, tests might fail if it is not.
+### Run the kubernetes e2e tests
 
-## E2E Tests
+Before running the e2e tests, make sure you followed the [Setup a development environment](#setup-a-development-environment) steps.
 
-The Hetzner Cloud cloud controller manager was tested against all
-supported Kubernetes versions. We also test against the same k3s
-releases (Sample: When we support testing against Kubernetes 1.20.x we
-also try to support k3s 1.20.x). We try to keep compatibility with k3s
-but never guarantee this.
+1. Run the kubernetes e2e tests using the following command:
 
-You can run the tests with the following commands. Keep in mind, that
-these tests run on real cloud servers and will create Load Balancers
-that will be billed.
-
-**Test Server Setup:**
-
-1x CPX21 (Ubuntu 18.04)
-
-**Requirements: Docker and Go 1.22**
-
-1. Configure your environment correctly
-
-```bash
-export HCLOUD_TOKEN=<specifiy a project token>
-export K8S_VERSION=k8s-1.21.0 # The specific (latest) version is needed here
-export USE_SSH_KEYS=key1,key2 # Name or IDs of your SSH Keys within the Hetzner Cloud, the servers will be accessable with that keys
-export USE_NETWORKS=yes # if `yes` this identidicates that the tests should provision the server with cilium as CNI and also enable the Network related tests
-## Optional configuration env vars:
-export TEST_DEBUG_MODE=yes # With this env you can toggle the output of the provision and test commands. With `yes` it will log the whole output to stdout
-export KEEP_SERVER_ON_FAILURE=yes # Keep the test server after a test failure.
+```sh
+source dev/files/env.sh
+go test ./tests/e2e -tags e2e -v
 ```
 
-2. Run the tests
+### Development with Robot
 
-```bash
-go test ./tests/e2e -tags e2e -v -timeout 60m
+If you want to work on the Robot support, you need to make some changes to the above setup.
+
+This requires that you have a Robot Server in the same account you use for the development. The server needs to be setup with the Ansible Playbook `dev/robot/install.yml` and configured in `dev/robot/install.yml`.
+
+1. Set these environment variables:
+
+```shell
+export ROBOT_ENABLED=true
+
+export ROBOT_USER=<Your Robot User>
+export ROBOT_PASSWORD=<Your Robot Password>
 ```
 
-The tests will now run and cleanup themselves afterward. Sometimes it might happen that you need to clean up the
-project manually via the [Hetzner Cloud Console](https://console.hetzner.cloud) or
-the [hcloud-cli](https://github.com/hetznercloud/cli) .
+2. Continue with the environment setup until you reach the `skaffold` step. Run `skaffold dev --profile=robot` instead.
 
-For easier debugging on the server we always configure the latest version of
-the [hcloud-cli](https://github.com/hetznercloud/cli) with the given `HCLOUD_TOKEN` and a few bash aliases on the host:
+3. We have another suite of tests for Robot. You can run these with:
 
-```bash
-alias k="kubectl"
-alias ksy="kubectl -n kube-system"
-alias kgp="kubectl get pods"
-alias kgs="kubectl get services"
+```sh
+go test ./tests/e2e -tags e2e,robot -v
 ```
-
-The test suite is split in three parts:
-
-- **General Part**: Sets up the test env & checks if the HCCM Pod is properly running
-   - Build Tag: `e2e`
-- **Cloud Part**: Tests regular functionality against a Cloud-only environment
-   - Build Tag: `e2e && !robot`
-- **Robot Part**: Tests Robot functionality against a Cloud+Robot environment
-   - Build Tag: `e2e && robot`
-
-## Local test setup
-This repository provides [skaffold](https://skaffold.dev/) to easily deploy / debug this controller on demand
-
-### Requirements
-1. Install [hcloud-cli](https://github.com/hetznercloud/cli)
-2. Install [k3sup](https://github.com/alexellis/k3sup)
-3. Install [cilium](https://github.com/cilium/cilium-cli)
-4. Install [docker](https://www.docker.com/)
-
-You will also need to set a `HCLOUD_TOKEN` in your shell session
-### Manual Installation guide
-1. Create an SSH key
-
-Assuming you already have created an ssh key via `ssh-keygen`
-```
-hcloud ssh-key create --name ssh-key-ccm-test --public-key-from-file ~/.ssh/id_rsa.pub 
-```
-
-2. Create a server
-```
-hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-key-ccm-test --type cx22 
-```
-
-3. Setup k3s on this server
-```
-k3sup install --ip $(hcloud server ip ccm-test-server) --local-path=/tmp/kubeconfig --cluster --k3s-channel=v1.23 --k3s-extra-args='--no-flannel --no-deploy=servicelb --no-deploy=traefik --disable-cloud-controller --disable-network-policy --kubelet-arg=cloud-provider=external'
-```
-- The kubeconfig will be created under `/tmp/kubeconfig`
-- Kubernetes version can be configured via `--k3s-channel`
-
-4. Switch your kubeconfig to the test cluster. Very important: exporting this like 
-```
-export KUBECONFIG=/tmp/kubeconfig
-```
-
-5. Install cilium + test your cluster
-```
-cilium install
-```
-
-6. Add your secret to the cluster
-```
-kubectl -n kube-system create secret generic hcloud --from-literal="token=$HCLOUD_TOKEN"
-```
-
-7. Deploy the hcloud-cloud-controller-manager
-```
-SKAFFOLD_DEFAULT_REPO=your_docker_hub_username skaffold dev
-```
-
-- `docker login` required
-- Skaffold is using your own Docker Hub repo to push the HCCM image.
-- After the first run, you might need to set the image to "public" on hub.docker.com
-
-On code change, Skaffold will repack the image & deploy it to your test cluster again. It will also stream logs from the hccm Deployment.
-
-*After setting this up, only the command from step 7 is required!*=
 
 ## License
 

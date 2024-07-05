@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -28,7 +27,6 @@ import (
 )
 
 var rng *rand.Rand
-var scopeButcher = regexp.MustCompile(`[^a-zA-Z0-9_]`)
 
 func init() {
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -39,27 +37,14 @@ type TestCluster struct {
 	hrobot       hrobot.RobotClient
 	k8sClient    *kubernetes.Clientset
 	certificates []*hcloud.Certificate
-	scope        string
-	certDomain   string
+	// envName is used as the name prefix in all resources
+	envName    string
+	certDomain string
 }
 
 func (tc *TestCluster) Start() error {
-	tc.scope = os.Getenv("SCOPE")
-	if tc.scope == "" {
-		tc.scope = "dev"
-	}
-	tc.scope = scopeButcher.ReplaceAllString(tc.scope, "-")
-
 	// Hetzner Cloud Client
 	token := os.Getenv("HCLOUD_TOKEN")
-	if token == "" {
-		buf, err := os.ReadFile(fmt.Sprintf("../../hack/.token-%s", tc.scope))
-		if err != nil {
-			return err
-		}
-		token = string(buf)
-	}
-
 	if token == "" {
 		return fmt.Errorf("no valid HCLOUD_TOKEN found")
 	}
@@ -67,9 +52,9 @@ func (tc *TestCluster) Start() error {
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
 		hcloud.WithApplication("hcloud-ccm-testsuite", "1.0"),
+		hcloud.WithPollBackoffFunc(hcloud.ExponentialBackoff(2, 1*time.Second)),
 	}
-	hcloudClient := hcloud.NewClient(opts...)
-	tc.hcloud = hcloudClient
+	tc.hcloud = hcloud.NewClient(opts...)
 
 	// Hetzner Robot Client
 	if enabled := os.Getenv("ROBOT_ENABLED"); enabled == "true" {
@@ -78,10 +63,7 @@ func (tc *TestCluster) Start() error {
 		tc.hrobot = hrobot.NewBasicAuthClient(robotUser, robotPassword)
 	}
 
-	err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-"+tc.scope)
-	if err != nil {
-		return err
-	}
+	tc.envName = os.Getenv("ENV_NAME")
 
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
@@ -140,6 +122,21 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 	tc.certificates = append(tc.certificates, cert)
 
 	return cert
+}
+
+// NetworkName returns the network name.
+func (tc *TestCluster) NetworkName() string {
+	return tc.envName
+}
+
+// ControlNodeName returns the control node name.
+func (tc *TestCluster) ControlNodeName() string {
+	return fmt.Sprintf("%s-control", tc.envName)
+}
+
+// WorkerNodeName returns the worker node name, zero indexed.
+func (tc *TestCluster) WorkerNodeName(index int) string {
+	return fmt.Sprintf("%s-worker-%d", tc.envName, index)
 }
 
 type lbTestHelper struct {
