@@ -52,6 +52,11 @@ spec:
         {{ toYaml .Values.nodeSelector | nindent 8 }}
       {{- end }}
 
+      {{- if gt (len .Values.affinity) 0 }}
+      affinity:
+        {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+
       {{- if $.Values.networking.enabled }}
       hostNetwork: true
       {{- end }}
