@@ -121,6 +121,7 @@ jobs:
           path: debug-logs/
 
   robot:
+    if: false
     runs-on: ubuntu-latest
 
     permissions:

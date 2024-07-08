@@ -9,6 +9,7 @@ on:
   schedule:
     # At 02:30 on Monday https://crontab.guru/#30_2_*_*_1
     - cron: "30 2 * * 1"
+  pull_request:
 
 jobs:
   install:
