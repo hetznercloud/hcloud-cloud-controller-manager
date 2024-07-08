@@ -59,7 +59,7 @@ env:
         optional: true
 
 image:
-  repository: hetznercloud/hcloud-cloud-controller-manager
+  repository: docker.io/hetznercloud/hcloud-cloud-controller-manager
   tag: 'v{{ $.Chart.Version }}'
 
 monitoring:
