@@ -32,6 +32,9 @@
           os: linux
       # do not log rescue password
       no_log: "{{ lookup('ansible.builtin.env', 'CI', default=false) | bool }}"
+      # work around some flakiness
+      retries: 3
+      delay: 3
 
     - name: Reboot into rescue system # noqa args[module]
       delegate_to: localhost
