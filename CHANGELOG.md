@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.20.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.19.0...v1.20.0) (2024-07-08)
+
+
+### Features
+
+* add support & tests for Kubernetes 1.29 ([#600](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/600)) ([e8fabda](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/e8fabda9ab2e607bcb9a88a7e4e3454d10f1e2a0))
+* add support & tests for Kubernetes 1.30 ([#679](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/679)) ([0748b6e](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/0748b6e4457227cea77c733b897ce63e0aa0da9b))
+* drop tests for kubernetes v1.25 ([#597](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/597)) ([58261ec](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/58261ec84252da0291770095081fbf49c3e6f659))
+* drop tests for kubernetes v1.26 ([#680](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/680)) ([9c4be01](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/9c4be01659d8ed2607c410639fa8719aedb22c2a))
+* emit Kubernetes events for error conditions ([#598](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/598)) ([e8f9199](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/e8f9199975fe4a458f962a73caa4e4a7091093ee))
+* **helm,manifests:** only specify container args instead of command ([#691](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/691)) ([2ba4058](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/2ba40588d3b3b44ac3c0fa4ff9ae9e9fd3336cc9))
+* **helm:** allow setting affinity for deployment ([#686](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/686)) ([1a8ea95](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/1a8ea95571a0048c96160756b0d1c40f1a8a8b70))
+* read HCLOUD_TOKEN from file ([#652](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/652)) ([a4343b8](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/a4343b84ea3fc6662f1f263f41325eea2e749c41))
+
+
+### Bug Fixes
+
+* **routes:** many requests for outdated routes by rate limiting ([#675](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/675)) ([e283b7d](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/e283b7deea83bc8bd9b20ad8d098884da3eda554))
+
 ## [1.19.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.18.0...v1.19.0) (2023-12-07)
 
 
