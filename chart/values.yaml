@@ -110,6 +110,9 @@ additionalTolerations: []
 nodeSelector: {}
   # node-role.kubernetes.io/control-plane: ""
 
+# Set the affinity for pods. (Only works with kind=Deployment)
+affinity: {}
+
 robot:
   # Set to true to enable support for Robot (Dedicated) servers.
   enabled: false
