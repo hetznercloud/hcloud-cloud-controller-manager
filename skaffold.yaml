@@ -5,10 +5,7 @@ metadata:
 build:
   artifacts:
     - image: docker.io/hetznercloud/hcloud-cloud-controller-manager
-      docker:
-        dockerfile: dev/Dockerfile
-  local:
-    useBuildkit: true
+      ko: {}
   insecureRegistries:
     - localhost:30666
 
