@@ -62,8 +62,7 @@ spec:
       {{- end }}
       containers:
         - name: hcloud-cloud-controller-manager
-          command:
-            - "/bin/hcloud-cloud-controller-manager"
+          args:
             {{- range $key, $value := $.Values.args }}
             {{- if not (eq $value nil) }}
             - "--{{ $key }}{{ if $value }}={{ $value }}{{ end }}"

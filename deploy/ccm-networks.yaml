@@ -60,8 +60,7 @@ spec:
       hostNetwork: true
       containers:
         - name: hcloud-cloud-controller-manager
-          command:
-            - "/bin/hcloud-cloud-controller-manager"
+          args:
             - "--allow-untagged-cloud"
             - "--cloud-provider=hcloud"
             - "--route-reconciliation-period=30s"
