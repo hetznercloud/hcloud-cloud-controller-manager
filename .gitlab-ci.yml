@@ -1,90 +1,53 @@
----
 include:
   - project: cloud/integrations/ci
-    file: default.yml
-  - project: cloud/backend/deploy-tools
-    file: ci/build/image.yml
-  - project: cloud/backend/deploy-tools
-    file: ci/release/image.yml
-
-stages:
-  - test
-  - build
-  - build:image
-  - e2e-test
-  - release
-  - release:image
+    file:
+      - default.yml
+      - workflows/feature-branches.yml
 
 variables:
-  GOPROXY: goproxy.prodext.hcinfra.de
-  GONOSUMDB: hetzner.cloud
+  GOMODCACHE: $CI_PROJECT_DIR/.cache/go-mod
+  GOCACHE: $CI_PROJECT_DIR/.cache/go-build
+
+cache:
+  key:
+    files:
+      - go.mod
+      - go.sum
+  paths:
+    - $GOMODCACHE
+
+build:
+  stage: build
+  image: golang:1.22
+  script:
+    - go env
+    - go mod download
 
 test:lint:
   stage: test
-  image: golangci/golangci-lint:v1.59.1
-  allow_failure: true
+  image: golangci/golangci-lint:v1.59
+  variables:
+    GOLANGCI_LINT_CACHE: $CI_PROJECT_DIR/.cache/golangci-lint
+  cache:
+    key:
+      files:
+        - go.mod
+        - go.sum
+    paths:
+      - $GOLANGCI_LINT_CACHE
   script:
-    - golangci-lint run -v
-  except:
-    - tags
-    - main
+    - golangci-lint run -v --timeout 5m
 
 test:unit:
   stage: test
   image: golang:1.22
   script:
-    - go test ./... -v
-
-.build:goreleaser: &build-goreleaser
-  stage: build
-  image:
-    name: goreleaser/goreleaser
-    entrypoint: [""]
-  variables:
-    GIT_DEPTH: 0
-  after_script:
-    - cp dist/hcloud-cloud-controller-manager_linux_amd64_v1/hcloud-cloud-controller-manager hcloud-cloud-controller-manager
+    - go test -v -coverprofile=coverage.txt -covermode count ./...
+    - go get github.com/boumenot/gocover-cobertura
+    - go run github.com/boumenot/gocover-cobertura < coverage.txt > coverage.xml
   artifacts:
-    paths:
-      - hcloud-cloud-controller-manager
-    expire_in: 1 day
-
-build:goreleaser:snapshot:
-  <<: *build-goreleaser
-  script: |
-    goreleaser build --clean --snapshot
-  except:
-    - tags
-
-build:goreleaser:tags:
-  <<: *build-goreleaser
-  script: |
-    goreleaser build --clean
-  only:
-    - tags
-
-build:image:
-  stage: build:image
-
-e2e:
-  stage: e2e-test
-  image: docker:git
-  variables:
-    CCM_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-  parallel:
-    matrix:
-      - K8S_VERSION: [k8s-1.24.10, k8s-1.25.6, k8s-1.26.1]
-        USE_NETWORKS: ["yes", "no"]
-      - K8S_VERSION: [k3s-v1.24.10+k3s1, k3s-v1.25.6+k3s1, k3s-v1.26.1+k3s1]
-        USE_NETWORKS: ["yes", "no"]
-  before_script:
-    - apk add --no-cache git make musl-dev go openssh-client
-
-      # Make pre-built docker image available
-    - docker login $CI_REGISTRY --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD
-    - docker pull $CCM_IMAGE_NAME
-  script:
-    - go test ./... -tags e2e -v -timeout 60m
-
-release:image:
-  stage: release:image
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  coverage: "/coverage: \\d+.\\d+% of statements/"
