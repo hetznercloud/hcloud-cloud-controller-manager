@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
@@ -23,6 +24,7 @@ const (
 	robotRateLimitWaitTime = "ROBOT_RATE_LIMIT_WAIT_TIME"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
+	hcloudInstancesInternalIpMap = "HCLOUD_INSTANCES_INTERNAL_IP_MAP"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -68,6 +70,7 @@ const (
 
 type InstanceConfiguration struct {
 	AddressFamily AddressFamily
+	InternalIpMap map[string]string
 }
 
 type LoadBalancerConfiguration struct {
@@ -152,6 +155,11 @@ func Read() (HCCMConfiguration, error) {
 	cfg.Instance.AddressFamily = AddressFamily(os.Getenv(hcloudInstancesAddressFamily))
 	if cfg.Instance.AddressFamily == "" {
 		cfg.Instance.AddressFamily = AddressFamilyIPv4
+	}
+
+	cfg.Instance.InternalIpMap, err = parseInternalIpMap(os.Getenv(hcloudInstancesInternalIpMap))
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	cfg.LoadBalancer.Enabled, err = getEnvBool(hcloudLoadBalancersEnabled, true)
@@ -262,4 +270,23 @@ func getEnvDuration(key string) (time.Duration, error) {
 	}
 
 	return b, nil
+}
+
+// parseInternalIpMap parses the HCLOUD_INSTANCES_INTERNAL_IP_MAP environment variable into a map.
+func parseInternalIpMap(value string) (map[string]string, error) {
+	ipMap := make(map[string]string)
+	if value == "" {
+		return ipMap, nil
+	}
+
+	pairs := strings.Split(value, ",")
+	for _, pair := range pairs {
+		kv := strings.Split(pair, "=")
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("invalid format for %s: %s", hcloudInstancesInternalIpMap, pair)
+		}
+		ipMap[kv[0]] = kv[1]
+	}
+
+	return ipMap, nil
 }

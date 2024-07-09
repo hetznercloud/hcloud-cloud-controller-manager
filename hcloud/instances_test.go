@@ -89,7 +89,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0, map[string]string{})
 
 	tests := []struct {
 		name     string
@@ -209,7 +209,7 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0, map[string]string{})
 	env.Mux.HandleFunc("/robot/server/3", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(hrobotmodels.ServerResponse{
 			Server: hrobotmodels.Server{
@@ -343,7 +343,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0, map[string]string{})
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
@@ -387,7 +387,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0, map[string]string{})
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -581,7 +581,7 @@ func TestNodeAddresses(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			addresses := hcloudNodeAddresses(test.addressFamily, test.privateNetwork, test.server)
+			addresses := hcloudNodeAddresses(test.addressFamily, test.privateNetwork, test.server, map[string]string{})
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("Expected addresses %+v but got %+v", test.expected, addresses)
@@ -642,7 +642,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			addresses := robotNodeAddresses(test.addressFamily, test.server)
+			addresses := robotNodeAddresses(test.addressFamily, test.server, map[string]string{})
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("%s: expected addresses %+v but got %+v", test.name, test.expected, addresses)
