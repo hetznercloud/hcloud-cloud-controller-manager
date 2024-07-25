@@ -19,6 +19,9 @@ jobs:
       - run: go test -v -race -coverprofile=coverage.txt ./...
 
       - uses: codecov/codecov-action@v4
+        if: >
+          !startsWith(github.head_ref, 'renovate/') &&
+          !startsWith(github.head_ref, 'release-please--')
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
