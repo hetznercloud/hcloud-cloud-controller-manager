@@ -19,10 +19,10 @@ jobs:
       fail-fast: false # Continue tests matrix if a flaky run occurs.
       matrix:
         k3s:
-        - v1.27
-        - v1.28
-        - v1.29
-        - v1.30
+          - v1.27
+          - v1.28
+          - v1.29
+          - v1.30
 
     env:
       K3S_CHANNEL: ${{ matrix.k3s }}
@@ -79,6 +79,9 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
+        if: >
+          !startsWith(github.head_ref, 'renovate/') &&
+          !startsWith(github.head_ref, 'release-please--')
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
