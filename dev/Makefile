@@ -23,7 +23,7 @@ up: .terraform env.auto.tfvars
 	$(MAKE) port-forward
 
 down: .terraform env.auto.tfvars
-	files/registry-port-forward.sh down
+	if test -f files/registry-port-forward.sh; then files/registry-port-forward.sh down; fi
 	tofu destroy -auto-approve
 
 port-forward:
