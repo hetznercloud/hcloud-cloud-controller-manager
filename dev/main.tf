@@ -1,5 +1,5 @@
 module "dev" {
-  source = "github.com/hetznercloud/kubernetes-dev-env?ref=v0.5.1"
+  source = "github.com/hetznercloud/kubernetes-dev-env?ref=v0.5.2"
 
   name         = "hccm-${replace(var.name, "/[^a-zA-Z0-9-_]/", "-")}"
   worker_count = 1
