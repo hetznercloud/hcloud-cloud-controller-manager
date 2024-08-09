@@ -60,7 +60,7 @@ env:
 
 image:
   repository: docker.io/hetznercloud/hcloud-cloud-controller-manager
-  tag: 'v{{ $.Chart.Version }}'
+  tag: "v{{ $.Chart.Version }}"
 
 monitoring:
   # When enabled, the hccm Pod will serve metrics on port :8233
@@ -79,7 +79,6 @@ monitoring:
     spec:
       podMetricsEndpoints:
         - port: metrics
-    
 
 nameOverride: ~
 
@@ -102,13 +101,14 @@ resources:
     memory: 50Mi
 
 selectorLabels:
-  app.kubernetes.io/name: '{{ include "hcloud-cloud-controller-manager.name" $ }}'
-  app.kubernetes.io/instance: '{{ $.Release.Name }}'
+  app.kubernetes.io/name: "{{ include 'hcloud-cloud-controller-manager.name' $ }}"
+  app.kubernetes.io/instance: "{{ $.Release.Name }}"
 
 additionalTolerations: []
 
+# nodeSelector:
+#   node-role.kubernetes.io/control-plane: ""
 nodeSelector: {}
-  # node-role.kubernetes.io/control-plane: ""
 
 # Set the affinity for pods. (Only works with kind=Deployment)
 affinity: {}

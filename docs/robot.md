@@ -108,7 +108,6 @@ Then you can enable the Robot Support through the environment variable `ROBOT_EN
 
 You will also need to [disable Network support](#routes--private-networks) through the Helm Chart value `network.enabled: false`. If you use plain Kubernetes manifests, make sure you use the `ccm.yaml` and not the `ccm-network.yaml`.
 
-
 ## Migrating from [`syself/hetzner-cloud-controller-manager`](https://github.com/syself/hetzner-cloud-controller-manager)
 
 If you have previously used the Hetzner Cloud Controller Manager by Syself, you can migrate to hcloud-cloud-controller-manager. We have tried to keep the configuration & features mostly the same and backwards compatible, but there are some changes you need to be aware of.
