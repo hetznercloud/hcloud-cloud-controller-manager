@@ -106,6 +106,88 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 			},
 		},
 		{
+			Name:       "get load balancer with private network",
+			ServiceUID: "1",
+			LB: &hcloud.LoadBalancer{
+				ID:               1,
+				Name:             "with-priv-net",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+				},
+				PrivateNet: []hcloud.LoadBalancerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   4711,
+							Name: "priv-net",
+						},
+						IP: net.ParseIP("10.10.10.2"),
+					},
+				},
+			},
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				if !assert.Len(t, status.Ingress, 3) {
+					return
+				}
+				assert.Equal(t, tt.LB.PublicNet.IPv4.IP.String(), status.Ingress[0].IP)
+				assert.Equal(t, tt.LB.PublicNet.IPv6.IP.String(), status.Ingress[1].IP)
+				assert.Equal(t, tt.LB.PrivateNet[0].IP.String(), status.Ingress[2].IP)
+			},
+		},
+		{
+			Name:                         "get load balancer with private network and without private ingress",
+			ServiceUID:                   "1",
+			DisablePrivateIngressDefault: true,
+			LB: &hcloud.LoadBalancer{
+				ID:               1,
+				Name:             "with-priv-net-without-private-ingress",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+				},
+				PrivateNet: []hcloud.LoadBalancerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   4711,
+							Name: "priv-net",
+						},
+						IP: net.ParseIP("10.10.10.2"),
+					},
+				},
+			},
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(tt.LB, nil)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.True(t, exists)
+
+				if !assert.Len(t, status.Ingress, 2) {
+					return
+				}
+				assert.Equal(t, tt.LB.PublicNet.IPv4.IP.String(), status.Ingress[0].IP)
+				assert.Equal(t, tt.LB.PublicNet.IPv6.IP.String(), status.Ingress[1].IP)
+			},
+		},
+		{
 			Name:       "load balancer not found",
 			ServiceUID: "3",
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
