@@ -59,7 +59,8 @@ func newTestEnv() testEnv {
 	client := hcloud.NewClient(
 		hcloud.WithEndpoint(server.URL),
 		hcloud.WithToken("jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75"),
-		hcloud.WithBackoffFunc(func(_ int) time.Duration { return 0 }),
+		hcloud.WithPollOpts(hcloud.PollOpts{BackoffFunc: hcloud.ConstantBackoff(0)}),
+		hcloud.WithRetryOpts(hcloud.RetryOpts{BackoffFunc: hcloud.ConstantBackoff(0)}),
 		hcloud.WithDebugWriter(os.Stdout),
 	)
 	robotClient := hrobot.NewBasicAuthClient("", "")
