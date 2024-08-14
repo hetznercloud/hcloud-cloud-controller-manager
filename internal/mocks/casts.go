@@ -55,22 +55,6 @@ func getNetworkPtr(args mock.Arguments, i int) *hcloud.Network {
 	return v.(*hcloud.Network)
 }
 
-func getIntChan(args mock.Arguments, i int) chan int {
-	v := args.Get(i)
-	if v == nil {
-		return nil
-	}
-	return v.(chan int)
-}
-
-func getErrChan(args mock.Arguments, i int) chan error {
-	v := args.Get(i)
-	if v == nil {
-		return nil
-	}
-	return v.(chan error)
-}
-
 func getCertificatePtr(args mock.Arguments, i int) *hcloud.Certificate {
 	v := args.Get(i)
 	if v == nil {
