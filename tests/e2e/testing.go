@@ -52,7 +52,13 @@ func (tc *TestCluster) Start() error {
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
 		hcloud.WithApplication("hcloud-ccm-testsuite", "1.0"),
-		hcloud.WithPollBackoffFunc(hcloud.ExponentialBackoff(2, 1*time.Second)),
+		hcloud.WithPollOpts(hcloud.PollOpts{
+			BackoffFunc: hcloud.ExponentialBackoffWithOpts(hcloud.ExponentialBackoffOpts{
+				Base:       time.Second,
+				Multiplier: 2,
+				Cap:        10 * time.Second,
+			}),
+		}),
 	}
 	tc.hcloud = hcloud.NewClient(opts...)
 
