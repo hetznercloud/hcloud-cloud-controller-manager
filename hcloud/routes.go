@@ -133,7 +133,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 		}
 		action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
 		if err != nil {
-			if hcloud.IsError(err, hcloud.ErrorCodeLocked) || hcloud.IsError(err, hcloud.ErrorCodeConflict) {
+			if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
 				retryDelay := time.Second * 5
 				klog.InfoS("retry due to conflict or lock",
 					"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
@@ -194,7 +194,7 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 
 	action, _, err := r.client.Network.DeleteRoute(ctx, r.network, opts)
 	if err != nil {
-		if hcloud.IsError(err, hcloud.ErrorCodeLocked) || hcloud.IsError(err, hcloud.ErrorCodeConflict) {
+		if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
 			retryDelay := time.Second * 5
 			klog.InfoS("retry due to conflict or lock",
 				"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))

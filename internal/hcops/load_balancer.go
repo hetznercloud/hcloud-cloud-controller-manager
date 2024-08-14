@@ -509,7 +509,7 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	}
 	opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
 	a, _, err := l.LBClient.AttachToNetwork(ctx, lb, opts)
-	if hcloud.IsError(err, hcloud.ErrorCodeConflict) || hcloud.IsError(err, hcloud.ErrorCodeLocked) {
+	if hcloud.IsError(err, hcloud.ErrorCodeConflict, hcloud.ErrorCodeLocked) {
 		klog.InfoS("retry due to conflict or lock",
 			"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
 
