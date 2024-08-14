@@ -76,53 +76,53 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
 
 2. Now the control plane can be initialized:
 
-    ```sh
-    sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-    ```
+   ```sh
+   sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+   ```
 
 3. Configure kubectl to connect to the kube-apiserver:
 
-    ```sh
-    mkdir -p $HOME/.kube
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config
-    ```
+   ```sh
+   mkdir -p $HOME/.kube
+   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+   ```
 
 4. Deploy the flannel CNI plugin:
 
-    ```sh
-    kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
-    ```
+   ```sh
+   kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+   ```
 
 5. Patch the flannel deployment to tolerate the `uninitialized` taint:
 
-    ```sh
-    kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
-    ```
+   ```sh
+   kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+   ```
 
 6. Create a secret containing your Hetzner Cloud API token.
 
-    ```sh
-    kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
-    ```
+   ```sh
+   kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
+   ```
 
 7. Deploy `hcloud-cloud-controller-manager`
 
-    **Using Helm (recommended):**
+   **Using Helm (recommended):**
 
-    ```
-    helm repo add hcloud https://charts.hetzner.cloud
-    helm repo update hcloud
-    helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system
-    ```
+   ```
+   helm repo add hcloud https://charts.hetzner.cloud
+   helm repo update hcloud
+   helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system
+   ```
 
-    See the [Helm chart README](./chart/README.md) for more info.
+   See the [Helm chart README](./chart/README.md) for more info.
 
-    **Legacy installation method**:
+   **Legacy installation method**:
 
-    ```sh
-    kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
-    ```
+   ```sh
+   kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml
+   ```
 
 [kubeadm-config]: https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/#kubeadm-k8s-io-v1beta4-NodeRegistrationOptions
 
@@ -179,7 +179,7 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 ### With Networks support
 
 | Kubernetes | Cloud Controller Manager |                                                                                             Deployment File |
-|------------|-------------------------:|------------------------------------------------------------------------------------------------------------:|
+| ---------- | -----------------------: | ----------------------------------------------------------------------------------------------------------: |
 | 1.30       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.29       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.28       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
@@ -192,7 +192,7 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 ### Without Networks support
 
 | Kubernetes | Cloud Controller Manager |                                                                                    Deployment File |
-|------------|-------------------------:|---------------------------------------------------------------------------------------------------:|
+| ---------- | -----------------------: | -------------------------------------------------------------------------------------------------: |
 | 1.30       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.29       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.28       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
