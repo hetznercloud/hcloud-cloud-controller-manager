@@ -86,23 +86,12 @@ func (l *loadBalancers) GetLoadBalancer(
 		}, true, nil
 	}
 
-	ingresses := []corev1.LoadBalancerIngress{
-		{
-			IP: lb.PublicNet.IPv4.IP.String(),
-		},
-	}
-
-	disableIPV6, err := l.getDisableIPv6(service)
+	ingress, err := l.buildLoadBalancerStatusIngress(lb, service)
 	if err != nil {
 		return nil, false, fmt.Errorf("%s: %v", op, err)
 	}
-	if !disableIPV6 {
-		ingresses = append(ingresses, corev1.LoadBalancerIngress{
-			IP: lb.PublicNet.IPv6.IP.String(),
-		})
-	}
 
-	return &corev1.LoadBalancerStatus{Ingress: ingresses}, true, nil
+	return &corev1.LoadBalancerStatus{Ingress: ingress}, true, nil
 }
 
 func (l *loadBalancers) GetLoadBalancerName(_ context.Context, _ string, service *corev1.Service) string {
@@ -203,6 +192,18 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		}, nil
 	}
 
+	ingress, err := l.buildLoadBalancerStatusIngress(lb, svc)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &corev1.LoadBalancerStatus{Ingress: ingress}, nil
+}
+
+func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, svc *corev1.Service) ([]corev1.LoadBalancerIngress, error) {
+	const op = "hcloud/loadBalancers.getLoadBalancerStatusIngress"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
 	var ingress []corev1.LoadBalancerIngress
 
 	disablePubNet, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
@@ -226,13 +227,14 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	if !disablePrivIngress {
-		for _, nw := range lb.PrivateNet {
-			ingress = append(ingress, corev1.LoadBalancerIngress{IP: nw.IP.String()})
+		for _, privateNet := range lb.PrivateNet {
+			ingress = append(ingress, corev1.LoadBalancerIngress{IP: privateNet.IP.String()})
 		}
 	}
 
-	return &corev1.LoadBalancerStatus{Ingress: ingress}, nil
+	return ingress, nil
 }
 
 func (l *loadBalancers) getDisablePrivateIngress(svc *corev1.Service) (bool, error) {
