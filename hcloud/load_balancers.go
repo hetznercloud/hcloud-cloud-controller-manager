@@ -160,6 +160,15 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	}
 	reload = reload || lbChanged
 
+	if reload {
+		klog.InfoS("reload HC Load Balancer", "op", op, "loadBalancerID", lb.ID)
+		lb, err = l.lbOps.GetByID(ctx, lb.ID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		reload = false
+	}
+
 	servicesChanged, err := l.lbOps.ReconcileHCLBServices(ctx, lb, svc)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)

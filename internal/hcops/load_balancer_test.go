@@ -811,7 +811,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
-			name: "detach Load Balancer from network because private ipv4 annotation changed",
+			name: "reattach Load Balancer to network because private ipv4 annotation changed",
 			initialLB: &hcloud.LoadBalancer{
 				ID: 4,
 				PrivateNet: []hcloud.LoadBalancerPrivateNet{
@@ -825,15 +825,26 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				annotation.LBPrivateIPv4: "10.10.10.2",
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
-				opts := hcloud.LoadBalancerDetachFromNetworkOpts{
-					Network: &hcloud.Network{ID: 14, Name: "some-network"},
+				nw := &hcloud.Network{ID: 14, Name: "some-network"}
+				detachOpts := hcloud.LoadBalancerDetachFromNetworkOpts{
+					Network: nw,
 				}
 
 				tt.fx.LBOps.NetworkID = 14
 
-				action := &hcloud.Action{ID: rand.Int63()}
-				tt.fx.LBClient.On("DetachFromNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
-				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+				attachOpts := hcloud.LoadBalancerAttachToNetworkOpts{
+					Network: nw,
+					IP:      net.ParseIP("10.10.10.2"),
+				}
+
+				detachAction := &hcloud.Action{ID: rand.Int63()}
+				tt.fx.LBClient.On("DetachFromNetwork", tt.fx.Ctx, tt.initialLB, detachOpts).Return(detachAction, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, detachAction).Return(nil)
+
+				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
+				attachAction := &hcloud.Action{ID: rand.Int63()}
+				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, attachOpts).Return(attachAction, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, attachAction).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)

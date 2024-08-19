@@ -481,18 +481,18 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	const op = "hcops/LoadBalancerOps.attachToNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
+	privateIPv4String, privateIPv4configured := annotation.LBPrivateIPv4.StringFromService(svc)
 	// Don't attach the Load Balancer if network is not set, or the load
 	// balancer is already attached.
-	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID) {
+	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID, privateIPv4String) {
 		return false, nil
 	}
 
 	var privateIPv4 net.IP
-	pi, ok := annotation.LBPrivateIPv4.StringFromService(svc)
-	if ok {
-		privateIPv4 = net.ParseIP(pi)
+	if privateIPv4configured {
+		privateIPv4 = net.ParseIP(privateIPv4String)
 		if privateIPv4 == nil {
-			return false, fmt.Errorf("%s: %w", op, fmt.Errorf("could not parse private IPv4 '%s'", pi))
+			return false, fmt.Errorf("%s: %w", op, fmt.Errorf("could not parse private IPv4 '%s'", privateIPv4))
 		}
 	}
 
@@ -1352,9 +1352,9 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	return opts, nil
 }
 
-func lbAttached(lb *hcloud.LoadBalancer, nwID int64) bool {
+func lbAttached(lb *hcloud.LoadBalancer, nwID int64, privateIPv4 string) bool {
 	for _, nw := range lb.PrivateNet {
-		if nw.Network.ID == nwID {
+		if nw.Network.ID == nwID && (privateIPv4 == "" || privateIPv4 == nw.IP.String()) {
 			return true
 		}
 	}
