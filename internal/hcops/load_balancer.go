@@ -78,6 +78,7 @@ type LoadBalancerOps struct {
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
+	NetworkIPv4   net.IP
 	Cfg           config.HCCMConfiguration
 	Recorder      record.EventRecorder
 }
@@ -203,16 +204,6 @@ func (l *LoadBalancerOps) Create(
 		opts.Algorithm = &hcloud.LoadBalancerAlgorithm{Type: algType}
 	}
 
-	if l.NetworkID > 0 {
-		nw, _, err := l.NetworkClient.GetByID(ctx, l.NetworkID)
-		if err != nil {
-			return nil, fmt.Errorf("%s: get network %d: %w", op, l.NetworkID, err)
-		}
-		if nw == nil {
-			return nil, fmt.Errorf("%s: get network %d: %w", op, l.NetworkID, ErrNotFound)
-		}
-		opts.Network = nw
-	}
 	disablePubIface, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -289,13 +280,13 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 	}
 	changed = changed || typeChanged
 
-	networkDetached, err := l.detachFromNetwork(ctx, lb)
+	networkDetached, err := l.detachFromNetwork(ctx, lb, svc)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || networkDetached
 
-	networkAttached, err := l.attachToNetwork(ctx, lb)
+	networkAttached, err := l.attachToNetwork(ctx, lb, svc)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
@@ -457,19 +448,21 @@ func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalance
 	return true, nil
 }
 
-func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer) (bool, error) {
+func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.detachFromNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var changed bool
 
+	privateIPv4, privateIPv4configured := annotation.LBPrivateIPv4.StringFromService(svc)
 	for _, lbpn := range lb.PrivateNet {
 		// Don't detach the Load Balancer from the network it is supposed to
-		// be attached to.
-		if l.NetworkID == lbpn.Network.ID {
+		// be attached to and the current private IP of the load balancer matches
+		// the one configured by the user, if one is configured.
+		if l.NetworkID == lbpn.Network.ID && (!privateIPv4configured || privateIPv4 == lbpn.IP.String()) {
 			continue
 		}
-		klog.InfoS("detach from network", "op", op, "loadBalancerID", lb.ID, "networkID", lbpn.Network.ID)
+		klog.InfoS("detach from network", "op", op, "loadBalancerID", lb.ID, "networkID", lbpn.Network.ID, "privateIPv4", lbpn.IP.String())
 
 		opts := hcloud.LoadBalancerDetachFromNetworkOpts{Network: lbpn.Network}
 		a, _, err := l.LBClient.DetachFromNetwork(ctx, lb, opts)
@@ -484,7 +477,7 @@ func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.Load
 	return changed, nil
 }
 
-func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer) (bool, error) {
+func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
 	const op = "hcops/LoadBalancerOps.attachToNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -493,7 +486,21 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID) {
 		return false, nil
 	}
-	klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID)
+
+	var privateIPv4 net.IP
+	pi, ok := annotation.LBPrivateIPv4.StringFromService(svc)
+	if ok {
+		privateIPv4 = net.ParseIP(pi)
+		if privateIPv4 == nil {
+			return false, fmt.Errorf("%s: %w", op, fmt.Errorf("could not parse private IPv4 '%s'", pi))
+		}
+	}
+
+	if privateIPv4 != nil {
+		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID, "privateIP", privateIPv4)
+	} else {
+		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID)
+	}
 
 	nw, _, err := l.NetworkClient.GetByID(ctx, l.NetworkID)
 	if err != nil {
@@ -508,6 +515,9 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		retryDelay = time.Second
 	}
 	opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
+	if privateIPv4 != nil {
+		opts.IP = privateIPv4
+	}
 	a, _, err := l.LBClient.AttachToNetwork(ctx, lb, opts)
 	if hcloud.IsError(err, hcloud.ErrorCodeConflict, hcloud.ErrorCodeLocked) {
 		klog.InfoS("retry due to conflict or lock",
