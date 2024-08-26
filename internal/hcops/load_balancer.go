@@ -842,6 +842,11 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		)
 
 		portNo := int(port.Port)
+		if port.Protocol == corev1.ProtocolUDP {
+			klog.InfoS("skipping port, load balancers do not support UDP", "op", op, "port", portNo, "loadBalancerID", lb.ID)
+			continue
+		}
+
 		portExists := hclbListenPorts[portNo]
 		delete(hclbListenPorts, portNo)
 
