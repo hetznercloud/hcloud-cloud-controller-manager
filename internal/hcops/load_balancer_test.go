@@ -1465,6 +1465,37 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 		},
 		{
+			name: "add services to hc Load Balancer and ignore udp service",
+			servicePorts: []corev1.ServicePort{
+				{Port: 53, NodePort: 5353, Protocol: corev1.ProtocolTCP},
+				{Port: 53, NodePort: 5354, Protocol: corev1.ProtocolUDP},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				opts := hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      hcloud.Ptr(53),
+					DestinationPort: hcloud.Ptr(5353),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Ptr(5353),
+					},
+				}
+				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
 			name: "reference TLS certificate by id",
 			servicePorts: []corev1.ServicePort{
 				{Port: 443, NodePort: 8443},
