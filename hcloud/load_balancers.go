@@ -33,14 +33,28 @@ type loadBalancers struct {
 	lbOps                        LoadBalancerOps
 	disablePrivateIngressDefault bool
 	disableIPv6Default           bool
+	serviceSelector              string
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, disablePrivateIngressDefault bool, disableIPv6Default bool, serviceSelector string) *loadBalancers {
 	return &loadBalancers{
 		lbOps:                        lbOps,
 		disablePrivateIngressDefault: disablePrivateIngressDefault,
 		disableIPv6Default:           disableIPv6Default,
+		serviceSelector:              serviceSelector,
 	}
+}
+
+func matchServiceSelector(svc *corev1.Service, serviceSelector string) (bool, error) {
+	var (
+		err      error
+		selector = labels.Everything()
+	)
+	selector, err = labels.Parse(serviceSelector)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse the service-selector: %w", err)
+	}
+	return selector.Matches(labels.Set(svc.GetLabels())), nil
 }
 
 func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Node, error) {
@@ -113,6 +127,15 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		err           error
 		selectedNodes []*corev1.Node
 	)
+
+	if matched, err := matchServiceSelector(svc, l.serviceSelector); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	} else if !matched {
+		klog.InfoS("service ignored by selector", "service", svc.Name, "selector", l.serviceSelector, "op", op)
+		return &svc.Status.LoadBalancer, nil
+	} else {
+		klog.InfoS("service accepted by selector", "service", svc.Name, "selector", l.serviceSelector, "op", op)
+	}
 
 	selectedNodes, err = matchNodeSelector(svc, nodes)
 	if err != nil {
@@ -265,6 +288,15 @@ func (l *loadBalancers) UpdateLoadBalancer(
 	const op = "hcloud/loadBalancers.UpdateLoadBalancer"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
+	if matched, err := matchServiceSelector(svc, l.serviceSelector); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	} else if !matched {
+		klog.InfoS("service ignored by selector", "service", svc.Name, "selector", l.serviceSelector, "op", op)
+		return nil
+	} else {
+		klog.InfoS("service accepted by selector", "service", svc.Name, "selector", l.serviceSelector, "op", op)
+	}
+
 	var (
 		lb            *hcloud.LoadBalancer
 		err           error
@@ -311,6 +343,15 @@ func (l *loadBalancers) UpdateLoadBalancer(
 func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, _ string, service *corev1.Service) error {
 	const op = "hcloud/loadBalancers.EnsureLoadBalancerDeleted"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	if matched, err := matchServiceSelector(service, l.serviceSelector); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	} else if !matched {
+		klog.InfoS("service ignored by selector", "service", service.Name, "selector", l.serviceSelector, "op", op)
+		return nil
+	} else {
+		klog.InfoS("service accepted by selector", "service", service.Name, "selector", l.serviceSelector, "op", op)
+	}
 
 	loadBalancer, err := l.lbOps.GetByK8SServiceUID(ctx, service)
 	if errors.Is(err, hcops.ErrNotFound) {

@@ -171,7 +171,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 		Recorder:      c.recorder,
 	}
 
-	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6), true
+	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6, c.cfg.LoadBalancer.ServiceSelector), true
 }
 
 func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
