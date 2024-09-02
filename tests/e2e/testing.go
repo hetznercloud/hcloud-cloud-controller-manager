@@ -62,7 +62,7 @@ func (tc *TestCluster) Start() error {
 
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
-		hcloud.WithApplication("hcloud-ccm-testsuite", "1.0"),
+		hcloud.WithApplication("hetzner-ccm-testsuite", "1.0"),
 	}
 	hcloudClient := hcloud.NewClient(opts...)
 	tc.hcloud = hcloudClient

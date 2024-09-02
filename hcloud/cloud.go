@@ -129,7 +129,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
-		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
+		hcloud.WithApplication("hetzner-cloud-controller", providerVersion),
 	}
 
 	// start metrics server if enabled (enabled by default)
