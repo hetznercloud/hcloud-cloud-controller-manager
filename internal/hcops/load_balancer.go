@@ -78,7 +78,6 @@ type LoadBalancerOps struct {
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
-	NetworkIPv4   net.IP
 	Cfg           config.HCCMConfiguration
 	Recorder      record.EventRecorder
 }
