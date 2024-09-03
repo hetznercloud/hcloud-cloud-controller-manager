@@ -11,7 +11,8 @@ RUN ls -al
 ARG CGO_ENABLED=0
 # `skaffold debug` sets SKAFFOLD_GO_GCFLAGS to disable compiler optimizations
 ARG SKAFFOLD_GO_GCFLAGS
-RUN go build -gcflags="$SKAFFOLD_GO_GCFLAGS" -o hcloud-cloud-controller-manager.bin github.com/hetznercloud/hcloud-cloud-controller-manager
+ENV GOCACHE=/cache
+RUN --mount=type=cache,target="/cache" go build -gcflags="$SKAFFOLD_GO_GCFLAGS" -o hcloud-cloud-controller-manager.bin github.com/hetznercloud/hcloud-cloud-controller-manager
 
 FROM alpine:3.20
 
