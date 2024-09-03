@@ -54,6 +54,10 @@ const (
 	// Load Balancer server targets.
 	LBUsePrivateIP Name = "load-balancer.hetzner.cloud/use-private-ip"
 
+	// LBPrivateIPv4 specifies the IPv4 address to assign to the load balancer in the
+	// private network that it's attached to.
+	LBPrivateIPv4 Name = "load-balancer.hetzner.cloud/private-ipv4"
+
 	// LBHostname specifies the hostname of the Load Balancer. This will be
 	// used as ingress address instead of the Load Balancer IP addresses if
 	// specified.

@@ -439,56 +439,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			err: fmt.Errorf("hcops/LoadBalancerOps.Create: annotation/Name.LBAlgorithmTypeFromService: annotation/validateAlgorithmType: invalid: invalidtype"),
 		},
 		{
-			name: "attach Load Balancer to private network",
-			serviceAnnotations: map[annotation.Name]interface{}{
-				annotation.LBLocation: "nbg1",
-			},
-			createOpts: hcloud.LoadBalancerCreateOpts{
-				Name:             "lb-with-priv",
-				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
-				Location:         &hcloud.Location{Name: "nbg1"},
-				Network: &hcloud.Network{
-					ID:   4711,
-					Name: "some-network",
-				},
-				Labels: map[string]string{
-					hcops.LabelServiceUID: "lb-with-priv-uid",
-				},
-			},
-			mock: func(_ *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
-				fx.LBOps.NetworkID = tt.createOpts.Network.ID
-				fx.NetworkClient.
-					On("GetByID", fx.Ctx, fx.LBOps.NetworkID).
-					Return(tt.createOpts.Network, nil, nil)
-				action := fx.MockCreate(tt.createOpts, tt.lb, nil)
-				fx.MockGetByID(tt.lb, nil)
-				fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(nil)
-			},
-			lb: &hcloud.LoadBalancer{ID: 5},
-		},
-		{
-			name: "fail if network could not be found",
-			serviceAnnotations: map[annotation.Name]interface{}{
-				annotation.LBLocation: "nbg1",
-			},
-			mock: func(_ *testing.T, _ *testCase, fx *hcops.LoadBalancerOpsFixture) {
-				fx.LBOps.NetworkID = 4711
-				fx.NetworkClient.On("GetByID", fx.Ctx, fx.LBOps.NetworkID).Return(nil, nil, nil)
-			},
-			err: fmt.Errorf("hcops/LoadBalancerOps.Create: get network %d: %w", 4711, hcops.ErrNotFound),
-		},
-		{
-			name: "fail if looking for network returns an error",
-			serviceAnnotations: map[annotation.Name]interface{}{
-				annotation.LBLocation: "nbg1",
-			},
-			mock: func(_ *testing.T, _ *testCase, fx *hcops.LoadBalancerOpsFixture) {
-				fx.LBOps.NetworkID = 4712
-				fx.NetworkClient.On("GetByID", fx.Ctx, fx.LBOps.NetworkID).Return(nil, nil, errTestLbClient)
-			},
-			err: fmt.Errorf("hcops/LoadBalancerOps.Create: get network %d: %w", 4712, errTestLbClient),
-		},
-		{
 			name: "disable public interface",
 			serviceAnnotations: map[annotation.Name]interface{}{
 				annotation.LBLocation:             "nbg1",
@@ -499,19 +449,11 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
 				PublicInterface:  hcloud.Ptr(false),
-				Network: &hcloud.Network{
-					ID:   4711,
-					Name: "some-network",
-				},
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "lb-with-priv-uid",
 				},
 			},
 			mock: func(_ *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
-				fx.LBOps.NetworkID = tt.createOpts.Network.ID
-
-				fx.NetworkClient.On("GetByID", fx.Ctx, fx.LBOps.NetworkID).Return(tt.createOpts.Network, nil, nil)
-
 				action := fx.MockCreate(tt.createOpts, tt.lb, nil)
 				fx.MockGetByID(tt.lb, nil)
 				fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(nil)
@@ -869,6 +811,48 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
+			name: "reattach Load Balancer to network because private ipv4 annotation changed",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				PrivateNet: []hcloud.LoadBalancerPrivateNet{
+					{
+						Network: &hcloud.Network{ID: 14, Name: "some-network"},
+						IP:      net.ParseIP("10.10.10.3"),
+					},
+				},
+			},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBPrivateIPv4: "10.10.10.2",
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				nw := &hcloud.Network{ID: 14, Name: "some-network"}
+				detachOpts := hcloud.LoadBalancerDetachFromNetworkOpts{
+					Network: nw,
+				}
+
+				tt.fx.LBOps.NetworkID = 14
+
+				attachOpts := hcloud.LoadBalancerAttachToNetworkOpts{
+					Network: nw,
+					IP:      net.ParseIP("10.10.10.2"),
+				}
+
+				detachAction := &hcloud.Action{ID: rand.Int63()}
+				tt.fx.LBClient.On("DetachFromNetwork", tt.fx.Ctx, tt.initialLB, detachOpts).Return(detachAction, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, detachAction).Return(nil)
+
+				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
+				attachAction := &hcloud.Action{ID: rand.Int63()}
+				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, attachOpts).Return(attachAction, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, attachAction).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
 			name: "don't detach Load Balancer from current network",
 			initialLB: &hcloud.LoadBalancer{
 				ID: 5,
@@ -897,6 +881,29 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBOps.NetworkID = nw.ID
 
 				opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
+				action := &hcloud.Action{ID: rand.Int63()}
+				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name:      "attach Load Balancer to network with specific IP",
+			initialLB: &hcloud.LoadBalancer{ID: 4},
+			serviceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBPrivateIPv4: "10.10.10.2",
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				nw := &hcloud.Network{ID: 15, Name: "some-network"}
+				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
+
+				tt.fx.LBOps.NetworkID = nw.ID
+
+				opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw, IP: net.ParseIP("10.10.10.2")}
 				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
