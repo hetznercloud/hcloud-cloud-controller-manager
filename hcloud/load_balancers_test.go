@@ -241,6 +241,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Return(false, nil)
 	}
 
+	ipModeVIP := corev1.LoadBalancerIPModeVIP
+	ipModeProxy := corev1.LoadBalancerIPModeProxy
+
 	tests := []LoadBalancerTestCase{
 		{
 			Name:       "check for existing Load Balancer fails",
@@ -494,6 +497,50 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
 						{IP: tt.LB.PrivateNet[0].IP.String()},
+					},
+				}
+				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
+				assert.NoError(t, err)
+				assert.Equal(t, expected, lbStat)
+			},
+		},
+		{
+			Name:       "attach Load Balancer to public and private network (with proxy protocol)",
+			NetworkID:  4711,
+			ServiceUID: "3",
+			ServiceAnnotations: map[annotation.Name]interface{}{
+				annotation.LBName:             "with-priv-net",
+				annotation.LBSvcProxyProtocol: "true",
+			},
+			LB: &hcloud.LoadBalancer{
+				ID:               1,
+				Name:             "with-priv-net",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1", NetworkZone: hcloud.NetworkZoneEUCentral},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{IP: net.ParseIP("1.2.3.4")},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{IP: net.ParseIP("fe80::1")},
+				},
+				PrivateNet: []hcloud.LoadBalancerPrivateNet{
+					{
+						Network: &hcloud.Network{
+							ID:   4711,
+							Name: "priv-net",
+						},
+						IP: net.ParseIP("10.10.10.2"),
+					},
+				},
+			},
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
+				setupSuccessMocks(tt, "with-priv-net")
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				expected := &corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
+						{IP: tt.LB.PublicNet.IPv4.IP.String(), IPMode: &ipModeProxy},
+						{IP: tt.LB.PublicNet.IPv6.IP.String(), IPMode: &ipModeProxy},
+						{IP: tt.LB.PrivateNet[0].IP.String(), IPMode: &ipModeProxy},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
