@@ -242,7 +242,6 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 	}
 
 	ipModeVIP := corev1.LoadBalancerIPModeVIP
-	ipModeProxy := corev1.LoadBalancerIPModeProxy
 
 	tests := []LoadBalancerTestCase{
 		{
@@ -281,7 +280,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
-						{IP: tt.LB.PublicNet.IPv4.IP.String()},
+						{IP: tt.LB.PublicNet.IPv4.IP.String(), IPMode: &ipModeVIP},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -312,8 +311,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
-						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						{IP: tt.LB.PublicNet.IPv6.IP.String()},
+						{IP: tt.LB.PublicNet.IPv4.IP.String(), IPMode: &ipModeVIP},
+						{IP: tt.LB.PublicNet.IPv6.IP.String(), IPMode: &ipModeVIP},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -354,9 +353,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
-						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						{IP: tt.LB.PublicNet.IPv6.IP.String()},
-						{IP: tt.LB.PrivateNet[0].IP.String()},
+						{IP: tt.LB.PublicNet.IPv4.IP.String(), IPMode: &ipModeVIP},
+						{IP: tt.LB.PublicNet.IPv6.IP.String(), IPMode: &ipModeVIP},
+						{IP: tt.LB.PrivateNet[0].IP.String(), IPMode: &ipModeVIP},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -398,8 +397,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
-						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						{IP: tt.LB.PublicNet.IPv6.IP.String()},
+						{IP: tt.LB.PublicNet.IPv4.IP.String(), IPMode: &ipModeVIP},
+						{IP: tt.LB.PublicNet.IPv6.IP.String(), IPMode: &ipModeVIP},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -441,8 +440,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
-						{IP: tt.LB.PublicNet.IPv4.IP.String()},
-						{IP: tt.LB.PublicNet.IPv6.IP.String()},
+						{IP: tt.LB.PublicNet.IPv4.IP.String(), IPMode: &ipModeVIP},
+						{IP: tt.LB.PublicNet.IPv6.IP.String(), IPMode: &ipModeVIP},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -496,7 +495,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				expected := &corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
-						{IP: tt.LB.PrivateNet[0].IP.String()},
+						{IP: tt.LB.PrivateNet[0].IP.String(), IPMode: &ipModeVIP},
 					},
 				}
 				lbStat, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
