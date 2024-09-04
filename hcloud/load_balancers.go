@@ -33,6 +33,7 @@ type loadBalancers struct {
 	lbOps                        LoadBalancerOps
 	disablePrivateIngressDefault bool
 	disableIPv6Default           bool
+	useProxyProtocolDefault      bool
 }
 
 func newLoadBalancers(lbOps LoadBalancerOps, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
@@ -220,6 +221,16 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var ingress []corev1.LoadBalancerIngress
+	ipMode := corev1.LoadBalancerIPModeVIP
+
+	useProxyProtocol, err := l.getUseProxyProtocol(svc)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if useProxyProtocol {
+		ipMode = corev1.LoadBalancerIPModeProxy
+	}
 
 	disablePubNet, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
@@ -227,14 +238,20 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 	}
 
 	if !disablePubNet {
-		ingress = append(ingress, corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
+		ingress = append(ingress, corev1.LoadBalancerIngress{
+			IP:     lb.PublicNet.IPv4.IP.String(),
+			IPMode: &ipMode,
+		})
 
 		disableIPV6, err := l.getDisableIPv6(svc)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		if !disableIPV6 {
-			ingress = append(ingress, corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
+			ingress = append(ingress, corev1.LoadBalancerIngress{
+				IP:     lb.PublicNet.IPv6.IP.String(),
+				IPMode: &ipMode,
+			})
 		}
 	}
 
@@ -245,7 +262,10 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 
 	if !disablePrivIngress {
 		for _, privateNet := range lb.PrivateNet {
-			ingress = append(ingress, corev1.LoadBalancerIngress{IP: privateNet.IP.String()})
+			ingress = append(ingress, corev1.LoadBalancerIngress{
+				IP:     privateNet.IP.String(),
+				IPMode: &ipMode,
+			})
 		}
 	}
 
@@ -259,6 +279,17 @@ func (l *loadBalancers) getDisablePrivateIngress(svc *corev1.Service) (bool, err
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
 		return l.disablePrivateIngressDefault, nil
+	}
+	return false, err
+}
+
+func (l *loadBalancers) getUseProxyProtocol(svc *corev1.Service) (bool, error) {
+	disable, err := annotation.LBSvcProxyProtocol.BoolFromService(svc)
+	if err == nil {
+		return disable, nil
+	}
+	if errors.Is(err, annotation.ErrNotSet) {
+		return l.useProxyProtocolDefault, nil
 	}
 	return false, err
 }
