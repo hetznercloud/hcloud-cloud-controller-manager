@@ -379,7 +379,6 @@ func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, _ string,
 	return nil
 }
 
-// TODO: Add comment
 func checkIPModeSupport() (bool, error) {
 	config, err := config.GetConfig()
 	if err != nil {
