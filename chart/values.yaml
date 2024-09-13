@@ -120,3 +120,19 @@ robot:
 podLabels: {}
 
 podAnnotations: {}
+
+# Mounts the specified volume to the hcloud-cloud-controller-manager container.
+extraVolumeMounts: []
+# # Example
+# extraVolumeMounts:
+#   - name: token-volume
+#     readOnly: true
+#     mountPath: /var/run/secrets/hcloud
+
+# Adds extra volumes to the pod.
+extraVolumes: []
+# # Example
+# extraVolumes:
+#   - name: token-volume
+#     secret:
+#       secretName: hcloud-token
