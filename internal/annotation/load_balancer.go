@@ -162,7 +162,7 @@ const (
 	LBSvcHTTPManagedCertificateDomains Name = "load-balancer.hetzner.cloud/http-managed-certificate-domains"
 
 	// LBSvcRedirectHTTP create a redirect from HTTP to HTTPS. HTTPS only.
-	LBSvcRedirectHTTP Name = "load-balancer.hetzner.cloud/http-redirect-http"
+	LBSvcRedirectHTTP Name = "load-balancer.hetzner.cloud/http-redirect-https"
 
 	// LBSvcHTTPStickySessions enables the sticky sessions feature of Hetzner
 	// Cloud HTTP Load Balancers.
