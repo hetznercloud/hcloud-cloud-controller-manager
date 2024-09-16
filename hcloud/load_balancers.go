@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blang/semver/v4"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/discovery"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
@@ -33,6 +36,7 @@ type loadBalancers struct {
 	lbOps                        LoadBalancerOps
 	disablePrivateIngressDefault bool
 	disableIPv6Default           bool
+	useProxyProtocolDefault      bool
 }
 
 func newLoadBalancers(lbOps LoadBalancerOps, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
@@ -220,6 +224,22 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var ingress []corev1.LoadBalancerIngress
+	ipMode := corev1.LoadBalancerIPModeVIP
+
+	useProxyProtocol, err := l.getUseProxyProtocol(svc)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if useProxyProtocol {
+		ipMode = corev1.LoadBalancerIPModeProxy
+	}
+
+	// "IPMode" was introduced in 1.29
+	supportsIPModeField, err := checkIPModeSupport()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	disablePubNet, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
@@ -227,14 +247,26 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 	}
 
 	if !disablePubNet {
-		ingress = append(ingress, corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()})
+		i := corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv4.IP.String()}
+
+		if supportsIPModeField {
+			i.IPMode = &ipMode
+		}
+
+		ingress = append(ingress, i)
 
 		disableIPV6, err := l.getDisableIPv6(svc)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		if !disableIPV6 {
-			ingress = append(ingress, corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()})
+			i := corev1.LoadBalancerIngress{IP: lb.PublicNet.IPv6.IP.String()}
+
+			if supportsIPModeField {
+				i.IPMode = &ipMode
+			}
+
+			ingress = append(ingress, i)
 		}
 	}
 
@@ -245,7 +277,13 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 
 	if !disablePrivIngress {
 		for _, privateNet := range lb.PrivateNet {
-			ingress = append(ingress, corev1.LoadBalancerIngress{IP: privateNet.IP.String()})
+			i := corev1.LoadBalancerIngress{IP: privateNet.IP.String()}
+
+			if supportsIPModeField {
+				i.IPMode = &ipMode
+			}
+
+			ingress = append(ingress, i)
 		}
 	}
 
@@ -259,6 +297,17 @@ func (l *loadBalancers) getDisablePrivateIngress(svc *corev1.Service) (bool, err
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
 		return l.disablePrivateIngressDefault, nil
+	}
+	return false, err
+}
+
+func (l *loadBalancers) getUseProxyProtocol(svc *corev1.Service) (bool, error) {
+	disable, err := annotation.LBSvcProxyProtocol.BoolFromService(svc)
+	if err == nil {
+		return disable, nil
+	}
+	if errors.Is(err, annotation.ErrNotSet) {
+		return l.useProxyProtocolDefault, nil
 	}
 	return false, err
 }
@@ -350,4 +399,31 @@ func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, _ string,
 	}
 
 	return nil
+}
+
+func checkIPModeSupport() (bool, error) {
+	config, err := config.GetConfig()
+	if err != nil {
+		return false, err
+	}
+
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return false, err
+	}
+
+	version, err := client.ServerVersion()
+	if err != nil {
+		return false, err
+	}
+
+	// ParseTolerant is necessary due to the leading "v"
+	semverVersion, err := semver.ParseTolerant(version.GitVersion)
+	if err != nil {
+		return false, err
+	}
+
+	minimumVersion := semver.MustParse("1.29.0")
+
+	return semverVersion.GE(minimumVersion), nil
 }
