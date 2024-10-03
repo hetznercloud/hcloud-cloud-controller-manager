@@ -43,7 +43,7 @@ jobs:
 
       - uses: opentofu/setup-opentofu@v1
         with:
-          tofu_version: v1.8.2 # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: v1.8.3 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
       - uses: yokawasa/action-setup-kube-tools@v0.11.1
@@ -150,7 +150,7 @@ jobs:
 
       - uses: opentofu/setup-opentofu@v1
         with:
-          tofu_version: v1.8.2 # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: v1.8.3 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
       - uses: yokawasa/action-setup-kube-tools@v0.11.1
