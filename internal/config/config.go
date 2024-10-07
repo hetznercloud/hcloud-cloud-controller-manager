@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
+	"k8s.io/klog/v2"
 )
 
 const (
-	hcloudToken                     = "HCLOUD_TOKEN"
-	hcloudAllowArbitraryLengthToken = "HCLOUD_ALLOW_ARBITRARY_LENGTH_TOKEN"
-	hcloudEndpoint                  = "HCLOUD_ENDPOINT"
-	hcloudNetwork                   = "HCLOUD_NETWORK"
-	hcloudDebug                     = "HCLOUD_DEBUG"
+	hcloudToken    = "HCLOUD_TOKEN"
+	hcloudEndpoint = "HCLOUD_ENDPOINT"
+	hcloudNetwork  = "HCLOUD_NETWORK"
+	hcloudDebug    = "HCLOUD_DEBUG"
 
 	robotEnabled           = "ROBOT_ENABLED"
 	robotUser              = "ROBOT_USER"
@@ -41,10 +41,9 @@ const (
 )
 
 type HCloudClientConfiguration struct {
-	Token                     string
-	AllowArbitraryLengthToken bool
-	Endpoint                  string
-	Debug                     bool
+	Token    string
+	Endpoint string
+	Debug    bool
 }
 
 type RobotConfiguration struct {
@@ -111,10 +110,6 @@ func Read() (HCCMConfiguration, error) {
 	var cfg HCCMConfiguration
 
 	cfg.HCloudClient.Token, err = envutil.LookupEnvWithFile(hcloudToken)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	cfg.HCloudClient.AllowArbitraryLengthToken, err = getEnvBool(hcloudAllowArbitraryLengthToken, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -207,8 +202,8 @@ func (c HCCMConfiguration) Validate() (err error) {
 
 	if c.HCloudClient.Token == "" {
 		errs = append(errs, fmt.Errorf("environment variable %q is required", hcloudToken))
-	} else if !c.HCloudClient.AllowArbitraryLengthToken && len(c.HCloudClient.Token) != 64 {
-		errs = append(errs, fmt.Errorf("entered token is invalid (must be exactly 64 characters long)"))
+	} else if len(c.HCloudClient.Token) != 64 {
+		klog.Warningf("unrecognized token format, expected 64 characters, got %d, proceeding anyway", len(c.HCloudClient.Token))
 	}
 
 	if c.Instance.AddressFamily != AddressFamilyDualStack && c.Instance.AddressFamily != AddressFamilyIPv4 && c.Instance.AddressFamily != AddressFamilyIPv6 {
