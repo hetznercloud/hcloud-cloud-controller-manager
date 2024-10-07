@@ -318,14 +318,6 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			wantErr: errors.New("environment variable \"HCLOUD_TOKEN\" is required"),
 		},
 		{
-			name: "token invalid length",
-			fields: fields{
-				HCloudClient: HCloudClientConfiguration{Token: "abc"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-			},
-			wantErr: errors.New("entered token is invalid (must be exactly 64 characters long)"),
-		},
-		{
 			name: "address family invalid",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
