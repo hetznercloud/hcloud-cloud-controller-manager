@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.21.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.20.0...v1.21.0) (2024-10-08)
+
+
+### Features
+
+* add support & tests for Kubernetes 1.31 ([#747](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/747)) ([c1e903c](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/c1e903c798b19f7091a8ca36a042cc81d609fc54))
+* drop tests for kubernetes v1.27 ([#748](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/748)) ([0485215](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/0485215b0e4e12850c218b974677cc9ff45d7288))
+* **helm:** allow setting extra pod volumes via chart values  ([#744](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/744)) ([ad43445](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/ad43445c0e945482099561d2bed0a3c8f125e13f)), closes [#743](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/743)
+* **service:** Specify private ip for loadbalancer ([#724](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/724)) ([4801f0e](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/4801f0e9d645a7c96799b823935098c5562a94b0))
+
+
+### Bug Fixes
+
+* populate ingress private ip when disable-private-ingress is false ([#715](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/715)) ([8d29153](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/8d291534a1adbb8bc9df0db7e5bd9f432ff2de6e))
+* wrong version logged on startup ([#729](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/729)) ([6b8cbf4](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/6b8cbf4f4c0e2a8e7a98bd7c8346b958e638ba57))
+
 ## [1.20.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.19.0...v1.20.0) (2024-07-08)
 
 
