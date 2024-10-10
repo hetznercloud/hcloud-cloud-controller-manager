@@ -24,7 +24,7 @@ func TestRead(t *testing.T) {
 			want: HCCMConfiguration{
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
 			},
 			wantErr: nil,
@@ -40,7 +40,7 @@ func TestRead(t *testing.T) {
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				Network: NetworkConfiguration{
 					NameOrID: "foobar",
 				},
@@ -112,7 +112,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				},
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
 			},
 			wantErr: nil,
@@ -135,7 +135,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					RateLimitWaitTime: 5 * time.Minute,
 				},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
 			},
 			wantErr: nil,
@@ -148,7 +148,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv6, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
 			},
 			wantErr: nil,
@@ -162,7 +162,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
 				Network: NetworkConfiguration{
 					NameOrID:             "foobar",
@@ -181,7 +181,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
 				Network: NetworkConfiguration{
 					NameOrID: "foobar",
@@ -203,7 +203,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               false,
 					Location:              "nbg1",
@@ -289,7 +289,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "minimal",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 			},
 			wantErr: nil,
 		},
@@ -299,7 +299,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				Network: NetworkConfiguration{
 					NameOrID: "foobar",
 				},
@@ -313,7 +313,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "token missing",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: ""},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 			},
 			wantErr: errors.New("environment variable \"HCLOUD_TOKEN\" is required"),
 		},
@@ -321,7 +321,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "token invalid length",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "abc"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 			},
 			wantErr: errors.New("entered token is invalid (must be exactly 64 characters long)"),
 		},
@@ -329,7 +329,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "address family invalid",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamily("foobar")},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamily("foobar"), InternalIpMap: map[string]string{}},
 			},
 			wantErr: errors.New("invalid value for \"HCLOUD_INSTANCES_ADDRESS_FAMILY\", expect one of: ipv4,ipv6,dualstack"),
 		},
@@ -337,7 +337,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "LB location and network zone set",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				LoadBalancer: LoadBalancerConfiguration{
 					Location:    "nbg1",
 					NetworkZone: "eu-central",
@@ -349,7 +349,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "robot enabled but missing credentials",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 
 				Robot: RobotConfiguration{
 					Enabled: true,
@@ -363,7 +363,7 @@ environment variable "ROBOT_PASSWORD" is required if Robot support is enabled`),
 			fields: fields{
 
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, InternalIpMap: map[string]string{}},
 				Route:        RouteConfiguration{Enabled: true},
 				Robot: RobotConfiguration{
 					Enabled: true,
