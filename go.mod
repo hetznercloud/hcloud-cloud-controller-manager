@@ -6,7 +6,7 @@ toolchain go1.22.6
 
 require (
 	github.com/hetznercloud/hcloud-go/v2 v2.13.1
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/syself/hrobot-go v0.2.5
