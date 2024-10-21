@@ -142,9 +142,10 @@ If you want to use the Hetzner Cloud `Networks` Feature, head over to
 the [Deployment with Networks support
 documentation](./docs/deploy_with_networks.md).
 
-If you manage the network yourself it might still be required to let the CCM know about private networks. You can do
-this by adding the environment variable
-with the network name/ID in the CCM deployment.
+If you manage the network yourself it might still be required to let the CCM know about private networks. For example,
+even with a self-managed network, it's still possible to enable private network attachment of CCM-provisioned Load
+Balancers by setting the `load-balancer.hetzner.cloud/use-private-ip` annotation to `true` on the Kubernetes Service.
+This functionality requires setting the following environment variables in the CCM deployment:
 
 ```
           env:
@@ -153,6 +154,8 @@ with the network name/ID in the CCM deployment.
                 secretKeyRef:
                   name: hcloud
                   key: network
+            - name: HCLOUD_NETWORK_ROUTES_ENABLED
+              value: "false"
 ```
 
 You also need to add the network name/ID to the
