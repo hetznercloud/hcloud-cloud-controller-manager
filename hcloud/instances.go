@@ -33,6 +33,10 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
+const (
+	ProvidedBy = "instance.hetzner.cloud/provided-by"
+)
+
 type instances struct {
 	client        *hcloud.Client
 	robotClient   robot.Client
@@ -273,6 +277,9 @@ func (s hcloudServer) Metadata(addressFamily config.AddressFamily, networkID int
 		NodeAddresses: hcloudNodeAddresses(addressFamily, networkID, s.Server),
 		Zone:          s.Datacenter.Name,
 		Region:        s.Datacenter.Location.Name,
+		AdditionalLabels: map[string]string{
+			ProvidedBy: "cloud",
+		},
 	}, nil
 }
 
@@ -299,5 +306,8 @@ func (s robotServer) Metadata(addressFamily config.AddressFamily, _ int64) (*clo
 		NodeAddresses: robotNodeAddresses(addressFamily, s.Server),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
+		AdditionalLabels: map[string]string{
+			ProvidedBy: "robot",
+		},
 	}, nil
 }

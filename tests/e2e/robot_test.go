@@ -41,9 +41,10 @@ func TestNodeSetCorrectNodeLabelsAndIPAddressesRobot(t *testing.T) {
 
 	labels := node.Labels
 	expectedLabels := map[string]string{
-		"kubernetes.io/hostname": server.Name,
-		"kubernetes.io/os":       "linux",
-		"kubernetes.io/arch":     "amd64",
+		"kubernetes.io/hostname":             server.Name,
+		"kubernetes.io/os":                   "linux",
+		"kubernetes.io/arch":                 "amd64",
+		"instance.hetzner.cloud/provided-by": "robot",
 	}
 	for expectedLabel, expectedValue := range expectedLabels {
 		assert.Equal(t, expectedValue, labels[expectedLabel], "node does not have expected label %s", expectedLabel)
