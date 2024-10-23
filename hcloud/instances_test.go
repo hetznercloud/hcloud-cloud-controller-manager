@@ -361,6 +361,9 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		},
 		Zone:   "Test DC",
 		Region: "Test Location",
+		AdditionalLabels: map[string]string{
+			"instance.hetzner.cloud/provided-by": "cloud",
+		},
 	}
 
 	if !reflect.DeepEqual(metadata, expectedMetadata) {
@@ -405,6 +408,9 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 		},
 		Zone:   "nbg1-dc1",
 		Region: "nbg1",
+		AdditionalLabels: map[string]string{
+			"instance.hetzner.cloud/provided-by": "cloud",
+		},
 	}
 
 	if !reflect.DeepEqual(metadata, expectedMetadata) {
