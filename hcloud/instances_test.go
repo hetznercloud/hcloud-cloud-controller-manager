@@ -409,7 +409,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 		Zone:   "nbg1-dc1",
 		Region: "nbg1",
 		AdditionalLabels: map[string]string{
-			"instance.hetzner.cloud/provided-by": "cloud",
+			"instance.hetzner.cloud/provided-by": "robot",
 		},
 	}
 
