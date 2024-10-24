@@ -7,11 +7,11 @@ import (
 )
 
 func TestStack(t *testing.T) {
-	stack := NewMutexSlice[int]()
+	stack := NewMutexSet[int]()
 
-	stack.Append(1)
-	stack.Append(2)
-	stack.Append(3)
+	stack.Set(1)
+	stack.Set(2)
+	stack.Set(3)
 
 	assert.Equal(t, []int{1, 2, 3}, stack.All())
 }
