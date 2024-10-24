@@ -156,6 +156,8 @@ type lbTestHelper struct {
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
 // and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
+	l.t.Helper()
+
 	ctx := context.Background()
 
 	if l.namespace == "" {
@@ -219,6 +221,8 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 
 // ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service).
 func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string]string) *corev1.Service {
+	l.t.Helper()
+
 	port := l.port
 	if port == 0 {
 		port = 80
@@ -249,6 +253,8 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 // CreateService creates a k8s service based on the given service definition
 // and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
+	l.t.Helper()
+
 	ctx := context.Background()
 
 	// Default is 15s interval, 10s timeout, 3 retries => 45 seconds until up
@@ -283,6 +289,8 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 // TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
+	l.t.Helper()
+
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		err := l.K8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
