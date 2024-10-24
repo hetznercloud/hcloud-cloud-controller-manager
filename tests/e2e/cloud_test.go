@@ -71,9 +71,8 @@ func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 	t.Parallel()
 
 	lbTest := lbTestHelper{
-		t:         t,
-		K8sClient: testCluster.k8sClient,
-		podName:   "loadbalancer-minimal",
+		t:       t,
+		podName: "loadbalancer-minimal",
 	}
 	defer lbTest.TearDown()
 
@@ -96,10 +95,9 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 
 	cert := testCluster.CreateTLSCertificate(t, "loadbalancer-https")
 	lbTest := lbTestHelper{
-		t:         t,
-		K8sClient: testCluster.k8sClient,
-		podName:   "loadbalancer-https",
-		port:      443,
+		t:       t,
+		podName: "loadbalancer-https",
+		port:    443,
 	}
 	defer lbTest.TearDown()
 
@@ -130,10 +128,9 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 
 	domainName := fmt.Sprintf("%d-ccm-test.%s", rand.Int(), testCluster.certDomain)
 	lbTest := lbTestHelper{
-		t:         t,
-		K8sClient: testCluster.k8sClient,
-		podName:   "loadbalancer-https",
-		port:      443,
+		t:       t,
+		podName: "loadbalancer-https",
+		port:    443,
 	}
 	defer lbTest.TearDown()
 
@@ -166,7 +163,7 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	t.Parallel()
 
-	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-private-network"}
+	lbTest := lbTestHelper{t: t, podName: "loadbalancer-private-network"}
 	defer lbTest.TearDown()
 
 	pod := lbTest.DeployTestPod()

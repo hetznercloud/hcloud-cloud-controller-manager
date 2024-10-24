@@ -71,9 +71,8 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 	t.Parallel()
 
 	lbTest := lbTestHelper{
-		t:         t,
-		K8sClient: testCluster.k8sClient,
-		podName:   "loadbalancer-robot-only",
+		t:       t,
+		podName: "loadbalancer-robot-only",
 	}
 	defer lbTest.TearDown()
 

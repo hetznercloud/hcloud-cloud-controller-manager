@@ -95,6 +95,9 @@ func (tc *TestCluster) Start() error {
 	// The domain specified here must be available in Hetzner DNS of the account running the tests.
 	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
+	tc.certificates = utils.NewMutexSet[int64]()
+	tc.loadBalancers = utils.NewMutexSet[int64]()
+
 	return nil
 }
 
@@ -161,8 +164,7 @@ func (tc *TestCluster) WorkerNodeName(index int) string {
 }
 
 type lbTestHelper struct {
-	t       *testing.T
-	cluster *TestCluster
+	t *testing.T
 
 	namespace string
 	podName   string
@@ -179,7 +181,7 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 	if l.namespace == "" {
 		l.namespace = "hccm-test-" + strconv.Itoa(rand.Int())
 	}
-	_, err := l.cluster.k8sClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+	_, err := testCluster.k8sClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: l.namespace,
 		},
@@ -212,12 +214,12 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 		},
 	}
 
-	pod, err := l.cluster.k8sClient.CoreV1().Pods(l.namespace).Create(ctx, &testPod, metav1.CreateOptions{})
+	pod, err := testCluster.k8sClient.CoreV1().Pods(l.namespace).Create(ctx, &testPod, metav1.CreateOptions{})
 	if err != nil {
 		l.t.Fatalf("could not create test pod: %s", err)
 	}
 	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, false, func(ctx context.Context) (done bool, err error) {
-		p, err := l.cluster.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
+		p, err := testCluster.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -280,13 +282,13 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckRetries)] = "1"
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckProtocol)] = "tcp"
 
-	_, err := l.cluster.k8sClient.CoreV1().Services(l.namespace).Create(ctx, lbSvc, metav1.CreateOptions{})
+	_, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Create(ctx, lbSvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("could not create service: %s", err)
 	}
 
 	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
-		svc, err := l.cluster.k8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
+		svc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -297,7 +299,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 			l.t.Error(err)
 		}
 		if lbID != 0 {
-			l.cluster.loadBalancers.Set(lbID)
+			testCluster.loadBalancers.Set(lbID)
 		}
 
 		ingressIPs := svc.Status.LoadBalancer.Ingress
@@ -318,7 +320,7 @@ func (l *lbTestHelper) TearDown() {
 	l.t.Helper()
 
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
-		err := l.cluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
+		err := testCluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
