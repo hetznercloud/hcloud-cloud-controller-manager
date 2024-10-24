@@ -91,7 +91,7 @@ spec:
                 secretKeyRef:
                   key: network
                   name: hcloud
-          image: docker.io/hetznercloud/hcloud-cloud-controller-manager:v1.20.0 # x-release-please-version
+          image: docker.io/hetznercloud/hcloud-cloud-controller-manager:v1.21.0 # x-release-please-version
           ports:
             - name: metrics
               containerPort: 8233
