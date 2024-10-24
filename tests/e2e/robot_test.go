@@ -74,7 +74,6 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 		t:       t,
 		podName: "loadbalancer-robot-only",
 	}
-	defer lbTest.TearDown()
 
 	pod := lbTest.DeployTestPod()
 
@@ -88,4 +87,6 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 	assert.NoError(t, err)
 
 	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+
+	lbTest.TearDown()
 }
