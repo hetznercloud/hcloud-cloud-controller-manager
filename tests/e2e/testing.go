@@ -169,7 +169,7 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 		},
 	}, metav1.CreateOptions{})
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
-		panic(err)
+		l.t.Fatal(err)
 	}
 
 	podName := fmt.Sprintf("pod-%s", l.podName)
@@ -299,7 +299,7 @@ func (l *lbTestHelper) TearDown() {
 		return k8serrors.IsNotFound(err), nil
 	})
 	if err != nil {
-		panic(err)
+		l.t.Fatal(err)
 	}
 }
 
