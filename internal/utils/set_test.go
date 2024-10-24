@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStack(t *testing.T) {
-	stack := NewMutexSet[int]()
+func TestMutexSet(t *testing.T) {
+	o := NewMutexSet[int]()
 
-	stack.Set(1)
-	stack.Set(2)
-	stack.Set(3)
+	o.Set(1)
+	o.Set(2)
+	o.Set(3)
 
-	assert.Equal(t, []int{1, 2, 3}, stack.All())
+	assert.Equal(t, []int{1, 2, 3}, o.All())
 }
