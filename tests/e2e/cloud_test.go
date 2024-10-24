@@ -75,6 +75,7 @@ func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 		K8sClient: testCluster.k8sClient,
 		podName:   "loadbalancer-minimal",
 	}
+	defer lbTest.TearDown()
 
 	pod := lbTest.DeployTestPod()
 
@@ -88,8 +89,6 @@ func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 	}
 
 	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
-
-	lbTest.TearDown()
 }
 
 func TestServiceLoadBalancersHTTPS(t *testing.T) {
@@ -102,6 +101,7 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 		podName:   "loadbalancer-https",
 		port:      443,
 	}
+	defer lbTest.TearDown()
 
 	pod := lbTest.DeployTestPod()
 
@@ -117,8 +117,6 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 	}
 
 	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
-
-	lbTest.TearDown()
 }
 
 func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
@@ -137,6 +135,7 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 		podName:   "loadbalancer-https",
 		port:      443,
 	}
+	defer lbTest.TearDown()
 
 	pod := lbTest.DeployTestPod()
 
@@ -160,7 +159,6 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, certs, 1)
 
-	lbTest.TearDown()
 	_, err = testCluster.hcloud.Certificate.Delete(ctx, certs[0])
 	assert.NoError(t, err)
 }
@@ -169,6 +167,7 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	t.Parallel()
 
 	lbTest := lbTestHelper{t: t, K8sClient: testCluster.k8sClient, podName: "loadbalancer-private-network"}
+	defer lbTest.TearDown()
 
 	pod := lbTest.DeployTestPod()
 
@@ -183,8 +182,6 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	}
 
 	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
-
-	lbTest.TearDown()
 }
 
 func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
