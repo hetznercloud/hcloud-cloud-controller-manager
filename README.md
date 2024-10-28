@@ -29,6 +29,7 @@ metadata:
     node.kubernetes.io/instance-type: cx22
     topology.kubernetes.io/region: fsn1
     topology.kubernetes.io/zone: fsn1-dc8
+    instance.hetzner.cloud/provided-by: cloud
   name: node
 spec:
   podCIDR: 10.244.0.0/24
