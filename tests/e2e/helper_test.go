@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -22,7 +23,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -33,13 +36,16 @@ func init() {
 }
 
 type TestCluster struct {
-	hcloud       *hcloud.Client
-	hrobot       hrobot.RobotClient
-	k8sClient    *kubernetes.Clientset
-	certificates []*hcloud.Certificate
+	hcloud    *hcloud.Client
+	hrobot    hrobot.RobotClient
+	k8sClient *kubernetes.Clientset
+
 	// envName is used as the name prefix in all resources
 	envName    string
 	certDomain string
+
+	certificates  *utils.SyncSet[int64]
+	loadBalancers *utils.SyncSet[int64]
 }
 
 func (tc *TestCluster) Start() error {
@@ -89,17 +95,31 @@ func (tc *TestCluster) Start() error {
 	// The domain specified here must be available in Hetzner DNS of the account running the tests.
 	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
+	tc.certificates = utils.NewSyncSet[int64]()
+	tc.loadBalancers = utils.NewSyncSet[int64]()
+
 	return nil
 }
 
 func (tc *TestCluster) Stop() error {
-	for _, c := range tc.certificates {
-		if _, err := tc.hcloud.Certificate.Delete(context.Background(), c); err != nil {
-			fmt.Printf("delete certificate %d failed: %v", c.ID, err)
+	errs := make([]error, 0, tc.loadBalancers.Size()+tc.certificates.Size())
+	ctx := context.Background()
+
+	for _, item := range tc.loadBalancers.All() {
+		fmt.Printf("deleting load balancer %d\n", item)
+		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, &hcloud.LoadBalancer{ID: item}); err != nil {
+			errs = append(errs, fmt.Errorf("delete load balancer %d failed: %w", item, err))
 		}
 	}
 
-	return nil
+	for _, item := range tc.certificates.All() {
+		fmt.Printf("deleting certificate %d\n", item)
+		if _, err := tc.hcloud.Certificate.Delete(ctx, &hcloud.Certificate{ID: item}); err != nil {
+			errs = append(errs, fmt.Errorf("delete certificate %d failed: %w", item, err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 // CreateTLSCertificate creates a TLS certificate used for testing and posts it
@@ -125,7 +145,7 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 		t.Fatalf("no certificate created")
 	}
 
-	tc.certificates = append(tc.certificates, cert)
+	tc.certificates.Add(cert.ID)
 
 	return cert
 }
@@ -146,28 +166,30 @@ func (tc *TestCluster) WorkerNodeName(index int) string {
 }
 
 type lbTestHelper struct {
+	t *testing.T
+
+	namespace string
 	podName   string
 	port      int
-	K8sClient *kubernetes.Clientset
-	t         *testing.T
-	namespace string
 }
 
 // DeployTestPod deploys a basic nginx pod within the k8s cluster
 // and waits until it is "ready".
 func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
+	l.t.Helper()
+
 	ctx := context.Background()
 
 	if l.namespace == "" {
 		l.namespace = "hccm-test-" + strconv.Itoa(rand.Int())
 	}
-	_, err := l.K8sClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+	_, err := testCluster.k8sClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: l.namespace,
 		},
 	}, metav1.CreateOptions{})
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
-		panic(err)
+		l.t.Fatal(err)
 	}
 
 	podName := fmt.Sprintf("pod-%s", l.podName)
@@ -194,12 +216,12 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 		},
 	}
 
-	pod, err := l.K8sClient.CoreV1().Pods(l.namespace).Create(ctx, &testPod, metav1.CreateOptions{})
+	pod, err := testCluster.k8sClient.CoreV1().Pods(l.namespace).Create(ctx, &testPod, metav1.CreateOptions{})
 	if err != nil {
 		l.t.Fatalf("could not create test pod: %s", err)
 	}
 	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, false, func(ctx context.Context) (done bool, err error) {
-		p, err := l.K8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
+		p, err := testCluster.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -219,6 +241,8 @@ func (l *lbTestHelper) DeployTestPod() *corev1.Pod {
 
 // ServiceDefinition returns a service definition for a Hetzner Cloud Load Balancer (k8s service).
 func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string]string) *corev1.Service {
+	l.t.Helper()
+
 	port := l.port
 	if port == 0 {
 		port = 80
@@ -249,6 +273,8 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 // CreateService creates a k8s service based on the given service definition
 // and waits until it is "ready".
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
+	l.t.Helper()
+
 	ctx := context.Background()
 
 	// Default is 15s interval, 10s timeout, 3 retries => 45 seconds until up
@@ -258,16 +284,26 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckRetries)] = "1"
 	// lbSvc.Annotations[string(annotation.LBSvcHealthCheckProtocol)] = "tcp"
 
-	_, err := l.K8sClient.CoreV1().Services(l.namespace).Create(ctx, lbSvc, metav1.CreateOptions{})
+	_, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Create(ctx, lbSvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("could not create service: %s", err)
 	}
 
 	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 5*time.Minute, false, func(ctx context.Context) (done bool, err error) {
-		svc, err := l.K8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
+		svc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
+
+		// Save load balancer id for cleanup
+		lbID, err := LoadBalancerIDFromService(lbSvc)
+		if err != nil {
+			l.t.Error(err)
+		}
+		if lbID != 0 {
+			testCluster.loadBalancers.Add(lbID)
+		}
+
 		ingressIPs := svc.Status.LoadBalancer.Ingress
 		if len(ingressIPs) > 0 {
 			lbSvc = svc
@@ -283,15 +319,17 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 // TearDown deletes the created pod and service.
 func (l *lbTestHelper) TearDown() {
+	l.t.Helper()
+
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
-		err := l.K8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
+		err := testCluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
 		return k8serrors.IsNotFound(err), nil
 	})
 	if err != nil {
-		panic(err)
+		l.t.Fatal(err)
 	}
 }
 
@@ -332,4 +370,18 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 	if err != nil {
 		t.Errorf("%s not available: %s", ingressIP, err)
 	}
+}
+
+func LoadBalancerIDFromService(svc *corev1.Service) (int64, error) {
+	label, ok := svc.Labels[string(annotation.LBID)]
+	if !ok || label == "" {
+		return 0, nil
+	}
+
+	id, err := strconv.ParseInt(label, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }
