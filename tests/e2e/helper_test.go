@@ -44,8 +44,8 @@ type TestCluster struct {
 	envName    string
 	certDomain string
 
-	certificates  *utils.MutexSet[int64]
-	loadBalancers *utils.MutexSet[int64]
+	certificates  *utils.SyncSet[int64]
+	loadBalancers *utils.SyncSet[int64]
 }
 
 func (tc *TestCluster) Start() error {
@@ -95,8 +95,8 @@ func (tc *TestCluster) Start() error {
 	// The domain specified here must be available in Hetzner DNS of the account running the tests.
 	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
-	tc.certificates = utils.NewMutexSet[int64]()
-	tc.loadBalancers = utils.NewMutexSet[int64]()
+	tc.certificates = utils.NewSyncSet[int64]()
+	tc.loadBalancers = utils.NewSyncSet[int64]()
 
 	return nil
 }
@@ -147,7 +147,7 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) *hclo
 		t.Fatalf("no certificate created")
 	}
 
-	tc.certificates.Set(cert.ID)
+	tc.certificates.Add(cert.ID)
 
 	return cert
 }
@@ -303,7 +303,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 			l.t.Error(err)
 		}
 		if lbID != 0 {
-			testCluster.loadBalancers.Set(lbID)
+			testCluster.loadBalancers.Add(lbID)
 		}
 
 		ingressIPs := svc.Status.LoadBalancer.Ingress
