@@ -106,18 +106,16 @@ func (tc *TestCluster) Stop() error {
 	ctx := context.Background()
 
 	for _, item := range tc.loadBalancers.All() {
+		fmt.Printf("deleting load balancer %d\n", item)
 		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, &hcloud.LoadBalancer{ID: item}); err != nil {
 			errs = append(errs, fmt.Errorf("delete load balancer %d failed: %w", item, err))
-		} else {
-			fmt.Printf("successfully deleted load balancer %d\n", item)
 		}
 	}
 
 	for _, item := range tc.certificates.All() {
+		fmt.Printf("deleting certificate %d\n", item)
 		if _, err := tc.hcloud.Certificate.Delete(ctx, &hcloud.Certificate{ID: item}); err != nil {
 			errs = append(errs, fmt.Errorf("delete certificate %d failed: %w", item, err))
-		} else {
-			fmt.Printf("successfully deleted certificate %d\n", item)
 		}
 	}
 
