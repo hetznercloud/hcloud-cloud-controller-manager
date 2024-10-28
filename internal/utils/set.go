@@ -16,7 +16,7 @@ func NewSyncSet[T comparable]() *SyncSet[T] {
 	}
 }
 
-func (s *SyncSet[T]) Set(v T) {
+func (s *SyncSet[T]) Add(v T) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

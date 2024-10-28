@@ -10,9 +10,9 @@ import (
 func TestSyncSet(t *testing.T) {
 	o := NewSyncSet[int]()
 
-	o.Set(1)
-	o.Set(2)
-	o.Set(3)
+	o.Add(1)
+	o.Add(2)
+	o.Add(3)
 
 	all := o.All()
 	sort.Ints(all)
