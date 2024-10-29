@@ -47,6 +47,9 @@ The Node controller adds information about the server to the Node object. The va
   - `topology.kubernetes.io/zone`
     - Examples: `hel1-dc5` `fsn1-dc16`
     - We use the lowercase variant of the location to match the Cloud Datacenters
+  - `instance.hetzner.cloud/provided-by`
+    - Examples: `robot` `cloud`
+    - We detect if the node is a Robot server or Cloud VM and set the label accordingly
 - Provider ID
   - We set the field `Node.spec.providerID` to identify the Robot server after the initial adoption.
   - The format is `hrobot://$SERVER_NUMBER`, but we can also read from the deprecated format used by [syself/hetzner-cloud-controller-manager](https://github.com/syself/hetzner-cloud-controller-manager): `hcloud://bm-$SERVER_NUMBER`

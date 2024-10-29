@@ -35,12 +35,13 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 
 	labels := node.Labels
 	expectedLabels := map[string]string{
-		"node.kubernetes.io/instance-type": server.ServerType.Name,
-		"topology.kubernetes.io/region":    server.Datacenter.Location.Name,
-		"topology.kubernetes.io/zone":      server.Datacenter.Name,
-		"kubernetes.io/hostname":           server.Name,
-		"kubernetes.io/os":                 "linux",
-		"kubernetes.io/arch":               "amd64",
+		"node.kubernetes.io/instance-type":   server.ServerType.Name,
+		"topology.kubernetes.io/region":      server.Datacenter.Location.Name,
+		"topology.kubernetes.io/zone":        server.Datacenter.Name,
+		"kubernetes.io/hostname":             server.Name,
+		"kubernetes.io/os":                   "linux",
+		"kubernetes.io/arch":                 "amd64",
+		"instance.hetzner.cloud/provided-by": "cloud",
 	}
 	for expectedLabel, expectedValue := range expectedLabels {
 		if labelValue, ok := labels[expectedLabel]; !ok || labelValue != expectedValue {
