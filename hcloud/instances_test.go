@@ -380,7 +380,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 				ServerIP:      "233.252.0.123",
 				ServerIPv6Net: "2a01:f48:111:4221::",
 				ServerNumber:  321,
-				Product:       "robot-product 1",
+				Product:       "Robot Server™ 1",
 				Name:          "robot-server1",
 				Dc:            "NBG1-DC1",
 			},
@@ -401,7 +401,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 
 	expectedMetadata := &cloudprovider.InstanceMetadata{
 		ProviderID:   "hrobot://321",
-		InstanceType: "robot-product-1",
+		InstanceType: "Robot-Server-1",
 		NodeAddresses: []corev1.NodeAddress{
 			{Type: corev1.NodeHostName, Address: "robot-server1"},
 			{Type: corev1.NodeExternalIP, Address: "233.252.0.123"},

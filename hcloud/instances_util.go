@@ -19,6 +19,7 @@ package hcloud
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
@@ -102,7 +103,9 @@ func getInstanceTypeOfRobotServer(server *hrobotmodels.Server) string {
 	if server == nil {
 		panic("getInstanceTypeOfRobotServer called with nil server")
 	}
-	return strings.ReplaceAll(server.Product, " ", "-")
+	productName := strings.ReplaceAll(server.Product, " ", "-")
+	// Removes all characters that are invalid for a Kubernetes label
+	return regexp.MustCompile(`[^a-zA-Z0-9_.-]+`).ReplaceAllString(productName, "")
 }
 
 func getZoneOfRobotServer(server *hrobotmodels.Server) string {
