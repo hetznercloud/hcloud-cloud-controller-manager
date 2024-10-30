@@ -1,0 +1,14 @@
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 100Mi
+
+monitoring:
+  podMonitor:
+    enabled: true
+
+networking:
+  enabled: true
+  clusterCIDR: 10.244.0.0/16

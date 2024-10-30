@@ -14,13 +14,14 @@ repos:
 
       - id: check-json
       - id: check-yaml
-        exclude: ^(deploy/.*|chart/templates/.*)$
+        exclude: ^(deploy/.*|chart/templates/.*|chart/.snapshots/.*)$
 
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: trailing-whitespace
+        exclude: ^(chart/.snapshots/.*)$
 
   - repo: local
     hooks:
@@ -32,7 +33,7 @@ repos:
         require_serial: false
         additional_dependencies: [prettier@3.3.3]
         files: \.(md|ya?ml)$
-        exclude: ^(CHANGELOG.md|chart/templates/.*)$
+        exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*)$
 
   - repo: local
     hooks:
