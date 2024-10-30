@@ -14,7 +14,8 @@ repos:
 
       - id: check-json
       - id: check-yaml
-        exclude: ^(deploy/.*|chart/templates/.*|chart/.snapshots/.*)$
+        args: [--allow-multiple-documents]
+        exclude: ^(deploy/.*|chart/templates/.*)$
 
       - id: check-merge-conflict
       - id: end-of-file-fixer
