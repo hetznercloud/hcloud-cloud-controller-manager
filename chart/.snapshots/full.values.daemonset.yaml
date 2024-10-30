@@ -1,3 +1,5 @@
+kind: DaemonSet
+
 monitoring:
   podMonitor:
     labels:

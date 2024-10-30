@@ -10,4 +10,4 @@ helm template hcloud-hccm chart \
   --namespace kube-system \
   -f chart/.snapshots/full.values.yaml |
     grep -v helm.sh/chart \
-    > chart/.snapshots/full.yaml
+    > chart/.snapshots/full.daemonset.yaml

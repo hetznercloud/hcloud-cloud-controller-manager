@@ -20,14 +20,13 @@ subjects:
     name: hcloud-cloud-controller-manager
     namespace: kube-system
 ---
-# Source: hcloud-cloud-controller-manager/templates/deployment.yaml
+# Source: hcloud-cloud-controller-manager/templates/daemonset.yaml
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: hcloud-cloud-controller-manager
   namespace: kube-system
 spec:
-  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -69,33 +68,14 @@ spec:
       nodeSelector:
         
         foo: bar
-      affinity:
-        
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - preference:
-              matchExpressions:
-              - key: another-node-label-key
-                operator: In
-                values:
-                - another-node-label-value
-            weight: 1
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: topology.kubernetes.io/zone
-                operator: In
-                values:
-                - antarctica-east1
-                - antarctica-west1
       containers:
         - name: hcloud-cloud-controller-manager
-          args:
+          command:
+            - "/bin/hcloud-cloud-controller-manager"
             - "--allow-untagged-cloud"
             - "--cloud-provider=hcloud"
             - "--route-reconciliation-period=30s"
             - "--webhook-secure-port=0"
-            - "--leader-elect=false"
           env:
             - name: HCLOUD_TOKEN
               valueFrom:
