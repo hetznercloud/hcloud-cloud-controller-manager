@@ -96,7 +96,7 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 			node,
 			corev1.EventTypeWarning,
 			"PossibleNodeDeletion",
-			"Might be deleted by node-lifecycle-manager due to name mismatch; Node name \"%s\" differs from Robot name \"%s\"",
+			"Might be deleted by node-lifecycle-manager due to name mismatch; Node name %q differs from Robot name %q",
 			node.ObjectMeta.Name,
 			server.Name,
 		)
