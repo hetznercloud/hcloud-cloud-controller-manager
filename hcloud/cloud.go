@@ -139,14 +139,15 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	client, _ := clientBuilder.Client("hccm-event-broadcaster")
 
 	eventBroadcaster := record.NewBroadcaster()
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{Interface: client.CoreV1().Events("")})
-
-	c.recorder = recorder
+	
 	go func() {
 		<-stop
 		eventBroadcaster.Shutdown()
 	}()
+	
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
+	c.recorder = recorder
 }
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
