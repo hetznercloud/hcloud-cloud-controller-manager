@@ -74,14 +74,14 @@ func getRobotServerByName(c robot.Client, node *corev1.Node) (server *hrobotmode
 	return server, nil
 }
 
-func getRobotServerByID(c robot.Client, id int, node *corev1.Node) (*hrobotmodels.Server, error) {
+func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.Server, error) {
 	const op = "hcloud/getRobotServerByID"
 
-	if c == nil {
+	if i.robotClient == nil {
 		return nil, errMissingRobotClient
 	}
 
-	server, err := c.ServerGet(id)
+	server, err := i.robotClient.ServerGet(id)
 	if err != nil && !hrobotmodels.IsError(err, hrobotmodels.ErrorCodeServerNotFound) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -92,6 +92,14 @@ func getRobotServerByID(c robot.Client, id int, node *corev1.Node) (*hrobotmodel
 
 	// check whether name matches - otherwise this server does not belong to the respective node anymore
 	if server.Name != node.Name {
+		i.recorder.Eventf(
+			node,
+			corev1.EventTypeWarning,
+			"PossibleNodeDeletion",
+			"Might be deleted by node-lifecycle-manager due to name mismatch; Node name \"%s\" differs from Robot name \"%s\"",
+			node.ObjectMeta.Name,
+			server.Name,
+		)
 		return nil, nil
 	}
 
