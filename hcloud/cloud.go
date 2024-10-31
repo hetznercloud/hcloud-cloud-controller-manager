@@ -26,6 +26,7 @@ import (
 	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -126,19 +127,27 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
-	eventBroadcaster := record.NewBroadcaster()
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
-
 	return &cloud{
 		client:      client,
 		robotClient: robotClient,
 		cfg:         cfg,
 		networkID:   networkID,
-		recorder:    recorder,
 	}, nil
 }
 
-func (c *cloud) Initialize(_ cloudprovider.ControllerClientBuilder, _ <-chan struct{}) {
+func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
+	client, _ := clientBuilder.Client("hccm-event-broadcaster")
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{Interface: client.CoreV1().Events("")})
+
+	go func() {
+		<-stop
+		eventBroadcaster.Shutdown()
+	}()
+
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
+	c.recorder = recorder
 }
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
