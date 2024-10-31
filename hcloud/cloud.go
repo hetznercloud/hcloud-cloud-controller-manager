@@ -140,12 +140,12 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1.EventSinkImpl{Interface: client.CoreV1().Events("")})
-	
+
 	go func() {
 		<-stop
 		eventBroadcaster.Shutdown()
 	}()
-	
+
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
 	c.recorder = recorder
 }
