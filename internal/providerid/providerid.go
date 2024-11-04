@@ -24,6 +24,20 @@ const (
 	prefixRobotLegacy = "hcloud://bm-"
 )
 
+type UnkownPrefixError struct {
+	ProviderID string
+}
+
+func (e *UnkownPrefixError) Error() string {
+	return fmt.Sprintf(
+		"providerID does not have one of the the expected prefixes (%s, %s, %s): %s",
+		prefixCloud,
+		prefixRobot,
+		prefixRobotLegacy,
+		e.ProviderID,
+	)
+}
+
 // ToServerID parses the Cloud or Robot Server ID from a ProviderID.
 //
 // This method supports all formats for the ProviderID that were ever used.
@@ -44,7 +58,7 @@ func ToServerID(providerID string) (id int64, isCloudServer bool, err error) {
 		idString = strings.ReplaceAll(providerID, prefixCloud, "")
 
 	default:
-		return 0, false, fmt.Errorf("providerID does not have one of the the expected prefixes (%s, %s, %s): %s", prefixCloud, prefixRobot, prefixRobotLegacy, providerID)
+		return 0, false, &UnkownPrefixError{providerID}
 	}
 
 	if idString == "" {
