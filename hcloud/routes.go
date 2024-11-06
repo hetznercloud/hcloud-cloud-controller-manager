@@ -119,6 +119,18 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	hNetSize, _ := r.network.IPRange.Mask.Size()
+	destNetSize, _ := cidr.Mask.Size()
+
+	if !(r.network.IPRange.Contains(cidr.IP) && destNetSize >= hNetSize) {
+		return fmt.Errorf(
+			"route CIDR %s is not contained within CIDR %s of hcloud network %d",
+			route.DestinationCIDR,
+			r.network.IPRange.String(),
+			r.network.ID,
+		)
+	}
+
 	doesRouteAlreadyExist, err := r.checkIfRouteAlreadyExists(ctx, route)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
