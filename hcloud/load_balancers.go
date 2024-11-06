@@ -5,13 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blang/semver/v4"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/discovery"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
@@ -235,12 +232,6 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 		ipMode = corev1.LoadBalancerIPModeProxy
 	}
 
-	// "IPMode" was introduced in 1.29
-	supportsIPModeField, err := checkIPModeSupport()
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
 	disablePubNet, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
 	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -390,31 +381,4 @@ func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, _ string,
 	}
 
 	return nil
-}
-
-func checkIPModeSupport() (bool, error) {
-	config, err := config.GetConfig()
-	if err != nil {
-		return false, err
-	}
-
-	client, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return false, err
-	}
-
-	version, err := client.ServerVersion()
-	if err != nil {
-		return false, err
-	}
-
-	// ParseTolerant is necessary due to the leading "v"
-	semverVersion, err := semver.ParseTolerant(version.GitVersion)
-	if err != nil {
-		return false, err
-	}
-
-	minimumVersion := semver.MustParse("1.29.0")
-
-	return semverVersion.GE(minimumVersion), nil
 }

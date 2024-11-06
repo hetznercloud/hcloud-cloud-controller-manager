@@ -241,6 +241,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Return(false, nil)
 	}
 
+	ipModeProxy := corev1.LoadBalancerIPModeProxy
 	ipModeVIP := corev1.LoadBalancerIPModeVIP
 
 	tests := []LoadBalancerTestCase{
