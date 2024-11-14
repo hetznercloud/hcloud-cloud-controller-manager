@@ -52,7 +52,7 @@ jobs:
             helm
             kubectl
             skaffold
-          helm: v3.16.2 # renovate: datasource=github-releases depName=helm/helm
+          helm: v3.16.3 # renovate: datasource=github-releases depName=helm/helm
           kubectl: v1.31.2 # renovate: datasource=github-releases depName=kubernetes/kubernetes
           skaffold: v2.13.2 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
 
@@ -159,7 +159,7 @@ jobs:
             helm
             kubectl
             skaffold
-          helm: v3.16.2 # renovate: datasource=github-releases depName=helm/helm
+          helm: v3.16.3 # renovate: datasource=github-releases depName=helm/helm
           kubectl: v1.31.2 # renovate: datasource=github-releases depName=kubernetes/kubernetes
           skaffold: v2.13.2 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
 
