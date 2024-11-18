@@ -59,7 +59,7 @@ func main() {
 }
 
 func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
-	cloud, err := hcloud.NewCloud()
+	cloud, err := hcloud.NewCloud(config.ComponentConfig.KubeCloudShared.ClusterCIDR)
 	if err != nil {
 		klog.Fatalf("Cloud provider could not be initialized: %v", err)
 	}

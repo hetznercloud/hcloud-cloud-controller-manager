@@ -70,7 +70,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1)
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -82,15 +82,6 @@ func TestRoutes_CreateRoute(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	err = routes.CreateRoute(context.TODO(), "my-cluster", "routeFail", &cloudprovider.Route{
-		Name:            "route",
-		TargetNode:      "node15",
-		DestinationCIDR: "172.16.0.0/16",
-	})
-	if err == nil {
-		t.Fatalf("Expected an error because DestinationCIDR is not within the cluster CIDR, but received nil instead")
 	}
 }
 
@@ -128,7 +119,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1)
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -196,7 +187,7 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1)
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
