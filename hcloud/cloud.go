@@ -51,9 +51,10 @@ type cloud struct {
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
+	cidr        string
 }
 
-func NewCloud() (cloudprovider.Interface, error) {
+func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -131,6 +132,7 @@ func NewCloud() (cloudprovider.Interface, error) {
 		robotClient: robotClient,
 		cfg:         cfg,
 		networkID:   networkID,
+		cidr:        cidr,
 	}, nil
 }
 
@@ -192,7 +194,12 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 		return nil, false
 	}
 
-	r, err := newRoutes(c.client, c.networkID)
+	r, err := newRoutes(
+		c.client,
+		c.networkID,
+		c.cidr,
+		c.recorder,
+	)
 	if err != nil {
 		klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
 		return nil, false

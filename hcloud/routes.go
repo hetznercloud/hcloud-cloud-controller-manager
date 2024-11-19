@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
@@ -25,9 +28,11 @@ type routes struct {
 	client      *hcloud.Client
 	network     *hcloud.Network
 	serverCache *hcops.AllServersCache
+	clusterCIDR *net.IPNet
+	recorder    record.EventRecorder
 }
 
-func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
+func newRoutes(client *hcloud.Client, networkID int64, clusterCIDR string, recorder record.EventRecorder) (*routes, error) {
 	const op = "hcloud/newRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -37,6 +42,11 @@ func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
 	}
 	if networkObj == nil {
 		return nil, fmt.Errorf("network not found: %d", networkID)
+	}
+
+	_, cidr, err := net.ParseCIDR(clusterCIDR)
+	if err != nil {
+		return nil, err
 	}
 
 	return &routes{
@@ -49,6 +59,8 @@ func newRoutes(client *hcloud.Client, networkID int64) (*routes, error) {
 			Network:                 networkObj,
 			CacheMissRefreshLimiter: rate.NewLimiter(serversCacheMissRefreshRate, 1),
 		},
+		clusterCIDR: cidr,
+		recorder:    recorder,
 	}, nil
 }
 
@@ -117,6 +129,34 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 	_, cidr, err := net.ParseCIDR(route.DestinationCIDR)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	clusterNetSize, _ := r.clusterCIDR.Mask.Size()
+	destNetSize, _ := cidr.Mask.Size()
+
+	if !(r.clusterCIDR.Contains(cidr.IP) && destNetSize >= clusterNetSize) {
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      string(route.TargetNode),
+				Namespace: "",
+			},
+		}
+		// Event is only visible via `kubectl get events` and not `kubectl describe node`,
+		// as we do not have the UID here and `kubectl describe node` filters by UID.
+		// Because of this behavior we are also dispatching a log message.
+		r.recorder.Eventf(
+			node,
+			corev1.EventTypeWarning,
+			"ClusterCIDRMisconfigured",
+			"route CIDR %s is not contained within cluster CIDR %s",
+			route.DestinationCIDR,
+			r.clusterCIDR.String(),
+		)
+		klog.Warningf(
+			"route CIDR %s is not contained within cluster CIDR %s",
+			route.DestinationCIDR,
+			r.clusterCIDR.String(),
+		)
 	}
 
 	doesRouteAlreadyExist, err := r.checkIfRouteAlreadyExists(ctx, route)

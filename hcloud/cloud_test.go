@@ -92,7 +92,7 @@ func TestNewCloud(t *testing.T) {
 		)
 	})
 
-	_, err := NewCloud()
+	_, err := NewCloud(DefaultClusterCIDR)
 	assert.NoError(t, err)
 }
 
@@ -104,7 +104,7 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 	)
 	defer resetEnv()
 
-	_, err := NewCloud()
+	_, err := NewCloud(DefaultClusterCIDR)
 	assert.EqualError(t, err,
 		`hcloud/newCloud: Get "http://127.0.0.1:4711/v1/servers?": dial tcp 127.0.0.1:4711: connect: connection refused`)
 }
@@ -132,7 +132,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 		)
 	})
 
-	_, err := NewCloud()
+	_, err := NewCloud(DefaultClusterCIDR)
 	assert.EqualError(t, err, "hcloud/newCloud: unable to authenticate (unauthorized)")
 }
 
@@ -195,7 +195,7 @@ func TestCloud(t *testing.T) {
 		)
 	})
 
-	cloud, err := NewCloud()
+	cloud, err := NewCloud(DefaultClusterCIDR)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestCloud(t *testing.T) {
 		)
 		defer resetEnv()
 
-		c, err := NewCloud()
+		c, err := NewCloud(DefaultClusterCIDR)
 		if err != nil {
 			t.Errorf("%s", err)
 		}
