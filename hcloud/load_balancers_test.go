@@ -948,7 +948,6 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		c := c // prevent scopelint from complaining
 		t.Run(c.name, func(t *testing.T) {
 			nodes, err := matchNodeSelector(c.service, c.k8sNodes)
 			if err != nil {

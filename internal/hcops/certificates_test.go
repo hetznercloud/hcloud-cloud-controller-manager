@@ -227,7 +227,6 @@ func (tt *certificateOpsTestCase) run(t *testing.T) {
 
 func runCertificateOpsTestCases(t *testing.T, tests []certificateOpsTestCase) {
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.Name, tt.run)
 	}
 }
