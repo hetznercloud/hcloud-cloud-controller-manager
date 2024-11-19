@@ -20,8 +20,6 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-const DefaultClusterCIDR = "10.244.0.0/16"
-
 var (
 	serversCacheMissRefreshRate = rate.Every(30 * time.Second)
 )

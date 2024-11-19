@@ -12,6 +12,8 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
 
+const DefaultClusterCIDR = "10.244.0.0/16"
+
 func TestRoutes_CreateRoute(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
