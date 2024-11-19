@@ -19,7 +19,6 @@ package hcloud
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -54,7 +53,7 @@ type cloud struct {
 	networkID   int64
 }
 
-func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
+func NewCloud() (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -221,8 +220,4 @@ func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int64)
 		return false, fmt.Errorf("%s: %s", op, err)
 	}
 	return strings.Contains(serverPrivateNetworks, fmt.Sprintf("network_id: %d\n", networkID)), nil
-}
-
-func init() {
-	cloudprovider.RegisterCloudProvider(providerName, newCloud)
 }
