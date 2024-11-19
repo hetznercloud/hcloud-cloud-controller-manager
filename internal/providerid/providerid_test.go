@@ -1,8 +1,11 @@
 package providerid
 
 import (
+	"errors"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFromCloudServerID(t *testing.T) {
@@ -59,92 +62,101 @@ func TestToServerID(t *testing.T) {
 		providerID        string
 		wantID            int64
 		wantIsCloudServer bool
-		wantErr           bool
+		wantErr           error
 	}{
 		{
 			name:              "[cloud] simple id",
 			providerID:        "hcloud://1234",
 			wantID:            1234,
 			wantIsCloudServer: true,
-			wantErr:           false,
+			wantErr:           nil,
 		},
 		{
 			name:              "[cloud] large id",
 			providerID:        "hcloud://2251799813685247",
 			wantID:            2251799813685247,
 			wantIsCloudServer: true,
-			wantErr:           false,
+			wantErr:           nil,
 		},
 		{
 			name:              "[cloud] invalid id",
 			providerID:        "hcloud://my-cloud",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           errors.New("unable to parse server id: hcloud://my-cloud"),
 		},
 		{
 			name:              "[cloud] missing id",
 			providerID:        "hcloud://",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           errors.New("providerID is missing a serverID: hcloud://"),
 		},
 		{
 			name:              "[robot] simple id",
 			providerID:        "hrobot://4321",
 			wantID:            4321,
 			wantIsCloudServer: false,
-			wantErr:           false,
+			wantErr:           nil,
 		},
 		{
 			name:              "[robot] invalid id",
 			providerID:        "hrobot://my-robot",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           errors.New("unable to parse server id: hrobot://my-robot"),
 		},
 		{
 			name:              "[robot] missing id",
 			providerID:        "hrobot://",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           errors.New("providerID is missing a serverID: hrobot://"),
 		},
 		{
 			name:              "[robot-syself] simple id",
 			providerID:        "hcloud://bm-4321",
 			wantID:            4321,
 			wantIsCloudServer: false,
-			wantErr:           false,
+			wantErr:           nil,
 		},
 		{
 			name:              "[robot-syself] invalid id",
 			providerID:        "hcloud://bm-my-robot",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           errors.New("unable to parse server id: hcloud://bm-my-robot"),
 		},
 		{
 			name:              "[robot-syself] missing id",
 			providerID:        "hcloud://bm-",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           errors.New("providerID is missing a serverID: hcloud://bm-"),
 		},
 		{
 			name:              "unknown format",
 			providerID:        "foobar/321",
 			wantID:            0,
 			wantIsCloudServer: false,
-			wantErr:           true,
+			wantErr:           &UnkownPrefixError{"foobar/321"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotID, gotIsCloudServer, err := ToServerID(tt.providerID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ToServerID() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Errorf("ToServerID() expected error = %v, got nil", tt.wantErr)
+					return
+				}
+				if errors.As(tt.wantErr, new(*UnkownPrefixError)) {
+					assert.ErrorAsf(t, err, new(*UnkownPrefixError), "ToServerID() error = %v, wantErr %v", err, tt.wantErr)
+				} else {
+					assert.EqualErrorf(t, err, tt.wantErr.Error(), "ToServerID() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			} else if err != nil {
+				t.Errorf("ToServerID() unexpected error = %v, wantErr nil", err)
 			}
 			if gotID != tt.wantID {
 				t.Errorf("ToServerID() gotID = %v, want %v", gotID, tt.wantID)
