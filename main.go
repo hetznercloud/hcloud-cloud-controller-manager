@@ -36,7 +36,7 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"
 	"k8s.io/klog/v2"
 
-	_ "github.com/hetznercloud/hcloud-cloud-controller-manager/hcloud"
+	hcloud "github.com/hetznercloud/hcloud-cloud-controller-manager/hcloud"
 )
 
 func main() {
@@ -59,10 +59,7 @@ func main() {
 }
 
 func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
-	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
-
-	// initialize cloud provider with the cloud provider name and config file provided
-	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
+	cloud, err := hcloud.NewCloud()
 	if err != nil {
 		klog.Fatalf("Cloud provider could not be initialized: %v", err)
 	}

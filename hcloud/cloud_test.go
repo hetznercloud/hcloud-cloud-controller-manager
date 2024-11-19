@@ -17,7 +17,6 @@ limitations under the License.
 package hcloud
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -92,8 +91,8 @@ func TestNewCloud(t *testing.T) {
 			},
 		)
 	})
-	var config bytes.Buffer
-	_, err := newCloud(&config)
+
+	_, err := NewCloud()
 	assert.NoError(t, err)
 }
 
@@ -105,7 +104,7 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 	)
 	defer resetEnv()
 
-	_, err := newCloud(&bytes.Buffer{})
+	_, err := NewCloud()
 	assert.EqualError(t, err,
 		`hcloud/newCloud: Get "http://127.0.0.1:4711/v1/servers?": dial tcp 127.0.0.1:4711: connect: connection refused`)
 }
@@ -133,7 +132,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 		)
 	})
 
-	_, err := newCloud(&bytes.Buffer{})
+	_, err := NewCloud()
 	assert.EqualError(t, err, "hcloud/newCloud: unable to authenticate (unauthorized)")
 }
 
@@ -196,7 +195,7 @@ func TestCloud(t *testing.T) {
 		)
 	})
 
-	cloud, err := newCloud(&bytes.Buffer{})
+	cloud, err := NewCloud()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -253,7 +252,7 @@ func TestCloud(t *testing.T) {
 		)
 		defer resetEnv()
 
-		c, err := newCloud(&bytes.Buffer{})
+		c, err := NewCloud()
 		if err != nil {
 			t.Errorf("%s", err)
 		}
