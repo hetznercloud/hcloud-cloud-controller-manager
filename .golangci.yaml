@@ -29,10 +29,10 @@ linters:
   disable-all: true
   enable:
     - bodyclose
+    - copyloopvar
     - errcheck
     - errname
     - exhaustive
-    - exportloopref
     - gci
     - gocritic
     - godot

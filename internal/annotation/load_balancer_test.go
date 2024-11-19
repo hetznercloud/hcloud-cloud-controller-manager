@@ -159,7 +159,6 @@ func TestLBToService_AddAnnotations(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := annotation.LBToService(&tt.svc, &tt.lb)
 			assert.NoError(t, err)

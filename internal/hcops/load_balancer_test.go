@@ -76,7 +76,6 @@ func TestLoadBalancerOps_GetByName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
 			if tt.mock != nil {
@@ -146,7 +145,6 @@ func TestLoadBalancerOps_GetByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
 			if tt.mock != nil {
@@ -201,7 +199,6 @@ func TestGetByK8SServiceUID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
 
@@ -463,7 +460,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
 
@@ -525,7 +521,6 @@ func TestLoadBalancerOps_Delete(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
 			ctx := context.Background()
@@ -1137,7 +1132,6 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, tt.run)
 	}
 }
@@ -1421,7 +1415,6 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, tt.run)
 	}
 }
@@ -1700,7 +1693,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, tt.run)
 	}
 }
