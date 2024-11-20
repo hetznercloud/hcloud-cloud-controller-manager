@@ -30,7 +30,7 @@ type UnkownPrefixError struct {
 
 func (e *UnkownPrefixError) Error() string {
 	return fmt.Sprintf(
-		"providerID does not have one of the the expected prefixes (%s, %s, %s): %s",
+		"Provider ID does not have one of the the expected prefixes (%s, %s, %s): %s",
 		prefixCloud,
 		prefixRobot,
 		prefixRobotLegacy,
