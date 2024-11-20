@@ -113,7 +113,13 @@ func (i *instances) lookupServer(
 	}
 
 	if cloudServer != nil && hrobotServer != nil {
-		i.recorder.Eventf(node, corev1.EventTypeWarning, "InstanceLookupFailed", "Node %s could not be uniquely associated with a Cloud or Robot server, as a server with this name exists in both APIs", node.Name)
+		i.recorder.Eventf(
+			node,
+			corev1.EventTypeWarning,
+			"InstanceLookupFailed",
+			"Node %s could not be uniquely associated with a Cloud or Robot server, as a server with this name exists in both APIs",
+			node.Name,
+		)
 		return nil, fmt.Errorf("found both a cloud & robot server for name %q", node.Name)
 	}
 

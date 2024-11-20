@@ -1287,6 +1287,33 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
 		},
 		{
+			name: "provider id does not have one of the the expected prefixes",
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{Spec: corev1.NodeSpec{ProviderID: "mycloud://2"}},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 5,
+				Targets: []hcloud.LoadBalancerTarget{
+					{
+						Type:   hcloud.LoadBalancerTargetTypeServer,
+						Server: &hcloud.LoadBalancerTargetServer{Server: &hcloud.Server{ID: 1}},
+					},
+				},
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 2,
+				},
+			},
+			mock: func(_ *testing.T, _ *LBReconcilementTestCase) {
+				// Nothing to mock because no action will be taken besides emitting an event
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
+		{
 			name: "enable use of private network via default",
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
