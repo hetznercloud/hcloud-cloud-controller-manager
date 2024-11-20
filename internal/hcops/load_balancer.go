@@ -613,7 +613,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	for _, node := range nodes {
 		id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
 		if err != nil {
-			if errors.Is(err, &providerid.UnkownPrefixError{}) {
+			if errors.As(err, new(*providerid.UnkownPrefixError)) {
 				// ProviderID has unknown prefix, cluster might have non-hccm nodes that can not be added to the
 				// Load Balancer. Emitting an event and ignoring that Node in this reconciliation loop.
 				l.Recorder.Eventf(
