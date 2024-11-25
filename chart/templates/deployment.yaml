@@ -92,7 +92,7 @@ spec:
             - name: ROBOT_ENABLED
               value: "true"
             {{- end }}
-          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }} # x-release-please-version
+          image: {{ $.Values.image.repository }}:{{ tpl $.Values.image.tag . }} # x-releaser-pleaser-version
           ports:
             {{- if $.Values.monitoring.enabled }}
             - name: metrics
