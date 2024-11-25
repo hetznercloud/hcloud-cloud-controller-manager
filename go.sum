@@ -89,6 +89,8 @@ github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 h1:bkypFPDjIYGfCYD5mRBvpqxfYX1
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0/go.mod h1:P+Lt/0by1T8bfcF3z737NnSbmxQAppXMRziHUxPOC8k=
 github.com/hetznercloud/hcloud-go/v2 v2.16.0 h1:s5wZFMX6/hZxONbD19pZ+JWvGaf2I7zH+f/Cem2ICAQ=
 github.com/hetznercloud/hcloud-go/v2 v2.16.0/go.mod h1:h8sHav+27Xa+48cVMAvAUMELov5h298Ilg2vflyTHgg=
+github.com/hetznercloud/hcloud-go/v2 v2.17.0 h1:ge0w2piey9SV6XGyU/wQ6HBR24QyMbJ3wLzezplqR68=
+github.com/hetznercloud/hcloud-go/v2 v2.17.0/go.mod h1:zfyZ4Orx+mPpYDzWAxXR7DHGL50nnlZ5Edzgs1o6f/s=
 github.com/imdario/mergo v0.3.16 h1:wwQJbIsHYGMUyLSPrEq1CT16AhnhNJQ51+4fdHUnCl4=
 github.com/imdario/mergo v0.3.16/go.mod h1:WBLT9ZmE3lPoWsEzCh9LPo3TiwVN+ZKEjmz+hD27ysY=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
