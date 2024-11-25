@@ -32,7 +32,7 @@ jobs:
       - uses: codecov/codecov-action@v5
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
-          !startsWith(github.head_ref, 'release-please--')
+          !startsWith(github.head_ref, 'releaser-pleaser--')
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
