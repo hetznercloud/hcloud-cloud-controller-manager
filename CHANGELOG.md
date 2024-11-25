@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.21.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.20.0...v1.21.0) (2024-11-25)
+
+
+### Features
+
+* add support & tests for Kubernetes 1.31 ([#747](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/747)) ([c1e903c](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/c1e903c798b19f7091a8ca36a042cc81d609fc54))
+* drop tests for kubernetes v1.27 ([#748](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/748)) ([0485215](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/0485215b0e4e12850c218b974677cc9ff45d7288))
+* emit event when robot server name and node name mismatch ([#773](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/773)) ([7960ddc](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/7960ddc0774dbce3d5f207561b07c218f5c236de))
+* **helm:** allow setting extra pod volumes via chart values  ([#744](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/744)) ([ad43445](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/ad43445c0e945482099561d2bed0a3c8f125e13f)), closes [#743](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/743)
+* **instance:** add label to distinguish servers from Cloud and Robot ([#764](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/764)) ([e6c0356](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/e6c03563d63f4ace31fc307f8a0f8fba9846353a))
+* **load-balancer:** ignore nodes that don't use known provider IDs ([#780](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/780)) ([6544740](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/6544740be9b0845bc4072d36d8ff3fdb9be82279))
+* **load-balancer:** Set IPMode to "Proxy" if load balancer is configured to use proxy protocol ([#727](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/727)) ([#783](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/783)) ([c9cfdaf](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/c9cfdafa93ecf0702687c927a28a42c2eb07bd2e))
+* **routes:** emit warning if cluster cidr is misconfigured ([#793](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/793)) ([81cc8b2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/81cc8b2c9f76c00fe7f56c939608316aa92e1721))
+* **service:** Specify private ip for loadbalancer ([#724](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/724)) ([4801f0e](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/4801f0e9d645a7c96799b823935098c5562a94b0))
+
+
+### Bug Fixes
+
+* invalid characters in label instance-type of robot servers ([#770](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/770)) ([dfffde7](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/dfffde70c905c15f3c1235991a1dcfb3c2817912))
+* no events are emitted as broadcaster has no sink configured ([#774](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/774)) ([635c727](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/635c72775d8a095c1115ea4ad884103b0c08620b))
+* populate ingress private ip when disable-private-ingress is false ([#715](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/715)) ([8d29153](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/8d291534a1adbb8bc9df0db7e5bd9f432ff2de6e))
+* wrong version logged on startup ([#729](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/729)) ([6b8cbf4](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/6b8cbf4f4c0e2a8e7a98bd7c8346b958e638ba57))
+
 ## [1.20.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.19.0...v1.20.0) (2024-07-08)
 
 
