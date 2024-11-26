@@ -1,5 +1,56 @@
 # Changelog
 
+## [v1.21.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.21.0)
+
+### Feature Highlights &amp; Upgrade Notes
+
+#### Load Balancer IPs set to Private IPs
+
+If networking support is enabled, the load balancer IPs are now populated with the private IPs, unless the `load-balancer.hetzner.cloud/disable-private-ingress` annotation is set to `true`. Please make sure that you configured the annotation according to your needs, for example if you are using `external-dns`.
+
+#### Provided-By Label
+
+We introduced a the label `instance.hetzner.cloud/provided-by`, which will be automatically added to all **new** nodes. This label can have the values `cloud` or `robot` to distinguish between our products. We use this label in the csi-driver to ensure the daemonset is only running on cloud nodes. We recommend to add this label to your existing nodes with the appropriate value.
+
+- `kubectl label node $CLOUD_NODE_NAME instance.hetzner.cloud/provided-by=cloud`
+- `kubectl label node $ROBOT_NODE_NAME instance.hetzner.cloud/provided-by=robot`
+
+#### Load Balancer IPMode Proxy
+
+Kubernetes KEP-1860 added a new field to the Load Balancer Service Status that allows us to mark if the IP address we add should be considered as a Proxy (always send traffic here) and VIP (allow optimization by keeping the traffic in the cluster).
+
+Previously Kubernetes considered all IPs as VIP, which caused issues when when the PROXY protocol was in use. We have previously recommended to use the annotation `load-balancer.hetzner.cloud/hostname` to workaround this problem.
+
+We now set the new field to `Proxy` if the PROXY protocol is active so the issue should no longer appear. If you  only added the `load-balancer.hetzner.cloud/hostname` annotation for this problem, you can remove it after upgrading.
+
+Further information:
+
+- https://github.com/kubernetes/enhancements/issues/1860
+- https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/160#issuecomment-788638132
+
+### Features
+
+- **service**: Specify private ip for loadbalancer (#724)
+- add support &amp; tests for Kubernetes 1.31 (#747)
+- **helm**: allow setting extra pod volumes via chart values  (#744)
+- **instance**: add label to distinguish servers from Cloud and Robot (#764)
+- emit event when robot server name and node name mismatch (#773)
+- **load-balancer**: Set IPMode to &#34;Proxy&#34; if load balancer is configured to use proxy protocol (#727) (#783)
+- **routes**: emit warning if cluster cidr is misconfigured (#793)
+- **load-balancer**: ignore nodes that don&#39;t use known provider IDs (#780)
+- drop tests for kubernetes v1.27 and v1.28
+
+### Bug Fixes
+
+- populate ingress private ip when disable-private-ingress is false (#715)
+- wrong version logged on startup (#729)
+- invalid characters in label instance-type of robot servers (#770)
+- no events are emitted as broadcaster has no sink configured (#774)
+
+### Kubernetes Support
+
+This version was tested with Kubernetes 1.29 - 1.31. Furthermore, we dropped v1.27 and v1.28 support.
+
 ## [1.20.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.19.0...v1.20.0) (2024-07-08)
 
 
