@@ -27,3 +27,5 @@ jobs:
             deploy/ccm-networks.yaml
             deploy/ccm.yaml
             chart/Chart.yaml
+            chart/.snapshots/default.yaml
+            chart/.snapshots/full.daemonset.yaml
