@@ -19,7 +19,6 @@ jobs:
       fail-fast: false # Continue tests matrix if a flaky run occurs.
       matrix:
         k3s:
-          - v1.28
           - v1.29
           - v1.30
           - v1.31
