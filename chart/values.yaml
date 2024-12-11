@@ -68,7 +68,7 @@ monitoring:
   podMonitor:
     # When enabled (and metrics.enabled=true), a PodMonitor will be deployed to scrape metrics.
     # The PodMonitor [1] CRD must already exist in the target cluster.
-    enabled: false
+    enabled: true
     # PodMonitor Labels
     labels: {}
     #   release: kube-prometheus-stack

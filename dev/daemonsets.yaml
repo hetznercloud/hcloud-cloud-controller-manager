@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-ds-1
+  namespace: kube-system
+  labels:
+    k8s-app: test-ds-1
+spec:
+  selector:
+    matchLabels:
+      name: test-ds-1
+  template:
+    metadata:
+      labels:
+        name: test-ds-1
+    spec:
+      containers:
+        - name: test-ds
+          image: nginx:1.14.2
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-ds-2
+  namespace: kube-system
+  labels:
+    k8s-app: test-ds-2
+spec:
+  selector:
+    matchLabels:
+      name: test-ds-2
+  template:
+    metadata:
+      labels:
+        name: test-ds-2
+    spec:
+      containers:
+        - name: test-ds
+          image: nginx:1.14.2
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-ds-3
+  namespace: kube-system
+  labels:
+    k8s-app: test-ds-3
+spec:
+  selector:
+    matchLabels:
+      name: test-ds-3
+  template:
+    metadata:
+      labels:
+        name: test-ds-3
+    spec:
+      containers:
+        - name: test-ds
+          image: nginx:1.14.2
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-ds-4
+  namespace: kube-system
+  labels:
+    k8s-app: test-ds-4
+spec:
+  selector:
+    matchLabels:
+      name: test-ds-4
+  template:
+    metadata:
+      labels:
+        name: test-ds-4
+    spec:
+      containers:
+        - name: test-ds
+          image: nginx:1.14.2
+
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-ds-5
+  namespace: kube-system
+  labels:
+    k8s-app: test-ds-5
+spec:
+  selector:
+    matchLabels:
+      name: test-ds-5
+  template:
+    metadata:
+      labels:
+        name: test-ds-5
+    spec:
+      containers:
+        - name: test-ds
+          image: nginx:1.14.2

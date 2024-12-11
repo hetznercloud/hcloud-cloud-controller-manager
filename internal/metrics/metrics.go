@@ -22,6 +22,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog/v2"
 )
 
@@ -38,18 +39,18 @@ var (
 	}, []string{"op"})
 )
 
-var registry = prometheus.NewRegistry()
+func init() {
+	GetRegistry().MustRegister(OperationCalled)
+}
 
-func GetRegistry() *prometheus.Registry {
-	return registry
+func GetRegistry() prometheus.Registerer {
+	return legacyregistry.Registerer()
 }
 
 func GetHandler() http.Handler {
-	registry.MustRegister(OperationCalled)
 
 	gatherers := prometheus.Gatherers{
-		prometheus.DefaultGatherer,
-		registry,
+		legacyregistry.DefaultGatherer,
 	}
 
 	return promhttp.HandlerFor(gatherers, promhttp.HandlerOpts{})

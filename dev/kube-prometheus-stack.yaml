@@ -1,0 +1,13 @@
+
+defaultRules:
+  create: false
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false

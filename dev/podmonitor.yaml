@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: hccm
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hcloud-cloud-controller-manager
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 1s

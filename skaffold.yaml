@@ -24,6 +24,7 @@ manifests:
           # We circumvent this by co-locating the registry & HCCM, so it's always a local pull.
           affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].topologyKey: "kubernetes.io/hostname"
           affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchLabels.app: docker-registry
+          monitoring.podMonitor.enabled: "true"
 
 profiles:
   # Clusters with Robot Servers do not support the native Routing functionality right now.
