@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM --platform=${BUILDPLATFORM} docker.io/library/golang:1.20.5@sha256:fd9306e1c664bd49a11d4a4a04e41303430e069e437d137876e9290a555e06fb as build
+FROM --platform=${BUILDPLATFORM} docker.io/library/golang:1.23.4 as build
 ARG TARGETOS TARGETARCH
 
 COPY . /src/hetzner-cloud-controller-manager
