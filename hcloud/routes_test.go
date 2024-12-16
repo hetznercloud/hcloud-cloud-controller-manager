@@ -39,12 +39,14 @@ func TestRoutes_CreateRoute(t *testing.T) {
 			},
 		})
 	})
-	env.Mux.HandleFunc("/actions/1", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(schema.NetworkActionAddRouteResponse{
-			Action: schema.Action{
-				ID:       1,
-				Status:   string(hcloud.ActionStatusSuccess),
-				Progress: 100,
+	env.Mux.HandleFunc("/actions", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ActionListResponse{
+			Actions: []schema.Action{
+				{
+					ID:       1,
+					Status:   string(hcloud.ActionStatusSuccess),
+					Progress: 100,
+				},
 			},
 		})
 	})
@@ -154,12 +156,14 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 			},
 		})
 	})
-	env.Mux.HandleFunc("/actions/1", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(schema.NetworkActionAddRouteResponse{
-			Action: schema.Action{
-				ID:       1,
-				Status:   string(hcloud.ActionStatusSuccess),
-				Progress: 100,
+	env.Mux.HandleFunc("/actions", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ActionListResponse{
+			Actions: []schema.Action{
+				{
+					ID:       1,
+					Status:   string(hcloud.ActionStatusSuccess),
+					Progress: 100,
+				},
 			},
 		})
 	})
