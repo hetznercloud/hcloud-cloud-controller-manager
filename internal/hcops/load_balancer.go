@@ -728,8 +728,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		if hclbTargetIDs[id] {
 			continue
 		}
-
-		if maxTargetsReached(numberOfTargets, lb.LoadBalancerType.Name) {
+		if lb.LoadBalancerType != nil && maxTargetsReached(numberOfTargets, lb.LoadBalancerType.Name) {
 			l.Recorder.Eventf(
 				svc,
 				"Warning",
@@ -785,7 +784,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				continue
 			}
 
-			if maxTargetsReached(numberOfTargets, lb.LoadBalancerType.Name) {
+			if lb.LoadBalancerType != nil && maxTargetsReached(numberOfTargets, lb.LoadBalancerType.Name) {
 				l.Recorder.Eventf(
 					svc,
 					"Warning",

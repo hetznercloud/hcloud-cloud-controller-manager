@@ -82,8 +82,11 @@ func getRobotServerByName(c robotclient.Client, node *corev1.Node) (server *mode
 	return server, nil
 }
 
-func getRobotServerByID(c robotclient.Client, id int, node *corev1.Node) (*models.Server, error) {
+func getRobotServerByID(c robotclient.Client, id int, node *corev1.Node) (s *models.Server, e error) {
 	const op = "robot/getServerByID"
+	if node.Name == "" {
+		return nil, fmt.Errorf("%s: node name is empty", op)
+	}
 
 	if c == nil {
 		return nil, errMissingRobotCredentials
@@ -95,7 +98,10 @@ func getRobotServerByID(c robotclient.Client, id int, node *corev1.Node) (*model
 	}
 
 	server, err := c.ServerGet(id)
-	if err != nil && !models.IsError(err, models.ErrorCodeServerNotFound) {
+	if models.IsError(err, models.ErrorCodeServerNotFound) {
+		return nil, nil
+	}
+	if err != nil {
 		hcops.HandleRateLimitExceededError(err, node)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

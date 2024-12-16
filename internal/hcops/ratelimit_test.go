@@ -26,6 +26,7 @@ func TestRateLimitIsExceeded(t *testing.T) {
 	rateLimitExceeded := rateLimitHandler{
 		exceeded:    true,
 		lastChecked: now.Add(-3 * time.Minute),
+		waitTime:    5 * time.Minute,
 	}
 
 	require.Equal(t, true, rateLimitExceeded.isExceeded())

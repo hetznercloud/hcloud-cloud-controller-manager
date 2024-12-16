@@ -51,7 +51,7 @@ func (tc *TestCluster) Start() error {
 	if token == "" {
 		buf, err := os.ReadFile(fmt.Sprintf("../../hack/.token-%s", tc.scope))
 		if err != nil {
-			return err
+			return fmt.Errorf("HCLOUD_TOKEN not set and no token file found: %w", err)
 		}
 		token = string(buf)
 	}
@@ -67,10 +67,12 @@ func (tc *TestCluster) Start() error {
 	hcloudClient := hcloud.NewClient(opts...)
 	tc.hcloud = hcloudClient
 
-	err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-"+tc.scope)
-	if err != nil {
-		return err
-	}
+	// Syself: the e2e tests seem to require a special environment.
+	// I tried it with a kind cluster, but this did not work.
+	// err := os.Setenv("KUBECONFIG", "../../hack/.kubeconfig-"+tc.scope)
+	// if err != nil {
+	// 	return err
+	// }
 
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
