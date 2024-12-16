@@ -7,6 +7,62 @@ The Hetzner Cloud controller manager seamlessly integrates your Kubernetes clust
 > This specific fork of the CCM has been enhanced to support Hetzner Dedicated servers and is actively maintained by [Syself](https://syself.com). Its primary purpose is to facilitate the operation of the [Cluster API Provider Integration Hetzner](https://github.com/syself/cluster-api-provider-hetzner).
 > If you have inquiries or are contemplating deploying production-grade Kubernetes clusters on Hetzner, we welcome you to reach out to us at [info@syself.com](mailto:info@syself.com?subject=cluster-api-provider-hetzner).
 
+## About the Fork
+
+In the long run, we (Syself) would like to switch to the [upstream ccm](https://github.com/syself/hetzner-cloud-controller-manager/) again.
+
+A lot of changes were made in the upstream fork, and we don't plan to merge them into our fork.
+
+Instead we plan to create PRs in upstream, so that our fork is no longer needed.
+
+Features/PRs which are different in our fork. We should create PRs in upstream for these:
+
+* [separate user agent from HCCM](https://github.com/syself/hetzner-cloud-controller-manager/pull/42): Make this configurable in upstream.
+* [ROBOT_DEBUG, show stacktrace on api-calls](https://github.com/syself/hetzner-cloud-controller-manager/pull/41>) Via ROBOT_DEBUG show every stack-trace which uses the robot-API (to debug why rate-limiting was reached)
+* [PR add version information to the controller binary](https://github.com/syself/hetzner-cloud-controller-manager/pull/28): Build process is different in upstream.
+* [PR Add Github WF for releasing](https://github.com/syself/hetzner-cloud-controller-manager/pull/29)
+* [PR entrypoint in container image](https://github.com/syself/hetzner-cloud-controller-manager/pull/25)
+* [PR rate limiting hcloud](https://github.com/syself/hetzner-cloud-controller-manager/pull/20)
+* Upstream has three `ServerGetList` implementations: cache, rate-limited, mock. Our fork has two: mock, cached.
+
+Additional PRs we should create in upstream, so that we can use upstream instead our fork:
+
+* Make ProviderID configurable (hrobot://NNN vs hcloud://bm-NNN)
+* Sort Go imports
+* Compare linters of upstream with the linters of our other repos.
+
+PRs which are **not** needed in upstream, because upstream has this feature:
+
+* [PR getInstanceTypeOfRobotServer: convert invalid characters to dashes](https://github.com/syself/hetzner-cloud-controller-manager/pull/40)
+* [Make robot client optional for lb client](https://github.com/syself/hetzner-cloud-controller-manager/pull/37): upstream uses ROBOT_ENABLED. We need to set that env var.
+* [Fix InstanceExists for baremetal servers, check node name](https://github.com/syself/hetzner-cloud-controller-manager/pull/32)
+* [Handle errors of not enough lb targets](https://github.com/syself/hetzner-cloud-controller-manager/pull/22): Max LB targets reached.
+* [Fix lb default for disable IPv6](https://github.com/syself/hetzner-cloud-controller-manager/pull/21/files)
+* [robot cache](https://github.com/syself/hetzner-cloud-controller-manager/pull/19)
+* [Support for robot](https://github.com/syself/hetzner-cloud-controller-manager/pull/1)
+
+If you update the Syself fork, please create two PRs for version updates and code updates. Mixing both in one PR makes things harder to understand.
+
+Files moved by upstream in their fork:
+
+* internal/robot/client/cache/client.go (from Janis Okt 2023) --> internal/robot/cache.go (by Julian Nov 2023)
+* internal/robot/client/interface.go --> internal/robot/interface.go
+* internal/util/util.go GetEnvDuration() --> internal/config/config.go
+* hcloud/util.go --> hcloud/instances_util.go
+
+How to keep our fork up to date: Check which changes were done in upstream. Pick indivual features, if they make sense for us. If unsure,
+don't pick a feature. Instead try to get our features into upstream, and update or dependencies.
+
+TODO:
+
+* from quay.io to ghcr.io
+
+---
+
+End of "About the fork"
+
+---
+
 ## Features
 
 * **instances interface**: adds the server type to the `node.kubernetes.io/instance-type` label, sets the external ipv4 and ipv6 addresses and deletes nodes from Kubernetes that were deleted from the Hetzner Cloud.
@@ -124,7 +180,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
 ## Networks support
 
 When you use the Cloud Controller Manager with networks support, the CCM is in favor of allocating the IPs (& setup the
-routing) (Docs: https://kubernetes.io/docs/concepts/architecture/cloud-controller/#route-controller). The CNI plugin you
+routing) (Docs: <https://kubernetes.io/docs/concepts/architecture/cloud-controller/#route-controller>). The CNI plugin you
 use needs to support this k8s native functionality (Cilium does it, I don't know about Calico & WeaveNet), so basically
 you use the Hetzner Cloud Networks as the underlying networking stack.
 
@@ -159,7 +215,7 @@ secret: `kubectl -n kube-system create secret generic hcloud --from-literal=toke
 If `kube-proxy` is run in IPVS mode, the `Service` manifest needs to have the
 annotation `load-balancer.hetzner.cloud/hostname` where the FQDN resolves to the HCloud LoadBalancer IP.
 
-See https://github.com/syself/hetzner-cloud-controller-manager/issues/212
+See <https://github.com/syself/hetzner-cloud-controller-manager/issues/212>
 
 ## Versioning policy
 
@@ -174,23 +230,23 @@ not fix bugs related only to an unsupported version.
 
 | Kubernetes | Cloud Controller Manager |                                                                                             Deployment File |
 |------------|-------------------------:|------------------------------------------------------------------------------------------------------------:|
-| 1.28       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.27       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.26       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.25       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.24       |                  v1.17.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.17.2/ccm-networks.yaml |
-| 1.23       |                  v1.13.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm-networks.yaml |
+| 1.28       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml> |
+| 1.27       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml> |
+| 1.26       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml> |
+| 1.25       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml> |
+| 1.24       |                  v1.17.2 | <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.17.2/ccm-networks.yaml> |
+| 1.23       |                  v1.13.2 | <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm-networks.yaml> |
 
 ### Without Networks support
 
 | Kubernetes | Cloud Controller Manager |                                                                                    Deployment File |
 |------------|-------------------------:|---------------------------------------------------------------------------------------------------:|
-| 1.28       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.27       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.26       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.25       |                     main |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.24       |                  v1.17.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.17.2/ccm.yaml |
-| 1.23       |                  v1.13.2 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm.yaml |
+| 1.28       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml> |
+| 1.27       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml> |
+| 1.26       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml> |
+| 1.25       |                     main |  <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml> |
+| 1.24       |                  v1.17.2 | <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.17.2/ccm.yaml> |
+| 1.23       |                  v1.13.2 | <https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.13.2/ccm.yaml> |
 
 ## Unit tests
 
@@ -290,8 +346,8 @@ hcloud server create --name ccm-test-server --image ubuntu-20.04 --ssh-key ssh-k
 k3sup install --ip $(hcloud server ip ccm-test-server) --local-path=/tmp/kubeconfig --cluster --k3s-channel=v1.23 --k3s-extra-args='--no-flannel --no-deploy=servicelb --no-deploy=traefik --disable-cloud-controller --disable-network-policy --kubelet-arg=cloud-provider=external'
 ```
 
-- The kubeconfig will be created under `/tmp/kubeconfig`
-- Kubernetes version can be configured via `--k3s-channel`
+* The kubeconfig will be created under `/tmp/kubeconfig`
+* Kubernetes version can be configured via `--k3s-channel`
 
 4. Switch your kubeconfig to the test cluster. Very important: exporting this like
 
@@ -312,13 +368,14 @@ kubectl -n kube-system create secret generic hcloud --from-literal="token=$HCLOU
 ```
 
 7. Deploy the hcloud-cloud-controller-manager
+
 ```
 SKAFFOLD_DEFAULT_REPO=your_docker_hub_username skaffold dev
 ```
 
-- `docker login` required
-- Skaffold is using your own Docker Hub repo to push the HCCM image.
-- After the first run, you might need to set the image to "public" on hub.docker.com
+* `docker login` required
+* Skaffold is using your own Docker Hub repo to push the HCCM image.
+* After the first run, you might need to set the image to "public" on hub.docker.com
 
 On code change, Skaffold will repack the image & deploy it to your test cluster again. It will also stream logs from the hccm Deployment.
 
@@ -340,11 +397,11 @@ export HETZNER_SSH_PUB_PATH="<YOUR-SSH-PUBLIC-PATH>" \
 export HETZNER_SSH_PRIV_PATH="<YOUR-SSH-PRIVATE-PATH>" \
 ```
 
-- HCLOUD_TOKEN: The project where your cluster will be placed to. You have to get a token from your HCloud Project.
-- HETZNER_ROBOT_USER: The User you have defined in robot under settings / Web
-- HETZNER_ROBOT_PASSWORD: The Robot Password you have set in robot under settings/web.
-- HETZNER_SSH_PUB_PATH: The Path to your generated Public SSH Key.
-- HETZNER_SSH_PRIV_PATH: The Path to your generated Private SSH Key. This is needed because CAPH uses this key to provision the node in Hetzner Dedicated.
+* HCLOUD_TOKEN: The project where your cluster will be placed to. You have to get a token from your HCloud Project.
+* HETZNER_ROBOT_USER: The User you have defined in robot under settings / Web
+* HETZNER_ROBOT_PASSWORD: The Robot Password you have set in robot under settings/web.
+* HETZNER_SSH_PUB_PATH: The Path to your generated Public SSH Key.
+* HETZNER_SSH_PRIV_PATH: The Path to your generated Private SSH Key. This is needed because CAPH uses this key to provision the node in Hetzner Dedicated.
 
 1. Make sure to name your root servers on Hetzner Robot with a `bm-` prefix, e.g. `bm-worker-1`
 2. Configure worker nodes to use the same name as hostname / node name
