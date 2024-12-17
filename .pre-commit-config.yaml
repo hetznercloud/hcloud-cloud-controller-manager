@@ -51,6 +51,7 @@ repos:
     hooks:
       - id: golangci-lint
         args: [--timeout=5m]
+        language_version: 1.23.4 # renovate: datasource=golang-version
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
