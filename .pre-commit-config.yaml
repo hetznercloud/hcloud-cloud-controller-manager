@@ -36,6 +36,13 @@ repos:
         files: \.(md|ya?ml)$
         exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*)$
 
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.62.2
+    hooks:
+      - id: golangci-lint-full
+        args: [--timeout=5m]
+        language_version: 1.23.4 # renovate: datasource=golang-version
+
   - repo: local
     hooks:
       - id: shfmt
@@ -45,13 +52,6 @@ repos:
         additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.8.0]
         entry: shfmt -i 2 -ci -sr -kp -w
         types: [shell]
-
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v1.62.2
-    hooks:
-      - id: golangci-lint-full
-        args: [--timeout=5m]
-        language_version: 1.23.4 # renovate: datasource=golang-version
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
