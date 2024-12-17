@@ -845,16 +845,16 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		return false, fmt.Errorf("%s: %v", op, err)
 	}
 
-    for _, port := range svc.Spec.Ports {
-        if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
-            err := fmt.Errorf(
-                "configured unsupported Hetzner Cloud load balancer protocol %s for service with name %s",
-                port.Protocol,
-                svc.Name,
-            )
-            return false, err
-        }
-    }
+	for _, port := range svc.Spec.Ports {
+		if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
+			err := fmt.Errorf(
+				"configured unsupported Hetzner Cloud load balancer protocol %s for service with name %s",
+				port.Protocol,
+				svc.Name,
+			)
+			return false, err
+		}
+	}
 
 	hclbListenPorts := make(map[int]bool, len(lb.Services))
 	for _, hclbService := range lb.Services {
