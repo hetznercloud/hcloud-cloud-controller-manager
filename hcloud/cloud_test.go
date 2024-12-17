@@ -18,18 +18,23 @@ package hcloud
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/credentials"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	hrobot "github.com/syself/hrobot-go"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type testEnv struct {
@@ -54,6 +59,7 @@ func newTestEnv() testEnv {
 		hcloud.WithEndpoint(server.URL),
 		hcloud.WithToken("jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75"),
 		hcloud.WithBackoffFunc(func(_ int) time.Duration { return 0 }),
+		// hcloud.WithDebugWriter(os.Stdout),
 	)
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
@@ -72,7 +78,6 @@ func TestNewCloud(t *testing.T) {
 	resetEnv := Setenv(t,
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
-		"NODE_NAME", "test",
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
@@ -99,7 +104,7 @@ func TestNewCloudWrongTokenSize(t *testing.T) {
 
 	var config bytes.Buffer
 	_, err := newCloud(&config)
-	if err == nil || err.Error() != "entered token is invalid (must be exactly 64 characters long)" {
+	if err == nil || err.Error() != "hcloud/newCloud: entered token is invalid (must be exactly 64 characters long)" {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
@@ -108,7 +113,6 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 	resetEnv := Setenv(t,
 		"HCLOUD_ENDPOINT", "http://127.0.0.1:4711/v1",
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
-		"NODE_NAME", "test",
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
@@ -125,7 +129,6 @@ func TestNewCloudInvalidToken(t *testing.T) {
 	resetEnv := Setenv(t,
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
-		"NODE_NAME", "test",
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
@@ -153,7 +156,6 @@ func TestCloud(t *testing.T) {
 	resetEnv := Setenv(t,
 		"HCLOUD_ENDPOINT", env.Server.URL,
 		"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
-		"NODE_NAME", "test",
 		"HCLOUD_METRICS_ENABLED", "false",
 		"ROBOT_USER_NAME", "user",
 		"ROBOT_PASSWORD", "pass123",
@@ -394,4 +396,82 @@ func TestLoadBalancerDefaultsFromEnv(t *testing.T) {
 			assert.Equal(t, c.expDisableIPv6, disableIPv6)
 		})
 	}
+}
+
+func Test_updateHcloudCredentials(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	os.Unsetenv("HCLOUD_TOKEN")
+
+	rootDir, err := os.MkdirTemp("", "Test_newHcloudClient-*")
+	require.NoError(t, err)
+
+	credentialsDir := credentials.GetDirectory(rootDir)
+	err = os.MkdirAll(credentialsDir, 0o755)
+	require.NoError(t, err)
+
+	token := "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75"
+	err = writeCredentials(credentialsDir, token)
+	require.NoError(t, err)
+	hcloudClient, err := newHcloudClient(rootDir)
+	require.NoError(t, err)
+
+	err = credentials.Watch(credentialsDir, hcloudClient, nil)
+	require.NoError(t, err)
+
+	hcloud.WithEndpoint(server.URL)(hcloudClient)
+
+	mux.HandleFunc("/servers/1", func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, r.Header.Get("Authorization"), "Bearer "+token)
+		json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{
+				ID:   1,
+				Name: "foobar",
+			},
+		})
+	})
+	i := newInstances(hcloudClient, nil, AddressFamilyIPv4, 0)
+
+	node := &corev1.Node{
+		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
+	}
+	_, err = i.InstanceExists(context.TODO(), node)
+	require.NoError(t, err)
+
+	oldCounter := credentials.GetHcloudReloadCounter()
+	token2 := "22222ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jNZXCeTYQ4uArypFM3nh75"
+	err = writeCredentials(credentialsDir, token2)
+	require.NoError(t, err)
+	start := time.Now()
+	for {
+		if credentials.GetHcloudReloadCounter() > oldCounter {
+			break
+		}
+		if time.Since(start) > time.Second*3 {
+			t.Fatal("timeout waiting for reload")
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	mux.HandleFunc("/servers/2", func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, r.Header.Get("Authorization"), "Bearer "+token2)
+		json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{
+				ID:   2,
+				Name: "foobar2",
+			},
+		})
+	})
+	node2 := &corev1.Node{
+		Spec: corev1.NodeSpec{ProviderID: "hcloud://2"},
+	}
+	_, err = i.InstanceExists(context.TODO(), node2)
+	require.NoError(t, err)
+}
+
+func writeCredentials(credentialsDir, token string) error {
+	return os.WriteFile(filepath.Join(credentialsDir, "hcloud"),
+		[]byte(token), 0o600)
 }

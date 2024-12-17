@@ -27,16 +27,14 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/credentials"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/metrics"
 	robotclient "github.com/syself/hetzner-cloud-controller-manager/internal/robot/client"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/robot/client/cache"
-	"github.com/syself/hetzner-cloud-controller-manager/internal/util"
-	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
@@ -51,15 +49,9 @@ const (
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
 	robotDebugENVVar     = "ROBOT_DEBUG"
 
-	robotUserNameENVVar = "ROBOT_USER_NAME"
-	robotPasswordENVVar = "ROBOT_PASSWORD"
-
 	// Only as reference - is used in hcops package.
 	// Default is 5 minutes.
 	RateLimitWaitTimeRobot = "RATE_LIMIT_WAIT_TIME_ROBOT"
-
-	// default is 5 minutes.
-	CacheTimeout = "CACHE_TIMEOUT"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheckENVVar  = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -73,7 +65,6 @@ const (
 	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 	hcloudMetricsEnabledENVVar               = "HCLOUD_METRICS_ENABLED"
 	hcloudMetricsAddress                     = ":8233"
-	nodeNameENVVar                           = "NODE_NAME"
 	providerName                             = "hcloud"
 	hostNamePrefixRobot                      = "bm-"
 )
@@ -84,7 +75,7 @@ var errMissingRobotCredentials = errors.New("missing robot credentials - cannot 
 var providerVersion = "unknown"
 
 type cloud struct {
-	client       *hcloud.Client
+	hcloudClient *hcloud.Client
 	robotClient  robotclient.Client
 	instances    *instances
 	routes       *routes
@@ -111,22 +102,21 @@ func (lt *LoggingTransport) RoundTrip(req *http.Request) (resp *http.Response, e
 	return resp, nil
 }
 
-func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
-	const op = "hcloud/newCloud"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	token := os.Getenv(hcloudTokenENVVar)
-	if token == "" {
-		return nil, fmt.Errorf("environment variable %q is required", hcloudTokenENVVar)
+func newHcloudClient(rootDir string) (*hcloud.Client, error) {
+	credentialsDir := credentials.GetDirectory(rootDir)
+	token, err := credentials.GetInitialHcloudCredentialsFromDirectory(credentialsDir)
+	if err != nil {
+		klog.V(1).Infof("reading Hetzner Cloud token from directory failed. Will try env var: %s", err.Error())
+		token = os.Getenv(hcloudTokenENVVar)
+		if token == "" {
+			return nil, fmt.Errorf("Either token from directory %q or environment variable %q is required", credentialsDir, hcloudTokenENVVar)
+		}
+	} else {
+		klog.V(1).Infof("reading Hetzner Cloud token from %q. The controller will reload the credentials, when the file changes", credentialsDir)
 	}
 	if len(token) != 64 {
 		return nil, fmt.Errorf("entered token is invalid (must be exactly 64 characters long)")
 	}
-	nodeName := os.Getenv(nodeNameENVVar)
-	if nodeName == "" {
-		return nil, fmt.Errorf("environment variable %q is required", nodeNameENVVar)
-	}
-
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
 		hcloud.WithApplication("hetzner-cloud-controller", providerVersion),
@@ -146,43 +136,43 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 		opts = append(opts, hcloud.WithEndpoint(endpoint))
 	}
 	client := hcloud.NewClient(opts...)
+	return client, nil
+}
+
+func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
+	const op = "hcloud/newCloud"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	rootDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	hcloudClient, err := newHcloudClient(rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	metadataClient := metadata.NewClient()
 
-	robotUserName := os.Getenv(robotUserNameENVVar)
-	robotPassword := os.Getenv(robotPasswordENVVar)
-
-	cacheTimeout, err := util.GetEnvDuration(CacheTimeout)
+	var httpClient *http.Client
+	if os.Getenv(robotDebugENVVar) == "true" {
+		httpClient = &http.Client{
+			Transport: &LoggingTransport{
+				roundTripper: http.DefaultTransport,
+			},
+		}
+	}
+	robotClient, err := cache.NewCachedRobotClient(rootDir, httpClient, "")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if cacheTimeout == 0 {
-		cacheTimeout = 5 * time.Minute
-	}
-
-	var robotClient robotclient.Client
-	if robotUserName != "" && robotPassword != "" {
-		var c hrobot.RobotClient
-		if os.Getenv(robotDebugENVVar) == "true" {
-			client := &http.Client{
-				Transport: &LoggingTransport{
-					roundTripper: http.DefaultTransport,
-				},
-			}
-			c = hrobot.NewBasicAuthClientWithCustomHttpClient(robotUserName, robotPassword, client)
-			klog.Info("Enabled robot API debugging")
-		} else {
-			c = hrobot.NewBasicAuthClient(robotUserName, robotPassword)
-			klog.Infof("Not enabling robot API debugging. Set env var %s=true to enable it.", robotDebugENVVar)
-		}
-		robotClient = cache.NewClient(c, cacheTimeout)
-	} else {
-		klog.Infof("Hetzner robot is not support because of insufficient credentials. Robot user name specified: %v. Robot password specified: %v", robotUserName != "", robotPassword != "")
+	if robotClient == nil {
+		klog.Info("Robot client is nil, will not be able to manage bare metal servers.")
 	}
 
 	var networkID int64
 	if v, ok := os.LookupEnv(hcloudNetworkENVVar); ok {
-		n, _, err := client.Network.Get(context.Background(), v)
+		n, _, err := hcloudClient.Network.Get(context.Background(), v)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -210,7 +200,7 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	}
 
 	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
-	_, _, err = client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	_, _, err = hcloudClient.Server.List(context.Background(), hcloud.ServerListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -228,30 +218,39 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 	lbRecorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hetzner-ccm-loadbalancer"})
 
 	lbOps := &hcops.LoadBalancerOps{
-		LBClient:      &client.LoadBalancer,
-		CertOps:       &hcops.CertificateOps{CertClient: &client.Certificate},
-		ActionClient:  &client.Action,
-		NetworkClient: &client.Network,
+		LBClient:      &hcloudClient.LoadBalancer,
+		CertOps:       &hcops.CertificateOps{CertClient: &hcloudClient.Certificate},
+		ActionClient:  &hcloudClient.Action,
+		NetworkClient: &hcloudClient.Network,
 		RobotClient:   robotClient,
 		NetworkID:     networkID,
 		Recorder:      lbRecorder,
 		Defaults:      lbOpsDefaults,
 	}
 
-	loadBalancers := newLoadBalancers(lbOps, &client.Action, lbDisablePrivateIngress, lbDisableIPv6)
+	loadBalancers := newLoadBalancers(lbOps, &hcloudClient.Action, lbDisablePrivateIngress, lbDisableIPv6)
 	if os.Getenv(hcloudLoadBalancersEnabledENVVar) == "false" {
 		loadBalancers = nil
 	}
-
 	instancesAddressFamily, err := addressFamilyFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	credentialsDir := credentials.GetDirectory(rootDir)
+	_, err = os.Stat(credentialsDir)
+	if err == nil {
+		// Watch for changes in the secrets directory
+		err := credentials.Watch(credentialsDir, hcloudClient, robotClient)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+
 	return &cloud{
-		client:       client,
+		hcloudClient: hcloudClient,
 		robotClient:  robotClient,
-		instances:    newInstances(client, robotClient, instancesAddressFamily, networkID),
+		instances:    newInstances(hcloudClient, robotClient, instancesAddressFamily, networkID),
 		loadBalancer: loadBalancers,
 		routes:       nil,
 		networkID:    networkID,
@@ -288,7 +287,7 @@ func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 	if c.networkID > 0 && os.Getenv(hcloudNetworkRoutesEnabledENVVar) != "false" {
-		r, err := newRoutes(c.client, c.networkID)
+		r, err := newRoutes(c.hcloudClient, c.networkID)
 		if err != nil {
 			klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
 			return nil, false

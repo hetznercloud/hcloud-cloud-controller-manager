@@ -83,7 +83,7 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 // CreateRoute creates the described managed route
 // route.Name will be ignored, although the cloud-provider may use nameHint
 // to create a more user-meaningful name.
-func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint string, route *cloudprovider.Route) error {
+func (r *routes) CreateRoute(ctx context.Context, clusterName, nameHint string, route *cloudprovider.Route) error {
 	const op = "hcloud/CreateRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 

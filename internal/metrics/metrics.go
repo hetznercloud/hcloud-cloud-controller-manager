@@ -24,12 +24,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
-var (
-	OperationCalled = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "cloud_controller_manager_operations_total",
-		Help: "The total number of operation was called",
-	}, []string{"op"})
-)
+var OperationCalled = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "cloud_controller_manager_operations_total",
+	Help: "The total number of operation was called",
+}, []string{"op"})
 
 var registry = prometheus.NewRegistry()
 

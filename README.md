@@ -33,6 +33,7 @@ Additional PRs we should create in upstream, so that we can use upstream instead
 
 PRs which are **not** needed in upstream, because upstream has this feature:
 
+* [PR hotreload credentials, when mounted secret changed](https://github.com/syself/hetzner-cloud-controller-manager/pull/49)
 * [PR getInstanceTypeOfRobotServer: convert invalid characters to dashes](https://github.com/syself/hetzner-cloud-controller-manager/pull/40)
 * [Make robot client optional for lb client](https://github.com/syself/hetzner-cloud-controller-manager/pull/37): upstream uses ROBOT_ENABLED. We need to set that env var.
 * [Fix InstanceExists for baremetal servers, check node name](https://github.com/syself/hetzner-cloud-controller-manager/pull/32)
@@ -69,6 +70,30 @@ helm upgrade --install ccm syself/ccm-hetzner --version X.Y.Z \
 ```
 
 See [CAPH docs](https://syself.com/docs/caph/topics/baremetal/creating-workload-cluster#deploying-the-hetzner-cloud-controller-manager) for more details.
+
+## Usage
+
+We recommend to mount the secret `hetzner` as volume and make it avaiable for the container as `/etc/hetzner-secret`.
+Then the credentials are automatically reloaded, when the secret changes.
+You see an example in the [ccm helm chart](https://github.com/syself/charts/tree/main/charts/ccm-hetzner)
+
+## Env Variables
+
+ROBOT_DEBUG: When set to `true`, then api calls to the hetzner robot API will be logged.
+
+CACHE_TIMEOUT: Timeout of the Robot API Cache. See [ParseDuration](https://pkg.go.dev/time#ParseDuration) for supported syntax.
+
+HCLOUD_ENDPOINT: Defaults to `https://api.hetzner.cloud/v1`
+
+Additional Env Variables are defined at the top of [cloud.go](https://github.com/syself/hetzner-cloud-controller-manager/blob/master/hcloud/cloud.go)
+
+Deprecated (use mounted secret instead):
+
+```
+HCLOUD_TOKEN
+ROBOT_USER_NAME
+ROBOT_PASSWORD
+```
 
 ---
 

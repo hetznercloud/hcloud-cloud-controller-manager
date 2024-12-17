@@ -35,7 +35,7 @@ type loadBalancers struct {
 	disableIPv6Default           bool
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disablePrivateIngressDefault bool, disableIPv6Default bool) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, ac hcops.HCloudActionClient, disablePrivateIngressDefault, disableIPv6Default bool) *loadBalancers {
 	return &loadBalancers{
 		lbOps:                        lbOps,
 		ac:                           ac,
