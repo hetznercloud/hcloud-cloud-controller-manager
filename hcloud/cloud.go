@@ -48,6 +48,7 @@ const (
 	hcloudNetworkENVVar  = "HCLOUD_NETWORK"
 	hcloudDebugENVVar    = "HCLOUD_DEBUG"
 	robotDebugENVVar     = "ROBOT_DEBUG"
+	robotEndpointENVVar  = "ROBOT_ENDPOINT"
 
 	// Only as reference - is used in hcops package.
 	// Default is 5 minutes.
@@ -160,8 +161,11 @@ func newCloud(_ io.Reader) (cloudprovider.Interface, error) {
 				roundTripper: http.DefaultTransport,
 			},
 		}
+	} else {
+		httpClient = http.DefaultClient
 	}
-	robotClient, err := cache.NewCachedRobotClient(rootDir, httpClient, "")
+
+	robotClient, err := cache.NewCachedRobotClient(rootDir, httpClient, os.Getenv(robotEndpointENVVar))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

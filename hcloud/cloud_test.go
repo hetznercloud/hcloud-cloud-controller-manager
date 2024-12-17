@@ -31,10 +31,13 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/syself/hetzner-cloud-controller-manager/internal/annotation"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/credentials"
 	"github.com/syself/hetzner-cloud-controller-manager/internal/hcops"
 	hrobot "github.com/syself/hrobot-go"
+	"github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type testEnv struct {
@@ -404,6 +407,8 @@ func Test_updateHcloudCredentials(t *testing.T) {
 	defer server.Close()
 
 	os.Unsetenv("HCLOUD_TOKEN")
+	t.Setenv("HCLOUD_ENDPOINT", server.URL)
+	t.Setenv("HCLOUD_METRICS_ENABLED", "false")
 
 	rootDir, err := os.MkdirTemp("", "Test_newHcloudClient-*")
 	require.NoError(t, err)
@@ -474,4 +479,61 @@ func Test_updateHcloudCredentials(t *testing.T) {
 func writeCredentials(credentialsDir, token string) error {
 	return os.WriteFile(filepath.Join(credentialsDir, "hcloud"),
 		[]byte(token), 0o600)
+}
+
+func Test_EnsureLoadBalancer(t *testing.T) {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+
+	mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(
+			schema.ServerListResponse{
+				Servers: []schema.Server{},
+			},
+		)
+	})
+	schemaLB := schema.LoadBalancer{
+		ID:   0,
+		Name: "mylb",
+	}
+	mux.HandleFunc("/load_balancers", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(
+			schema.LoadBalancerListResponse{
+				LoadBalancers: []schema.LoadBalancer{schemaLB},
+			},
+		)
+	})
+	mux.HandleFunc("/robot/server", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]models.ServerResponse{
+			{
+				Server: models.Server{
+					ServerIP:      "123.123.123.123",
+					ServerIPv6Net: "2a01:f48:111:4221::",
+					ServerNumber:  321,
+					Name:          "bm-server1",
+				},
+			},
+		})
+	})
+
+	t.Setenv("HCLOUD_ENDPOINT", server.URL)
+	t.Setenv("HCLOUD_DEBUG", "true")
+	t.Setenv("HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq")
+	t.Setenv("ROBOT_USER_NAME", "user")
+	t.Setenv("ROBOT_PASSWORD", "pass123")
+	t.Setenv("ROBOT_ENDPOINT", server.URL+"/robot")
+	t.Setenv("HCLOUD_METRICS_ENABLED", "false")
+
+	cloud, err := newCloud(&bytes.Buffer{})
+	require.NoError(t, err)
+	lb, supported := cloud.LoadBalancer()
+	require.True(t, supported)
+	_, err = lb.EnsureLoadBalancer(context.Background(), "dummy", &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				string(annotation.LBLocation): "hel1",
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
 }

@@ -41,6 +41,10 @@ type cacheRobotClient struct {
 // the credentials are optional.
 func NewCachedRobotClient(rootDir string, httpClient *http.Client, baseURL string) (robotclient.Client, error) {
 	const op = "hcloud/newRobotClient"
+
+	if httpClient == nil {
+		return nil, fmt.Errorf("%s: httpClient is nil", op)
+	}
 	cacheTimeout, err := util.GetEnvDuration(cacheTimeoutENVVar)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
