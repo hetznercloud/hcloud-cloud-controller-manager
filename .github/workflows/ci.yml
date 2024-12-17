@@ -36,22 +36,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.62.2 # renovate: datasource=github-releases depName=golangci/golangci-lint
-
-          # In general linting is quite fast with warm caches, but a fresh run might take some time.
-          args: --timeout 5m
-
   deploy-manifests:
     name: Check deployment manifests
     runs-on: ubuntu-latest

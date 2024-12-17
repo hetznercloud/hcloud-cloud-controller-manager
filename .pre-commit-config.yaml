@@ -46,6 +46,12 @@ repos:
         entry: shfmt -i 2 -ci -sr -kp -w
         types: [shell]
 
+  - repo: https://github.com/golangci/golangci-lint/
+    rev: v1.62.2
+    hooks:
+      - id: golangci-lint
+        args: [--timeout=5m]
+
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
