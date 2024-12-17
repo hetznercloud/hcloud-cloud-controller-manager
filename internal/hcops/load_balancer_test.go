@@ -1449,6 +1449,17 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 	tests := []LBReconcilementTestCase{
 		{
+			name: "configure unsupported protocol",
+			servicePorts: []corev1.ServicePort{
+				{Port: 80, NodePort: 8080, Protocol: corev1.ProtocolUDP},
+				{Port: 443, NodePort: 8443, Protocol: corev1.ProtocolUDP},
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				_, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.Error(t, err)
+			},
+		},
+		{
 			name: "add services to hc Load Balancer",
 			servicePorts: []corev1.ServicePort{
 				{Port: 80, NodePort: 8080},
