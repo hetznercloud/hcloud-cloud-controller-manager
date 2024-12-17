@@ -7,3 +7,5 @@ deploy/gen/
 ./hetzner-cloud-controller-manager
 *.tgz
 hack/.*
+/*.kubeconfig
+/etc

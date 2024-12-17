@@ -1,4 +1,0 @@
-apiVersion: v2
-name: hetzner-cloud-controller-manager
-type: application
-version: v1.18.0 # x-release-please-version

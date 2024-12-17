@@ -57,9 +57,24 @@ TODO:
 
 * from quay.io to ghcr.io
 
+## Installing Syself CCM
+
+```sh
+helm repo add syself https://charts.syself.com
+helm repo update syself
+
+helm upgrade --install ccm syself/ccm-hetzner --version X.Y.Z \
+              --namespace kube-system \
+              --set privateNetwork.enabled=false
+```
+
+See [CAPH docs](https://syself.com/docs/caph/topics/baremetal/creating-workload-cluster#deploying-the-hetzner-cloud-controller-manager) for more details.
+
 ---
 
 End of "About the fork"
+
+Docs below that line are likely out of date.
 
 ---
 
