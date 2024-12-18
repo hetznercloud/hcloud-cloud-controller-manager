@@ -19,7 +19,11 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.cache/golangci-lint
-          key: pre-commit-golangci-lint|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+          key: pre-commit-golangci-lint|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}|${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            pre-commit-golangci-lint|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}|
+            pre-commit-golangci-lint|${{ env.pythonLocation }}|
+            pre-commit-golangci-lint|
 
       - uses: pre-commit/action@v3.0.1
 
