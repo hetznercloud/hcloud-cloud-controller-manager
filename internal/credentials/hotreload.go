@@ -1,7 +1,6 @@
 package credentials
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,34 +67,12 @@ func Watch(credentialsDir string, hcloudClient *hcloud.Client, robotClient robot
 				// get last element of path. Example: /etc/hetzner-secret/robot-user -> robot-user
 				baseName := filepath.Base(event.Name)
 
-				var err error
-				switch baseName {
-				case "robot-user":
-					err = loadRobotCredentials(credentialsDir, robotClient)
-				case "robot-password":
-					err = loadRobotCredentials(credentialsDir, robotClient)
-				case "hcloud":
-					err = loadHcloudCredentials(credentialsDir, hcloudClient)
-				case "..data":
-					// The files (for example hcloud) are symlinks to ..data/.
-					// For example the file "hcloud" is a symlink to ../data/hcloud
-					// This means the files/symlinks don't change. When the secrets get changed, then
-					// a new ..data directory gets created. This is done by Kubernetes to make the
-					// update of all files atomic.
-					err = loadHcloudCredentials(credentialsDir, hcloudClient)
-					if robotClient != nil {
-						err = errors.Join(err, loadRobotCredentials(credentialsDir, robotClient))
-					}
-				default:
-					klog.Infof("Ignoring fsnotify event for file %q: %s", baseName, event.String())
-				}
-				if err != nil {
+				if err := handleEvent(credentialsDir, baseName, hcloudClient, robotClient, event); err != nil {
 					klog.Errorf("error processing fsnotify event: %s", err.Error())
-					continue
 				}
 
 			case err := <-watcher.Errors:
-				klog.Infof("error: %s", err)
+				klog.Infof("error from fsnotify file watcher of %q: %s", credentialsDir, err)
 			}
 		}
 	}()
@@ -105,6 +82,39 @@ func Watch(credentialsDir string, hcloudClient *hcloud.Client, robotClient robot
 		return fmt.Errorf("watcher.Add: %w", err)
 	}
 	return nil
+}
+
+func handleEvent(credentialsDir, baseName string, hcloudClient *hcloud.Client, robotClient robotclient.Client, event fsnotify.Event) error {
+	var err error
+	switch baseName {
+	case "robot-user", "robot-password":
+		// This case is executed, when the process is running on a local machine.
+		return loadRobotCredentials(credentialsDir, robotClient)
+
+	case "hcloud":
+		// This case is executed, when the process is running on a local machine.
+		return loadHcloudCredentials(credentialsDir, hcloudClient)
+
+	case "..data":
+		// This case is executed, when the secrets are mounted in a Kubernetes pod.
+		// The files (for example hcloud) are symlinks to ..data/.
+		// For example the file "hcloud" is a symlink to ../data/hcloud
+		// This means the files/symlinks don't change. When the secrets get changed, then
+		// a new ..data directory gets created. This is done by Kubernetes to make the
+		// update of all files atomic.
+		err = loadHcloudCredentials(credentialsDir, hcloudClient)
+		if err != nil {
+			return err
+		}
+		if robotClient == nil {
+			return nil
+		}
+		return loadRobotCredentials(credentialsDir, robotClient)
+
+	default:
+		klog.Infof("Ignoring fsnotify event for file %q: %s", baseName, event.String())
+		return nil
+	}
 }
 
 func isValidEvent(event fsnotify.Event) bool {
