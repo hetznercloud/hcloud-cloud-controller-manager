@@ -205,20 +205,10 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
 
 7. Deploy the `hetzner-cloud-controller-manager`:
 
-    **Using Helm (recommended):**
-
     ```
     helm repo add hcloud https://charts.hetzner.cloud
     helm repo update hcloud
     helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system
-    ```
-
-    See the [Helm chart README](./chart/README.md) for more info.
-
-    **Legacy installation method**:
-
-    ```sh
-    kubectl apply -f  https://github.com/syself/hetzner-cloud-controller-manager/releases/latest/download/ccm.yaml
     ```
 
 ## Networks support
