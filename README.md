@@ -95,6 +95,10 @@ ROBOT_USER_NAME
 ROBOT_PASSWORD
 ```
 
+## Releasing
+
+Via CI, like [caph realising](https://github.com/syself/cluster-api-provider-hetzner/blob/main/docs/caph/04-developers/03-releasing.md)
+
 ---
 
 End of "About the fork"
