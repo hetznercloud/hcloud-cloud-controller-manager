@@ -1,8 +1,12 @@
 name: Release
-on:
+on: # yamllint disable-line rule:truthy
   push:
     tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+      - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+
 env:
   IMAGE_NAME: hetzner-cloud-controller-manager
   REGISTRY: ghcr.io/syself
@@ -13,6 +17,7 @@ permissions:
   packages: write
   # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
   id-token: write
+# yamllint disable rule:line-length
 jobs:
   manager-image:
     name: Build and push manager image
@@ -44,10 +49,11 @@ jobs:
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+
       - name: Install Bom
         shell: bash
         run: |
-          curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.6.0/bom-linux-amd64 -o bom
+          curl -L https://github.com/kubernetes-sigs/bom/releases/download/v0.6.0/bom-amd64-linux -o bom
           sudo mv ./bom /usr/local/bin/bom
           sudo chmod +x /usr/local/bin/bom
 
@@ -75,22 +81,19 @@ jobs:
           cache-to: type=gha, mode=max, scope=${{ github.workflow }}
 
       - name: Sign Container Images
-        env:
-          COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign --yes ghcr.io/syself/hetzner-cloud-controller-manager@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Generate SBOM
         shell: bash
         # To-Do: generate SBOM from source after https://github.com/kubernetes-sigs/bom/issues/202 is fixed
-        # To-Do: format SBOM output to json after cosign v2.0 is released with https://github.com/sigstore/cosign/pull/2479
         run: |
-          bom generate -o sbom_ci_main_hetzner-cloud-controller-manager_${{ steps.meta.outputs.version }}.spdx \
+          bom generate --format=json -o sbom_ci_main_hetzner-cloud-controller-manager_${{ steps.meta.outputs.version }}-spdx.json \
           --image=ghcr.io/syself/hetzner-cloud-controller-manager:${{ steps.meta.outputs.version }}
 
       - name: Attach SBOM to Container Images
         run: |
-          cosign attach sbom --sbom sbom_ci_main_hetzner-cloud-controller-manager_${{ steps.meta.outputs.version }}.spdx ghcr.io/syself/hetzner-cloud-controller-manager@${{ steps.docker_build_release.outputs.digest }}
+          cosign attest --yes --type=spdxjson --predicate sbom_ci_main_hetzner-cloud-controller-manager_${{ steps.meta.outputs.version }}-spdx.json ghcr.io/syself/hetzner-cloud-controller-manager@${{ steps.docker_build_release.outputs.digest }}
 
       - name: Sign SBOM Images
         env:
@@ -139,3 +142,7 @@ jobs:
           go-version-file: "go.mod"
           cache: true
           cache-dependency-path: go.sum
+      - name: Release
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2
+        with:
+          draft: true
