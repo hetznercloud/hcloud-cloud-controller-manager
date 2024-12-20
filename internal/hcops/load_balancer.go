@@ -867,16 +867,16 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		delete(hclbListenPorts, portNo)
 
 		if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
-            warnMsg := fmt.Sprintf(
+			warnMsg := fmt.Sprintf(
 				"configured unsupported Hetzner Cloud load balancer protocol %s for service with name %s",
 				port.Protocol,
 				svc.Name,
-            )
+			)
 			l.Recorder.Event(
 				svc,
 				corev1.EventTypeWarning,
 				"UnsupportedProtocolConfigured",
-                warnMsg,
+				warnMsg,
 			)
 			klog.Warning(warnMsg)
 		}
