@@ -1449,6 +1449,48 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 	tests := []LBReconcilementTestCase{
 		{
+			name: "configure unsupported protocol",
+			servicePorts: []corev1.ServicePort{
+				{Port: 80, NodePort: 8080, Protocol: corev1.ProtocolUDP},
+				{Port: 443, NodePort: 8443, Protocol: corev1.ProtocolUDP},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				opts := hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      hcloud.Ptr(80),
+					DestinationPort: hcloud.Ptr(8080),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Ptr(8080),
+					},
+				}
+				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+
+				opts = hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      hcloud.Ptr(443),
+					DestinationPort: hcloud.Ptr(8443),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     hcloud.Ptr(8443),
+					},
+				}
+				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				_, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+			},
+		},
+		{
 			name: "add services to hc Load Balancer",
 			servicePorts: []corev1.ServicePort{
 				{Port: 80, NodePort: 8080},

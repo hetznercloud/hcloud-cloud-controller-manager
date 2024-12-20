@@ -866,6 +866,21 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		portExists := hclbListenPorts[portNo]
 		delete(hclbListenPorts, portNo)
 
+		if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
+			warnMsg := fmt.Sprintf(
+				"configured unsupported Hetzner Cloud load balancer protocol %s for service with name %s",
+				port.Protocol,
+				svc.Name,
+			)
+			l.Recorder.Event(
+				svc,
+				corev1.EventTypeWarning,
+				"UnsupportedProtocolConfigured",
+				warnMsg,
+			)
+			klog.Warning(warnMsg)
+		}
+
 		b := &hclbServiceOptsBuilder{Port: port, Service: svc, CertOps: l.CertOps}
 		if portExists {
 			klog.InfoS("update service", "op", op, "port", portNo, "loadBalancerID", lb.ID)
