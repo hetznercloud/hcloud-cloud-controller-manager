@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.22.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.22.0)
+
+### Features
+
+- **metrics**: add metrics from cloud-provider library (#824)
+- **load-balancer**: emit warning if unsupported port protocol is configured (#828)
+
 ## [v1.21.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.21.0)
 
 ### Feature Highlights &amp; Upgrade Notes
