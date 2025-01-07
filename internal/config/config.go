@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
 
@@ -202,7 +204,7 @@ func (c HCCMConfiguration) Validate() (err error) {
 	if c.HCloudClient.Token == "" {
 		errs = append(errs, fmt.Errorf("environment variable %q is required", hcloudToken))
 	} else if len(c.HCloudClient.Token) != 64 {
-		errs = append(errs, fmt.Errorf("entered token is invalid (must be exactly 64 characters long)"))
+		klog.Warningf("unrecognized token format, expected 64 characters, got %d, proceeding anyway", len(c.HCloudClient.Token))
 	}
 
 	if c.Instance.AddressFamily != AddressFamilyDualStack && c.Instance.AddressFamily != AddressFamilyIPv4 && c.Instance.AddressFamily != AddressFamilyIPv6 {
