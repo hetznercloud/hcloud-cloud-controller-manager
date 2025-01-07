@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 	"k8s.io/klog/v2"
+
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
 
 const (
