@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.22.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.22.0)
+
+This release includes an extension of our current metrics to also include the internals of `k8s.io/cloud-provider` with respect to the work queue depth and requests to the Kubernetes API.
+
+Besides having all data available, this will also help us with debugging [#661](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/661).
+
+### Features
+
+- **metrics**: add metrics from cloud-provider library (#824)
+- **load-balancer**: emit warning if unsupported port protocol is configured (#828)
+- allow arbitrary length API tokens (#752)
+
 ## [v1.21.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.21.0)
 
 ### Feature Highlights &amp; Upgrade Notes
