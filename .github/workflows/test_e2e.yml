@@ -134,7 +134,7 @@ jobs:
     environment: e2e-robot
 
     env:
-      K3S_CHANNEL: v1.30
+      K3S_CHANNEL: v1.32
       ENV: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
 
       ROBOT_ENABLED: "true"
