@@ -22,6 +22,7 @@ jobs:
           - v1.29
           - v1.30
           - v1.31
+          - v1.32
 
     env:
       K3S_CHANNEL: ${{ matrix.k3s }}
