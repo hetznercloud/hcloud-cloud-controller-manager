@@ -73,7 +73,7 @@ documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/
    ```
 
    Note: the `--cloud-provider` flag is deprecated since K8S 1.19. You
-   will see a log message regarding this. For now (v1.31) it is still required.
+   will see a log message regarding this. For now (v1.32) it is still required.
 
 2. Now the control plane can be initialized:
 
@@ -184,6 +184,7 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 
 | Kubernetes | Cloud Controller Manager |                                                                                             Deployment File |
 | ---------- | -----------------------: | ----------------------------------------------------------------------------------------------------------: |
+| 1.32       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.31       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.30       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.29       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
@@ -198,6 +199,7 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 
 | Kubernetes | Cloud Controller Manager |                                                                                    Deployment File |
 | ---------- | -----------------------: | -------------------------------------------------------------------------------------------------: |
+| 1.32       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.31       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.30       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.29       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |

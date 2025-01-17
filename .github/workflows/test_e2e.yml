@@ -22,6 +22,7 @@ jobs:
           - v1.29
           - v1.30
           - v1.31
+          - v1.32
 
     env:
       K3S_CHANNEL: ${{ matrix.k3s }}
@@ -133,7 +134,7 @@ jobs:
     environment: e2e-robot
 
     env:
-      K3S_CHANNEL: v1.30
+      K3S_CHANNEL: v1.32
       ENV: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
 
       ROBOT_ENABLED: "true"
