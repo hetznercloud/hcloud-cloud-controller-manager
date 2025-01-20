@@ -32,8 +32,6 @@ import (
 	"k8s.io/cloud-provider/options"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
-	_ "k8s.io/component-base/metrics/prometheus/clientgo"
-	_ "k8s.io/component-base/metrics/prometheus/version"
 	"k8s.io/klog/v2"
 
 	hcloud "github.com/hetznercloud/hcloud-cloud-controller-manager/hcloud"

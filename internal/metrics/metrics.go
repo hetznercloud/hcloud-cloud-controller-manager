@@ -22,6 +22,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/component-base/metrics/legacyregistry"
+	// Initialize cloud-provider internal metrics (e.g. workqueue).
+	_ "k8s.io/component-base/metrics/prometheus/clientgo"
 	"k8s.io/klog/v2"
 )
 
