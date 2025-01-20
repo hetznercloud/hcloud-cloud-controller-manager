@@ -39,4 +39,8 @@ func TestMetrics(t *testing.T) {
 	if m := `cloud_controller_manager_operations_total{op="test"} 1`; !strings.Contains(string(body), m) {
 		t.Fatalf("no metric %s found", m)
 	}
+
+	if m := `kubernetes_build_info`; strings.Contains(string(body), m) {
+		t.Fatal("kubernetes_build_info included in our metrics", m)
+	}
 }

@@ -23,6 +23,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog/v2"
+
+	// We import these in our main.go, import them here to have comparable metrics
+	_ "k8s.io/component-base/metrics/prometheus/clientgo"
+	_ "k8s.io/component-base/metrics/prometheus/version"
 )
 
 const (
@@ -40,6 +44,16 @@ var (
 
 func init() {
 	GetRegistry().MustRegister(OperationCalled)
+
+	// metrics.SetDisabledMetric("kubernetes_build_info")
+
+	// TODO: Comment
+	GetRegistry().Unregister(prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "kubernetes_build_info",
+		},
+		[]string{},
+	))
 }
 
 func GetRegistry() prometheus.Registerer {
