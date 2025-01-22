@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.23.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.23.0)
+
+### Features
+
+- add support and tests for Kubernetes 1.32 (#846)
+
+### Bug Fixes
+
+- **metrics**: do not emit kubernetes_build_info metric (#849)
+
 ## [v1.22.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.22.0)
 
 This release includes an extension of our current metrics to also include the internals of `k8s.io/cloud-provider` with respect to the work queue depth and requests to the Kubernetes API.
