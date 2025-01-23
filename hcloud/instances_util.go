@@ -19,15 +19,23 @@ package hcloud
 import (
 	"context"
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
+	cloudproviderapi "k8s.io/cloud-provider/api"
+	nodeutil "k8s.io/component-helpers/node/util"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+)
+
+const (
+	externalIPAnnotation = "instance.hetzner.cloud/external-ip"
+	internalIPAnnotation = "instance.hetzner.cloud/internal-ip"
 )
 
 func getCloudServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
@@ -125,4 +133,12 @@ func getRegionOfRobotServer(server *hrobotmodels.Server) string {
 	// zone is a Hetzner DC, e.g. "hel1-dc2"
 	// the cloud location is equal to the first part of the zone, e.g. "hel1" and that is was has historically been used in the Region label.
 	return strings.Split(zone, "-")[0]
+}
+
+func getProvidedNodeIPs(node *corev1.Node) ([]net.IP, error) {
+	providedNodeIP, exists := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]
+	if exists {
+		return nodeutil.ParseNodeIPAnnotation(providedNodeIP)
+	}
+	return nil, nil
 }

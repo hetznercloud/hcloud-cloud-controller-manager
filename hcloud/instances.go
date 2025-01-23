@@ -43,6 +43,8 @@ type instances struct {
 	recorder      record.EventRecorder
 	addressFamily config.AddressFamily
 	networkID     int64
+
+	robotProvidedIpInternal bool
 }
 
 var (
@@ -50,8 +52,8 @@ var (
 	errMissingRobotClient = errors.New("no robot client configured, make sure to enable Robot support in the configuration")
 )
 
-func newInstances(client *hcloud.Client, robotClient robot.Client, recorder record.EventRecorder, addressFamily config.AddressFamily, networkID int64) *instances {
-	return &instances{client, robotClient, recorder, addressFamily, networkID}
+func newInstances(client *hcloud.Client, robotClient robot.Client, recorder record.EventRecorder, addressFamily config.AddressFamily, networkID int64, robotProvidedIpInternal bool) *instances {
+	return &instances{client, robotClient, recorder, addressFamily, networkID, robotProvidedIpInternal}
 }
 
 // lookupServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server] for a given [*corev1.Node].
@@ -189,6 +191,22 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	// robot servers only report the public IP of the server and there is no native way to determine the internal
+	// IP in case a vSwitch with private IPs is used. In that case, we assume the provided node IP
+	// (via kubelet's --node-ip) is the internal IP.
+	if server.IsRobotServer() && i.robotProvidedIpInternal {
+		providedNodeIPs, err := getProvidedNodeIPs(node)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		for _, ip := range providedNodeIPs {
+			metadata.NodeAddresses = append(metadata.NodeAddresses, corev1.NodeAddress{
+				Type:    corev1.NodeInternalIP,
+				Address: ip.String(),
+			})
+		}
+	}
+
 	return metadata, nil
 }
 
@@ -266,11 +284,14 @@ func robotNodeAddresses(addressFamily config.AddressFamily, server *hrobotmodels
 type genericServer interface {
 	IsShutdown() (bool, error)
 	Metadata(addressFamily config.AddressFamily, networkID int64) (*cloudprovider.InstanceMetadata, error)
+	IsRobotServer() bool
 }
 
 type hcloudServer struct {
 	*hcloud.Server
 }
+
+func (s hcloudServer) IsRobotServer() bool { return false }
 
 func (s hcloudServer) IsShutdown() (bool, error) {
 	return s.Status == hcloud.ServerStatusOff, nil
@@ -293,6 +314,8 @@ type robotServer struct {
 	*hrobotmodels.Server
 	robotClient robot.Client
 }
+
+func (s robotServer) IsRobotServer() bool { return true }
 
 func (s robotServer) IsShutdown() (bool, error) {
 	resetStatus, err := s.robotClient.ResetGet(s.ServerNumber)
