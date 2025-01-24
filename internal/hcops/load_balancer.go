@@ -639,14 +639,33 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	// correspond to a dedicated server
 
 	if l.Cfg.Robot.Enabled {
-		dedicatedServers, err := l.RobotClient.ServerGetList()
-		if err != nil {
-			return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
-		}
+		if usePrivateIP && l.Cfg.Robot.ProvidedNodeIpInternal {
+			for _, node := range nodes {
+				id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+				if err != nil {
+					// errors were already handled before
+					continue
+				}
+				if !isCloudServer {
+					for _, addr := range node.Status.Addresses {
+						if addr.Type == corev1.NodeInternalIP {
+							robotIPsToIDs[addr.Address] = int(id)
+							robotIDToIPv4[int(id)] = addr.Address
+							break
+						}
+					}
+				}
+			}
+		} else {
+			dedicatedServers, err := l.RobotClient.ServerGetList()
+			if err != nil {
+				return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
+			}
 
-		for _, s := range dedicatedServers {
-			robotIPsToIDs[s.ServerIP] = s.ServerNumber
-			robotIDToIPv4[s.ServerNumber] = s.ServerIP
+			for _, s := range dedicatedServers {
+				robotIPsToIDs[s.ServerIP] = s.ServerNumber
+				robotIDToIPv4[s.ServerNumber] = s.ServerIP
+			}
 		}
 	}
 

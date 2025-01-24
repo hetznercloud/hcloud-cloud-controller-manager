@@ -157,7 +157,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.recorder, c.cfg.Instance.AddressFamily, c.networkID), true
+	return newInstances(c.client, c.robotClient, c.recorder, c.cfg.Instance.AddressFamily, c.networkID, c.cfg.Robot.ProvidedNodeIpInternal), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {

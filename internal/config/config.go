@@ -18,11 +18,12 @@ const (
 	hcloudNetwork  = "HCLOUD_NETWORK"
 	hcloudDebug    = "HCLOUD_DEBUG"
 
-	robotEnabled           = "ROBOT_ENABLED"
-	robotUser              = "ROBOT_USER"
-	robotPassword          = "ROBOT_PASSWORD"
-	robotCacheTimeout      = "ROBOT_CACHE_TIMEOUT"
-	robotRateLimitWaitTime = "ROBOT_RATE_LIMIT_WAIT_TIME"
+	robotEnabled                = "ROBOT_ENABLED"
+	robotUser                   = "ROBOT_USER"
+	robotPassword               = "ROBOT_PASSWORD"
+	robotCacheTimeout           = "ROBOT_CACHE_TIMEOUT"
+	robotRateLimitWaitTime      = "ROBOT_RATE_LIMIT_WAIT_TIME"
+	robotProvidedNodeIpInternal = "ROBOT_PROVIDED_NODE_IP_INTERNAL"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 
@@ -53,6 +54,8 @@ type RobotConfiguration struct {
 	Password          string
 	CacheTimeout      time.Duration
 	RateLimitWaitTime time.Duration
+
+	ProvidedNodeIpInternal bool
 }
 
 type MetricsConfiguration struct {
@@ -140,6 +143,10 @@ func Read() (HCCMConfiguration, error) {
 		cfg.Robot.CacheTimeout = 5 * time.Minute
 	}
 	cfg.Robot.RateLimitWaitTime, err = getEnvDuration(robotRateLimitWaitTime)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	cfg.Robot.ProvidedNodeIpInternal, err = getEnvBool(robotProvidedNodeIpInternal, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
