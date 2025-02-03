@@ -23,9 +23,9 @@ spec:
 ```
 
 The sample service will create a Load Balancer in the location `hel1`
-with a service with `listen_port = 80` and `destination_port = 8080`. So
+with a service with `listen_port = 80` and `destination_port = <random-node-port>`. So
 every traffic that arrives at the Load Balancer on Port 80 will be
-routed to the public interface of the targets on port 8080. You can
+routed to the public interface of the targets on a node port, which is randomly selected by default. You can
 change the behavior of the Load Balancer by specifying more annotations.
 A list of all available annotations can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation#Name).
