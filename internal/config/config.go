@@ -151,8 +151,8 @@ func Read() (HCCMConfiguration, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	// Negation of the user-facing env variables prefixed with disable
-	// Only enable when robot is enabled
+	// Negation of the user-facing env variable
+	// Robot needs to be enabled
 	cfg.Robot.ForwardInternalIPs = !cfg.Robot.ForwardInternalIPs && cfg.Robot.Enabled
 
 	cfg.Metrics.Enabled, err = getEnvBool(hcloudMetricsEnabled, true)
