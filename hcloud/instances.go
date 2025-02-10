@@ -196,7 +196,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 			op, node.Name, errServerNotFound)
 	}
 
-	metadata, err := server.Metadata(i.networkID, i.cfg)
+	metadata, err := server.Metadata(i.networkID, node, i.cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -254,6 +254,7 @@ func hcloudNodeAddresses(
 
 func robotNodeAddresses(
 	server *hrobotmodels.Server,
+	node *corev1.Node,
 	cfg config.HCCMConfiguration,
 ) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
@@ -283,6 +284,14 @@ func robotNodeAddresses(
 		)
 	}
 
+	if cfg.Robot.ForwardInternalIPs {
+		for _, addr := range node.Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP {
+				addresses = append(addresses, addr)
+			}
+		}
+	}
+
 	return addresses
 }
 
@@ -290,6 +299,7 @@ type genericServer interface {
 	IsShutdown() (bool, error)
 	Metadata(
 		networkID int64,
+		node *corev1.Node,
 		cfg config.HCCMConfiguration,
 	) (*cloudprovider.InstanceMetadata, error)
 }
@@ -302,7 +312,7 @@ func (s hcloudServer) IsShutdown() (bool, error) {
 	return s.Status == hcloud.ServerStatusOff, nil
 }
 
-func (s hcloudServer) Metadata(networkID int64, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromCloudServerID(s.ID),
 		InstanceType:  s.ServerType.Name,
@@ -331,11 +341,11 @@ func (s robotServer) IsShutdown() (bool, error) {
 	return resetStatus.OperatingStatus == "shut off", nil
 }
 
-func (s robotServer) Metadata(_ int64, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
-		NodeAddresses: robotNodeAddresses(s.Server, cfg),
+		NodeAddresses: robotNodeAddresses(s.Server, node, cfg),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
