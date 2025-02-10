@@ -21,9 +21,11 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,7 +91,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
 
 	tests := []struct {
 		name     string
@@ -209,7 +211,7 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
 	env.Mux.HandleFunc("/robot/server/3", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(hrobotmodels.ServerResponse{
 			Server: hrobotmodels.Server{
@@ -343,7 +345,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
@@ -387,7 +389,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, config.AddressFamilyIPv4, 0)
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -581,7 +583,11 @@ func TestNodeAddresses(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			addresses := hcloudNodeAddresses(test.addressFamily, test.privateNetwork, test.server)
+			os.Setenv("HCLOUD_INSTANCES_ADDRESS_FAMILY", string(test.addressFamily))
+			cfg, err := config.Read()
+			assert.NoError(t, err)
+
+			addresses := hcloudNodeAddresses(test.privateNetwork, test.server, cfg)
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("Expected addresses %+v but got %+v", test.expected, addresses)
@@ -642,7 +648,12 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			addresses := robotNodeAddresses(test.addressFamily, test.server)
+			os.Setenv("ROBOT_ENABLED", "true")
+			os.Setenv("HCLOUD_INSTANCES_ADDRESS_FAMILY", string(test.addressFamily))
+			cfg, err := config.Read()
+			assert.NoError(t, err)
+
+			addresses := robotNodeAddresses(test.server, cfg)
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("%s: expected addresses %+v but got %+v", test.name, test.expected, addresses)

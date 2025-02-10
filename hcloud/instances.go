@@ -38,11 +38,11 @@ const (
 )
 
 type instances struct {
-	client        *hcloud.Client
-	robotClient   robot.Client
-	recorder      record.EventRecorder
-	addressFamily config.AddressFamily
-	networkID     int64
+	client      *hcloud.Client
+	robotClient robot.Client
+	recorder    record.EventRecorder
+	networkID   int64
+	cfg         config.HCCMConfiguration
 }
 
 var (
@@ -50,8 +50,20 @@ var (
 	errMissingRobotClient = errors.New("no robot client configured, make sure to enable Robot support in the configuration")
 )
 
-func newInstances(client *hcloud.Client, robotClient robot.Client, recorder record.EventRecorder, addressFamily config.AddressFamily, networkID int64) *instances {
-	return &instances{client, robotClient, recorder, addressFamily, networkID}
+func newInstances(
+	client *hcloud.Client,
+	robotClient robot.Client,
+	recorder record.EventRecorder,
+	networkID int64,
+	cfg config.HCCMConfiguration,
+) *instances {
+	return &instances{
+		client,
+		robotClient,
+		recorder,
+		networkID,
+		cfg,
+	}
 }
 
 // lookupServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server] for a given [*corev1.Node].
@@ -184,7 +196,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 			op, node.Name, errServerNotFound)
 	}
 
-	metadata, err := server.Metadata(i.addressFamily, i.networkID)
+	metadata, err := server.Metadata(i.networkID, i.cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -192,33 +204,37 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	return metadata, nil
 }
 
-func hcloudNodeAddresses(addressFamily config.AddressFamily, networkID int64, server *hcloud.Server) []corev1.NodeAddress {
+func hcloudNodeAddresses(
+	networkID int64,
+	server *hcloud.Server,
+	cfg config.HCCMConfiguration,
+) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,
 		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
 	)
 
-	if addressFamily == config.AddressFamilyIPv4 || addressFamily == config.AddressFamilyDualStack {
-		if !server.PublicNet.IPv4.IsUnspecified() {
-			addresses = append(
-				addresses,
-				corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
-			)
-		}
+	dualStack := cfg.Instance.AddressFamily == config.AddressFamilyDualStack
+	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
+	ipv6 := cfg.Instance.AddressFamily == config.AddressFamilyIPv6 || dualStack
+
+	if ipv4 && !server.PublicNet.IPv4.IsUnspecified() {
+		addresses = append(
+			addresses,
+			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
+		)
 	}
 
-	if addressFamily == config.AddressFamilyIPv6 || addressFamily == config.AddressFamilyDualStack {
-		if !server.PublicNet.IPv6.IsUnspecified() {
-			// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
-			hostAddress := server.PublicNet.IPv6.IP
-			hostAddress[len(hostAddress)-1] |= 0x01
+	if ipv6 && !server.PublicNet.IPv6.IsUnspecified() {
+		// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
+		hostAddress := server.PublicNet.IPv6.IP
+		hostAddress[len(hostAddress)-1] |= 0x01
 
-			addresses = append(
-				addresses,
-				corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress.String()},
-			)
-		}
+		addresses = append(
+			addresses,
+			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress.String()},
+		)
 	}
 
 	// Add private IP from network if network is specified
@@ -232,20 +248,27 @@ func hcloudNodeAddresses(addressFamily config.AddressFamily, networkID int64, se
 			}
 		}
 	}
+
 	return addresses
 }
 
-func robotNodeAddresses(addressFamily config.AddressFamily, server *hrobotmodels.Server) []corev1.NodeAddress {
+func robotNodeAddresses(
+	server *hrobotmodels.Server,
+	cfg config.HCCMConfiguration,
+) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,
 		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
 	)
 
-	if addressFamily == config.AddressFamilyIPv6 || addressFamily == config.AddressFamilyDualStack {
+	dualStack := cfg.Instance.AddressFamily == config.AddressFamilyDualStack
+	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
+	ipv6 := cfg.Instance.AddressFamily == config.AddressFamilyIPv6 || dualStack
+
+	if ipv6 {
 		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
-		hostAddress := server.ServerIPv6Net
-		hostAddress += "1"
+		hostAddress := server.ServerIPv6Net + "1"
 
 		addresses = append(
 			addresses,
@@ -253,7 +276,7 @@ func robotNodeAddresses(addressFamily config.AddressFamily, server *hrobotmodels
 		)
 	}
 
-	if addressFamily == config.AddressFamilyIPv4 || addressFamily == config.AddressFamilyDualStack {
+	if ipv4 {
 		addresses = append(
 			addresses,
 			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP},
@@ -265,7 +288,10 @@ func robotNodeAddresses(addressFamily config.AddressFamily, server *hrobotmodels
 
 type genericServer interface {
 	IsShutdown() (bool, error)
-	Metadata(addressFamily config.AddressFamily, networkID int64) (*cloudprovider.InstanceMetadata, error)
+	Metadata(
+		networkID int64,
+		cfg config.HCCMConfiguration,
+	) (*cloudprovider.InstanceMetadata, error)
 }
 
 type hcloudServer struct {
@@ -276,11 +302,11 @@ func (s hcloudServer) IsShutdown() (bool, error) {
 	return s.Status == hcloud.ServerStatusOff, nil
 }
 
-func (s hcloudServer) Metadata(addressFamily config.AddressFamily, networkID int64) (*cloudprovider.InstanceMetadata, error) {
+func (s hcloudServer) Metadata(networkID int64, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromCloudServerID(s.ID),
 		InstanceType:  s.ServerType.Name,
-		NodeAddresses: hcloudNodeAddresses(addressFamily, networkID, s.Server),
+		NodeAddresses: hcloudNodeAddresses(networkID, s.Server, cfg),
 		Zone:          s.Datacenter.Name,
 		Region:        s.Datacenter.Location.Name,
 		AdditionalLabels: map[string]string{
@@ -305,11 +331,11 @@ func (s robotServer) IsShutdown() (bool, error) {
 	return resetStatus.OperatingStatus == "shut off", nil
 }
 
-func (s robotServer) Metadata(addressFamily config.AddressFamily, _ int64) (*cloudprovider.InstanceMetadata, error) {
+func (s robotServer) Metadata(_ int64, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
-		NodeAddresses: robotNodeAddresses(addressFamily, s.Server),
+		NodeAddresses: robotNodeAddresses(s.Server, cfg),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
