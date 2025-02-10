@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
@@ -41,6 +42,7 @@ type testEnv struct {
 	Client      *hcloud.Client
 	RobotClient hrobot.RobotClient
 	Recorder    record.EventRecorder
+	Cfg         config.HCCMConfiguration
 }
 
 func (env *testEnv) Teardown() {
@@ -65,12 +67,17 @@ func newTestEnv() testEnv {
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
 	recorder := record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
+
+	cfg := config.HCCMConfiguration{}
+	cfg.Instance.AddressFamily = config.AddressFamilyIPv4
+
 	return testEnv{
 		Server:      server,
 		Mux:         mux,
 		Client:      client,
 		RobotClient: robotClient,
 		Recorder:    recorder,
+		Cfg:         cfg,
 	}
 }
 
