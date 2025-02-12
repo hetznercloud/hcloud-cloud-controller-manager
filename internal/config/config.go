@@ -18,12 +18,12 @@ const (
 	hcloudNetwork  = "HCLOUD_NETWORK"
 	hcloudDebug    = "HCLOUD_DEBUG"
 
-	robotEnabled                   = "ROBOT_ENABLED"
-	robotUser                      = "ROBOT_USER"
-	robotPassword                  = "ROBOT_PASSWORD"
-	robotCacheTimeout              = "ROBOT_CACHE_TIMEOUT"
-	robotRateLimitWaitTime         = "ROBOT_RATE_LIMIT_WAIT_TIME"
-	robotDisableForwardInternalIPs = "ROBOT_DISABLE_FORWARD_INTERNAL_IPS"
+	robotEnabled            = "ROBOT_ENABLED"
+	robotUser               = "ROBOT_USER"
+	robotPassword           = "ROBOT_PASSWORD"
+	robotCacheTimeout       = "ROBOT_CACHE_TIMEOUT"
+	robotRateLimitWaitTime  = "ROBOT_RATE_LIMIT_WAIT_TIME"
+	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 
@@ -54,7 +54,6 @@ type RobotConfiguration struct {
 	Password          string
 	CacheTimeout      time.Duration
 	RateLimitWaitTime time.Duration
-	// Inverse of the user-facing environment variable ROBOT_DISABLE_FORWARD_INTERNAL_IPS.
 	// ForwardInternalIPs is enabled by default.
 	ForwardInternalIPs bool
 }
@@ -147,13 +146,12 @@ func Read() (HCCMConfiguration, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.Robot.ForwardInternalIPs, err = getEnvBool(robotDisableForwardInternalIPs, false)
+	cfg.Robot.ForwardInternalIPs, err = getEnvBool(robotForwardInternalIPs, true)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	// Negation of the user-facing env variable
 	// Robot needs to be enabled
-	cfg.Robot.ForwardInternalIPs = !cfg.Robot.ForwardInternalIPs && cfg.Robot.Enabled
+	cfg.Robot.ForwardInternalIPs = cfg.Robot.ForwardInternalIPs && cfg.Robot.Enabled
 
 	cfg.Metrics.Enabled, err = getEnvBool(hcloudMetricsEnabled, true)
 	if err != nil {
