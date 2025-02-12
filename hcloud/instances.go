@@ -20,11 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
@@ -34,7 +36,8 @@ import (
 )
 
 const (
-	ProvidedBy = "instance.hetzner.cloud/provided-by"
+	ProvidedBy              = "instance.hetzner.cloud/provided-by"
+	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 )
 
 type instances struct {
@@ -106,7 +109,7 @@ func (i *instances) lookupServer(
 			return nil, nil
 		}
 
-		return robotServer{server, i.robotClient}, nil
+		return robotServer{server, i.robotClient, i.recorder}, nil
 	}
 
 	// If the node has no provider ID we try to find the server by name from
@@ -139,7 +142,7 @@ func (i *instances) lookupServer(
 	case cloudServer != nil:
 		return hcloudServer{cloudServer}, nil
 	case hrobotServer != nil:
-		return robotServer{hrobotServer, i.robotClient}, nil
+		return robotServer{hrobotServer, i.robotClient, i.recorder}, nil
 	default:
 		// Both nil
 		return nil, nil
@@ -256,12 +259,10 @@ func robotNodeAddresses(
 	server *hrobotmodels.Server,
 	node *corev1.Node,
 	cfg config.HCCMConfiguration,
+	recorder record.EventRecorder,
 ) []corev1.NodeAddress {
-	var addresses []corev1.NodeAddress
-	addresses = append(
-		addresses,
-		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
-	)
+	ipToNodeAddress := make(map[string]corev1.NodeAddress)
+	ipToNodeAddress[server.Name] = corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name}
 
 	dualStack := cfg.Instance.AddressFamily == config.AddressFamilyDualStack
 	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
@@ -270,28 +271,48 @@ func robotNodeAddresses(
 	if ipv6 {
 		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
 		hostAddress := server.ServerIPv6Net + "1"
-
-		addresses = append(
-			addresses,
-			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress},
-		)
+		ipToNodeAddress[hostAddress] = corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress}
 	}
 
 	if ipv4 {
-		addresses = append(
-			addresses,
-			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP},
-		)
+		ipToNodeAddress[server.ServerIP] = corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP}
 	}
 
 	if cfg.Robot.ForwardInternalIPs {
 		for _, addr := range node.Status.Addresses {
 			if addr.Type == corev1.NodeInternalIP {
-				addresses = append(addresses, addr)
+				ip := net.ParseIP(addr.Address)
+				isIPv4 := ip.To4() != nil
+
+				var warnMsg string
+				if isIPv4 && ipv6 && !dualStack {
+					warnMsg = fmt.Sprintf("Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP", addr.Address)
+				} else if !isIPv4 && ipv4 && !dualStack {
+					warnMsg = fmt.Sprintf("Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP", addr.Address)
+				}
+
+				if warnMsg != "" {
+					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+					klog.Warning(warnMsg)
+					continue
+				}
+
+				if _, ok := ipToNodeAddress[addr.Address]; ok {
+					warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", addr.Address)
+					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+					klog.Warning(warnMsg)
+					continue
+				}
+
+				ipToNodeAddress[addr.Address] = addr
 			}
 		}
 	}
 
+	addresses := make([]corev1.NodeAddress, 0, len(ipToNodeAddress))
+	for _, addr := range ipToNodeAddress {
+		addresses = append(addresses, addr)
+	}
 	return addresses
 }
 
@@ -328,6 +349,7 @@ func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMC
 type robotServer struct {
 	*hrobotmodels.Server
 	robotClient robot.Client
+	recoder     record.EventRecorder
 }
 
 func (s robotServer) IsShutdown() (bool, error) {
@@ -345,7 +367,7 @@ func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfigu
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
-		NodeAddresses: robotNodeAddresses(s.Server, node, cfg),
+		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recoder),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
