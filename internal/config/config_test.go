@@ -126,7 +126,31 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"ROBOT_PASSWORD", "secret-password",
 				"ROBOT_RATE_LIMIT_WAIT_TIME", "5m",
 				"ROBOT_CACHE_TIMEOUT", "1m",
-				"ROBOT_DISABLE_FORWARD_INTERNAL_IPS", "true",
+			},
+			want: HCCMConfiguration{
+				Robot: RobotConfiguration{
+					Enabled:            true,
+					User:               "foobar",
+					Password:           "secret-password",
+					CacheTimeout:       1 * time.Minute,
+					RateLimitWaitTime:  5 * time.Minute,
+					ForwardInternalIPs: true,
+				},
+				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{Enabled: true},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "robot disable forward internal ips",
+			env: []string{
+				"ROBOT_ENABLED", "true",
+				"ROBOT_USER", "foobar",
+				"ROBOT_PASSWORD", "secret-password",
+				"ROBOT_RATE_LIMIT_WAIT_TIME", "5m",
+				"ROBOT_CACHE_TIMEOUT", "1m",
+				"ROBOT_FORWARD_INTERNAL_IPS", "false",
 			},
 			want: HCCMConfiguration{
 				Robot: RobotConfiguration{
