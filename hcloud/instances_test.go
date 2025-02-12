@@ -682,7 +682,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				node.Status.Addresses = test.nodeStatusNodeAddresses
 			}
 
-			addresses := robotNodeAddresses(test.server, node, cfg)
+			addresses := robotNodeAddresses(test.server, node, cfg, nil)
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("%s: expected addresses %+v but got %+v", test.name, test.expected, addresses)
