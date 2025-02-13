@@ -261,8 +261,8 @@ func robotNodeAddresses(
 	cfg config.HCCMConfiguration,
 	recorder record.EventRecorder,
 ) []corev1.NodeAddress {
-	ipToNodeAddress := make(map[string]corev1.NodeAddress)
-	ipToNodeAddress[server.Name] = corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name}
+	var addresses []corev1.NodeAddress
+	addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name})
 
 	dualStack := cfg.Instance.AddressFamily == config.AddressFamilyDualStack
 	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
@@ -271,11 +271,11 @@ func robotNodeAddresses(
 	if ipv6 {
 		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
 		hostAddress := server.ServerIPv6Net + "1"
-		ipToNodeAddress[hostAddress] = corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress}
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
 	}
 
 	if ipv4 {
-		ipToNodeAddress[server.ServerIP] = corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP}
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP})
 	}
 
 	if cfg.Robot.ForwardInternalIPs {
@@ -297,22 +297,20 @@ func robotNodeAddresses(
 					continue
 				}
 
-				if _, ok := ipToNodeAddress[addr.Address]; ok {
-					warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", addr.Address)
-					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
-					klog.Warning(warnMsg)
-					continue
+				for _, _addr := range addresses {
+					if addr.Address == _addr.Address {
+						warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", addr.Address)
+						recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+						klog.Warning(warnMsg)
+						continue
+					}
 				}
 
-				ipToNodeAddress[addr.Address] = addr
+				addresses = append(addresses, addr)
 			}
 		}
 	}
 
-	addresses := make([]corev1.NodeAddress, 0, len(ipToNodeAddress))
-	for _, addr := range ipToNodeAddress {
-		addresses = append(addresses, addr)
-	}
 	return addresses
 }
 
