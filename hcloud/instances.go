@@ -279,16 +279,16 @@ func robotNodeAddresses(
 	}
 
 	if cfg.Robot.ForwardInternalIPs {
-		for _, addr := range node.Status.Addresses {
-			if addr.Type == corev1.NodeInternalIP {
-				ip := net.ParseIP(addr.Address)
+		for _, currentAddress := range node.Status.Addresses {
+			if currentAddress.Type == corev1.NodeInternalIP {
+				ip := net.ParseIP(currentAddress.Address)
 				isIPv4 := ip.To4() != nil
 
 				var warnMsg string
 				if isIPv4 && ipv6 && !dualStack {
-					warnMsg = fmt.Sprintf("Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP", addr.Address)
+					warnMsg = fmt.Sprintf("Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP", currentAddress.Address)
 				} else if !isIPv4 && ipv4 && !dualStack {
-					warnMsg = fmt.Sprintf("Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP", addr.Address)
+					warnMsg = fmt.Sprintf("Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP", currentAddress.Address)
 				}
 
 				if warnMsg != "" {
@@ -297,16 +297,16 @@ func robotNodeAddresses(
 					continue
 				}
 
-				for _, _addr := range addresses {
-					if addr.Address == _addr.Address {
-						warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", addr.Address)
+				for _, address := range addresses {
+					if currentAddress.Address == address.Address {
+						warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", currentAddress.Address)
 						recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
 						klog.Warning(warnMsg)
 						continue
 					}
 				}
 
-				addresses = append(addresses, addr)
+				addresses = append(addresses, currentAddress)
 			}
 		}
 	}
