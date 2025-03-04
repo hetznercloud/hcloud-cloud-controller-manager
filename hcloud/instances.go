@@ -281,31 +281,42 @@ func robotNodeAddresses(
 
 	if cfg.Robot.ForwardInternalIPs {
 		for _, currentAddress := range node.Status.Addresses {
-			if currentAddress.Type == corev1.NodeInternalIP {
-				ip := net.ParseIP(currentAddress.Address)
-				isIPv4 := ip.To4() != nil
-
-				var warnMsg string
-				if isIPv4 && ipv6 && !dualStack {
-					warnMsg = fmt.Sprintf("Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP", currentAddress.Address)
-				} else if !isIPv4 && ipv4 && !dualStack {
-					warnMsg = fmt.Sprintf("Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP", currentAddress.Address)
-				}
-
-				if warnMsg != "" {
-					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
-					klog.Warning(warnMsg)
-					continue
-				}
-
-				if slices.Contains(addresses, currentAddress) {
-					warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", currentAddress.Address)
-					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
-					klog.Warning(warnMsg)
-				}
-
-				addresses = append(addresses, currentAddress)
+			if currentAddress.Type != corev1.NodeInternalIP {
+				continue
 			}
+
+			ip := net.ParseIP(currentAddress.Address)
+			isIPv4 := ip.To4() != nil
+
+			var warnMsg string
+			if isIPv4 && ipv6 && !dualStack {
+				warnMsg = fmt.Sprintf(
+					"Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP",
+					currentAddress.Address,
+				)
+			} else if !isIPv4 && ipv4 && !dualStack {
+				warnMsg = fmt.Sprintf(
+					"Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP",
+					currentAddress.Address,
+				)
+			}
+
+			if warnMsg != "" {
+				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+				klog.Warning(warnMsg)
+				continue
+			}
+
+			if slices.Contains(addresses, currentAddress) {
+				warnMsg := fmt.Sprintf(
+					"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
+					currentAddress.Address,
+				)
+				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+				klog.Warning(warnMsg)
+			}
+
+			addresses = append(addresses, currentAddress)
 		}
 	}
 
