@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"slices"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
@@ -308,14 +307,16 @@ func robotNodeAddresses(
 				continue
 			}
 
-			if slices.Contains(addresses, currentAddress) {
-				warnMsg := fmt.Sprintf(
-					"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
-					currentAddress.Address,
-				)
-				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
-				klog.Warning(warnMsg)
-				continue OUTER
+			for _, address := range addresses {
+				if currentAddress.Address == address.Address {
+					warnMsg := fmt.Sprintf(
+						"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
+						currentAddress.Address,
+					)
+					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+					klog.Warning(warnMsg)
+					continue OUTER
+				}
 			}
 
 			addresses = append(addresses, currentAddress)
