@@ -20,11 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
@@ -34,7 +36,8 @@ import (
 )
 
 const (
-	ProvidedBy = "instance.hetzner.cloud/provided-by"
+	ProvidedBy              = "instance.hetzner.cloud/provided-by"
+	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 )
 
 type instances struct {
@@ -106,7 +109,7 @@ func (i *instances) lookupServer(
 			return nil, nil
 		}
 
-		return robotServer{server, i.robotClient}, nil
+		return robotServer{server, i.robotClient, i.recorder}, nil
 	}
 
 	// If the node has no provider ID we try to find the server by name from
@@ -139,7 +142,7 @@ func (i *instances) lookupServer(
 	case cloudServer != nil:
 		return hcloudServer{cloudServer}, nil
 	case hrobotServer != nil:
-		return robotServer{hrobotServer, i.robotClient}, nil
+		return robotServer{hrobotServer, i.robotClient, i.recorder}, nil
 	default:
 		// Both nil
 		return nil, nil
@@ -196,7 +199,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 			op, node.Name, errServerNotFound)
 	}
 
-	metadata, err := server.Metadata(i.networkID, i.cfg)
+	metadata, err := server.Metadata(i.networkID, node, i.cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -254,13 +257,12 @@ func hcloudNodeAddresses(
 
 func robotNodeAddresses(
 	server *hrobotmodels.Server,
+	node *corev1.Node,
 	cfg config.HCCMConfiguration,
+	recorder record.EventRecorder,
 ) []corev1.NodeAddress {
 	var addresses []corev1.NodeAddress
-	addresses = append(
-		addresses,
-		corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name},
-	)
+	addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name})
 
 	dualStack := cfg.Instance.AddressFamily == config.AddressFamilyDualStack
 	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
@@ -269,18 +271,56 @@ func robotNodeAddresses(
 	if ipv6 {
 		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
 		hostAddress := server.ServerIPv6Net + "1"
-
-		addresses = append(
-			addresses,
-			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress},
-		)
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
 	}
 
 	if ipv4 {
-		addresses = append(
-			addresses,
-			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP},
-		)
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: server.ServerIP})
+	}
+
+	if cfg.Robot.ForwardInternalIPs {
+	OUTER:
+		for _, currentAddress := range node.Status.Addresses {
+			if currentAddress.Type != corev1.NodeInternalIP {
+				continue
+			}
+
+			ip := net.ParseIP(currentAddress.Address)
+			isIPv4 := ip.To4() != nil
+
+			var warnMsg string
+			if isIPv4 && ipv6 && !dualStack {
+				warnMsg = fmt.Sprintf(
+					"Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP",
+					currentAddress.Address,
+				)
+			} else if !isIPv4 && ipv4 && !dualStack {
+				warnMsg = fmt.Sprintf(
+					"Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP",
+					currentAddress.Address,
+				)
+			}
+
+			if warnMsg != "" {
+				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+				klog.Warning(warnMsg)
+				continue
+			}
+
+			for _, address := range addresses {
+				if currentAddress.Address == address.Address {
+					warnMsg := fmt.Sprintf(
+						"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
+						currentAddress.Address,
+					)
+					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
+					klog.Warning(warnMsg)
+					continue OUTER
+				}
+			}
+
+			addresses = append(addresses, currentAddress)
+		}
 	}
 
 	return addresses
@@ -290,6 +330,7 @@ type genericServer interface {
 	IsShutdown() (bool, error)
 	Metadata(
 		networkID int64,
+		node *corev1.Node,
 		cfg config.HCCMConfiguration,
 	) (*cloudprovider.InstanceMetadata, error)
 }
@@ -302,7 +343,7 @@ func (s hcloudServer) IsShutdown() (bool, error) {
 	return s.Status == hcloud.ServerStatusOff, nil
 }
 
-func (s hcloudServer) Metadata(networkID int64, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromCloudServerID(s.ID),
 		InstanceType:  s.ServerType.Name,
@@ -318,6 +359,7 @@ func (s hcloudServer) Metadata(networkID int64, cfg config.HCCMConfiguration) (*
 type robotServer struct {
 	*hrobotmodels.Server
 	robotClient robot.Client
+	recorder    record.EventRecorder
 }
 
 func (s robotServer) IsShutdown() (bool, error) {
@@ -331,11 +373,11 @@ func (s robotServer) IsShutdown() (bool, error) {
 	return resetStatus.OperatingStatus == "shut off", nil
 }
 
-func (s robotServer) Metadata(_ int64, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
-		NodeAddresses: robotNodeAddresses(s.Server, cfg),
+		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recorder),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{

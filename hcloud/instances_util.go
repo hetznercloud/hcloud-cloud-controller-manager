@@ -24,11 +24,32 @@ import (
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
+
+type MockEventRecorder struct{}
+
+func (er *MockEventRecorder) Event(_ runtime.Object, _, _, _ string) {
+}
+
+func (er *MockEventRecorder) Eventf(
+	_ runtime.Object,
+	_, _, _ string,
+	_ ...interface{},
+) {
+}
+
+func (er *MockEventRecorder) AnnotatedEventf(
+	_ runtime.Object,
+	_ map[string]string,
+	_, _, _ string,
+	_ ...interface{},
+) {
+}
 
 func getCloudServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
 	const op = "hcloud/getCloudServerByName"

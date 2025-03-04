@@ -598,11 +598,12 @@ func TestNodeAddresses(t *testing.T) {
 
 func TestNodeAddressesRobotServer(t *testing.T) {
 	tests := []struct {
-		name           string
-		addressFamily  config.AddressFamily
-		server         *hrobotmodels.Server
-		privateNetwork int
-		expected       []corev1.NodeAddress
+		name                    string
+		addressFamily           config.AddressFamily
+		server                  *hrobotmodels.Server
+		nodeStatusNodeAddresses []corev1.NodeAddress
+		privateNetwork          int
+		expected                []corev1.NodeAddress
 	}{
 		{
 			name:          "public ipv4",
@@ -644,6 +645,61 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
 		},
+		{
+			name:          "public ipv4 and internal ip",
+			addressFamily: config.AddressFamilyIPv4,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "10.0.1.2",
+				},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+				{Type: corev1.NodeInternalIP, Address: "10.0.1.2"},
+			},
+		},
+		{
+			name:          "configured InternalIP is also ExternalIP",
+			addressFamily: config.AddressFamilyIPv4,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "203.0.113.7",
+				},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
+		{
+			name:          "configured InternalIP does not fit configured AddressFamily",
+			addressFamily: config.AddressFamilyIPv4,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "2001:db8:1234::",
+				},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -653,7 +709,16 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			cfg, err := config.Read()
 			assert.NoError(t, err)
 
-			addresses := robotNodeAddresses(test.server, cfg)
+			node := &corev1.Node{
+				Status: corev1.NodeStatus{
+					Addresses: []corev1.NodeAddress{},
+				},
+			}
+			if test.nodeStatusNodeAddresses != nil {
+				node.Status.Addresses = test.nodeStatusNodeAddresses
+			}
+
+			addresses := robotNodeAddresses(test.server, node, cfg, &MockEventRecorder{})
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("%s: expected addresses %+v but got %+v", test.name, test.expected, addresses)
