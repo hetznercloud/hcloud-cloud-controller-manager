@@ -314,6 +314,7 @@ func robotNodeAddresses(
 				)
 				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
 				klog.Warning(warnMsg)
+				continue
 			}
 
 			addresses = append(addresses, currentAddress)
