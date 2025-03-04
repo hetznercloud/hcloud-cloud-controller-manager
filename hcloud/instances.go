@@ -357,7 +357,7 @@ func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMC
 type robotServer struct {
 	*hrobotmodels.Server
 	robotClient robot.Client
-	recorder     record.EventRecorder
+	recorder    record.EventRecorder
 }
 
 func (s robotServer) IsShutdown() (bool, error) {
@@ -375,7 +375,7 @@ func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfigu
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
-		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recoder),
+		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recorder),
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
