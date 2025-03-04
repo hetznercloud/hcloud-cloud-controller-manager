@@ -302,7 +302,6 @@ func robotNodeAddresses(
 						warnMsg := fmt.Sprintf("Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP", currentAddress.Address)
 						recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
 						klog.Warning(warnMsg)
-						continue
 					}
 				}
 
