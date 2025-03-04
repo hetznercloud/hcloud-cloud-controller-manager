@@ -280,6 +280,7 @@ func robotNodeAddresses(
 	}
 
 	if cfg.Robot.ForwardInternalIPs {
+	OUTER:
 		for _, currentAddress := range node.Status.Addresses {
 			if currentAddress.Type != corev1.NodeInternalIP {
 				continue
@@ -314,7 +315,7 @@ func robotNodeAddresses(
 				)
 				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
 				klog.Warning(warnMsg)
-				continue
+				continue OUTER
 			}
 
 			addresses = append(addresses, currentAddress)
