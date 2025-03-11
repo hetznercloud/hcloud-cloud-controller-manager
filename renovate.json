@@ -3,5 +3,12 @@
   "extends": [
     "github>hetznercloud/.github//renovate/default",
     "github>hetznercloud/.github//renovate/golang"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["go", "golang"],
+      "matchDepTypes": ["toolchain", "image", "stage"],
+      "groupName": "golang"
+    }
   ]
 }
