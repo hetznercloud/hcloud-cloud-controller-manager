@@ -12,15 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Pull the toolchain version from go.mod
-      # setup-go feature request: https://github.com/actions/setup-go/issues/457
-      - id: toolchain-version
-        run: echo "version=$(sed -ne '/^toolchain /s/^toolchain go//p' go.mod)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ steps.toolchain-version.outputs.version }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x

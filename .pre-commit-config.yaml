@@ -56,3 +56,4 @@ repos:
     hooks:
       - id: golangci-lint-full
         args: [--timeout=5m]
+        language_version: 1.23.7 # renovate: datasource=github-releases depName=golang/go
