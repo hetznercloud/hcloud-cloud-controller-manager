@@ -6,15 +6,9 @@
   ],
   "packageRules": [
     {
-      "groupName": "golang",
-      "matchDatasources": ["golang-version"]
-    },
-    {
-      "groupName": "golang",
-      "matchPackageNames": [
-        "docker.io/library/golang",
-        "github.com/golang/go"
-      ]
+      "matchPackageNames": ["go", "golang"],
+      "matchDepTypes": ["toolchain", "image", "stage"],
+      "groupName": "golang"
     }
   ]
 }
