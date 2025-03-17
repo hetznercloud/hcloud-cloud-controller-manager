@@ -52,7 +52,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.64.7
+    rev: v1.64.8
     hooks:
       - id: golangci-lint-full
         args: [--timeout=5m]
