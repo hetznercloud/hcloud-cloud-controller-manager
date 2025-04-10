@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.24.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.24.0)
+
+### Features
+
+- **robot**: forward InternalIPs by default on Robot nodes (#865)
+
 ## [v1.23.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.23.0)
 
 ### Features
