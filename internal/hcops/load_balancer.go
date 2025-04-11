@@ -664,6 +664,14 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 					svc.Name,
 					node.Name,
 				)
+				l.Recorder.Eventf(
+					svc,
+					corev1.EventTypeWarning,
+					"InternalIPNotConfigured",
+					"%s: load balancer has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
+					op,
+					node.Name,
+				)
 			}
 
 			robotIPsToIDs[s.ServerIP] = s.ServerNumber
