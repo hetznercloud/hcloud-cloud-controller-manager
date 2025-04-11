@@ -645,6 +645,35 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		}
 
 		for _, s := range dedicatedServers {
+			if usePrivateIP {
+				node, ok := k8sNodes[int64(s.ServerNumber)]
+				if !ok {
+					continue
+				}
+
+				internalIP := getNodeInternalIP(node)
+				if internalIP != "" {
+					robotIPsToIDs[internalIP] = s.ServerNumber
+					robotIDToIPv4[s.ServerNumber] = internalIP
+					continue
+				}
+
+				klog.Warningf(
+					"%s: load balancer %s has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
+					op,
+					svc.Name,
+					node.Name,
+				)
+				l.Recorder.Eventf(
+					svc,
+					corev1.EventTypeWarning,
+					"InternalIPNotConfigured",
+					"%s: load balancer has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
+					op,
+					node.Name,
+				)
+			}
+
 			robotIPsToIDs[s.ServerIP] = s.ServerNumber
 			robotIDToIPv4[s.ServerNumber] = s.ServerIP
 		}
@@ -1385,4 +1414,13 @@ func lbAttached(lb *hcloud.LoadBalancer, nwID int64, privateIPv4 string) bool {
 		}
 	}
 	return false
+}
+
+func getNodeInternalIP(node *corev1.Node) string {
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+	return ""
 }
