@@ -6,7 +6,7 @@ As a result, the annotation `load-balancer.hetzner.cloud/use-private-ip` can be 
 
 ## Configuration
 
-To configure this, enable Robot support as outlined in the [robot setup guide](./robot.md). Since the HCCM needs to fetch network data, provide the network ID using the `HCLOUD_NETWORK` environment variable.
+To configure this, enable Robot support as outlined in the [Robot setup guide](./robot.md). Since the HCCM needs to fetch network data, provide the network ID using the `HCLOUD_NETWORK` environment variable.
 
 To disable the Routes controller, which is incompatible with vSwitches, disable networking in the Helm chart and set `HCLOUD_NETWORK_ROUTES_ENABLED=false`. Use the following snippet as a reference.
 
