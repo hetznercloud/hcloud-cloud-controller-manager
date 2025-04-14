@@ -789,7 +789,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				continue
 			}
 
-			klog.InfoS("add target", "op", op, "service", svc.ObjectMeta.Name, "targetName", node, "ip", ip)
+			klog.InfoS("add target (robot node)", "op", op, "service", svc.ObjectMeta.Name, "targetName", node.Name, "ip", ip)
 			opts := hcloud.LoadBalancerAddIPTargetOpts{
 				IP: net.ParseIP(ip),
 			}
