@@ -61,6 +61,14 @@ env:
 image:
   repository: docker.io/hetznercloud/hcloud-cloud-controller-manager
   tag: "v{{ $.Chart.Version }}"
+  ## Optionally specify an array of imagePullSecrets.
+  ## Secrets must be manually created in the namespace.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ## e.g:
+  ## pullSecrets:
+  ##   - myRegistryKeySecretName
+  ##
+  pullSecrets: []
 
 monitoring:
   # When enabled, the hccm Pod will serve metrics on port :8233
