@@ -104,7 +104,9 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      priorityClassName: system-cluster-critical
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName | quote }}
+      {{- end }}
       {{- with .Values.extraVolumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

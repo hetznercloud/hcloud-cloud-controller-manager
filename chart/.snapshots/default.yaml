@@ -93,4 +93,4 @@ spec:
             requests:
               cpu: 100m
               memory: 50Mi
-      priorityClassName: system-cluster-critical
+      priorityClassName: "system-cluster-critical"
