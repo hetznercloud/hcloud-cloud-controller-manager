@@ -56,8 +56,8 @@ The Node controller adds information about the server to the Node object. The va
 - Addresses
   - We add the Hostname and (depending on the configuration and availability) the IPv4 and IPv6 addresses of the server in `Node.status.addresses`.
   - For the IPv6 address we use the first address in the Network -> For the network `2a01:f48:111:4221::` we add the address `2a01:f48:111:4221::1`.
+  - Automatic reporting of private IPs in a vSwitch to `Node.status.addresses` are not supported.
   - By default, we pass along InternalIPs configured via the kubelet flag `--node-ip`. This can be disabled by setting the environment variable `ROBOT_FORWARD_INTERNAL_IPS` to `false`. It is not allowed to configure the same IP for InternalIP and ExternalIP.
-  - Private IPs in a vSwitch are not supported.
 
 ### Node Lifecycle Controller
 
@@ -71,11 +71,9 @@ The service controller watches Services with `type: LoadBalancer` and creates Cl
 
 ### Unsupported
 
-#### Routes & Private Networks
+#### Routes
 
 Adding support for Routing Pod CIDRs through the (Cloud) Networks and (Robot) vSwitches is not currently supported. You will need to use your own CNI for this.
-
-> If you are interested in this, we are looking for contributors to help design & implement this.
 
 ## Requirements
 
