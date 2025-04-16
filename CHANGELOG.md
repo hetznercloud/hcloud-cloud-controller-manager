@@ -1,5 +1,25 @@
 # Changelog
 
+## [v1.24.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.24.0)
+
+### Improved Robot Support in hcloud-cloud-controller-manager
+
+The hcloud-cloud-controller-manager now forwards `InternalIPs` by default on Robot nodes when the `--node-ip` flag is used. If the provided IP is not already registered as an `ExternalIP` and matches the expected address family, it will be forwarded automatically during initialization.
+
+This allows the use of vSwitch IPs in private networks and Load Balancers.
+
+🔗 Learn more in our updated [Robot documentation](./docs/robot.md)
+📘 Follow our [how-to-guide](./docs/how-to-robot-vswitch-load-balancer.md) to set up Load Balancers with vSwitch IPs.
+
+### Features
+
+- **robot**: forward InternalIPs by default on Robot nodes (#865)
+- **load-balancer**: enable use-private-ip annotation for Robot servers (#898)
+
+### Bug Fixes
+
+- **load-balancer**: don&#39;t print entire node object when adding robot target (#904)
+
 ## [v1.23.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.23.0)
 
 ### Features
