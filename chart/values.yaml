@@ -113,6 +113,10 @@ nodeSelector: {}
 # Set the affinity for pods. (Only works with kind=Deployment)
 affinity: {}
 
+# pods priorityClassName
+# ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption
+priorityClassName: "system-cluster-critical"
+
 robot:
   # Set to true to enable support for Robot (Dedicated) servers.
   enabled: false
