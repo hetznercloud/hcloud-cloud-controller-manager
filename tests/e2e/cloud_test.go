@@ -83,11 +83,9 @@ func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvc)
-	if err != nil {
-		t.Fatalf("deploying test svc: %s", err)
+	if assert.NoError(t, err, "deploying test svc") {
+		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 	}
-
-	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 
 	lbTest.TearDown()
 }
@@ -111,11 +109,9 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvc)
-	if err != nil {
-		t.Fatalf("deploying test svc: %s", err)
+	if assert.NoError(t, err, "deploying test svc") {
+		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 	}
-
-	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
 
 	lbTest.TearDown()
 }
@@ -147,21 +143,19 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvc)
-	if err != nil {
-		t.Fatalf("deploying test svc: %s", err)
+	if assert.NoError(t, err, "deploying test svc") {
+		certs, err := testCluster.hcloud.Certificate.AllWithOpts(ctx, hcloud.CertificateListOpts{
+			ListOpts: hcloud.ListOpts{
+				LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, lbSvc.ObjectMeta.UID),
+			},
+		})
+		assert.NoError(t, err)
+		if assert.Len(t, certs, 1) {
+			testCluster.certificates.Add(certs[0].ID)
+		}
 	}
-	certs, err := testCluster.hcloud.Certificate.AllWithOpts(ctx, hcloud.CertificateListOpts{
-		ListOpts: hcloud.ListOpts{
-			LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, lbSvc.ObjectMeta.UID),
-		},
-	})
-	assert.NoError(t, err)
-	assert.Len(t, certs, 1)
 
 	lbTest.TearDown()
-
-	_, err = testCluster.hcloud.Certificate.Delete(ctx, certs[0])
-	assert.NoError(t, err)
 }
 
 func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
@@ -177,11 +171,9 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvcDefinition)
-	if err != nil {
-		t.Fatalf("deploying test svc: %s", err)
+	if assert.NoError(t, err, "deploying test svc") {
+		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 	}
-
-	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
 
 	lbTest.TearDown()
 }
