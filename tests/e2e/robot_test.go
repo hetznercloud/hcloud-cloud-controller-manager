@@ -85,9 +85,9 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvc)
-	assert.NoError(t, err)
-
-	WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+	if assert.NoError(t, err, "deploying test svc") {
+		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+	}
 
 	lbTest.TearDown()
 }
