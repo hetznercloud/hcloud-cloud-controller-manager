@@ -110,7 +110,7 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 
 	lbSvc, err := lbTest.CreateService(lbSvc)
 	if assert.NoError(t, err, "deploying test svc") {
-		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
 	}
 
 	lbTest.TearDown()
