@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.25.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.25.0)
+
+### Features
+
+- **helm**: support custom priorityClassName (#908)
+- **helm**: support imagePullSecrets (#907)
+
 ## [v1.24.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.24.0)
 
 ### Improved Robot Support in hcloud-cloud-controller-manager
