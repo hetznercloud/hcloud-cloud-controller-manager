@@ -63,7 +63,8 @@ archives:
       - README.md
 
 release:
-  ids: [""]
+  ids:
+    - hcloud-cloud-controller-manager-archive
   extra_files:
     - glob: ./deploy/ccm*.yaml
     - glob: ./hcloud-cloud-controller-manager-*.tgz
