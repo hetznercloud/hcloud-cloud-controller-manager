@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -18,98 +17,16 @@ import (
 
 const ann annotation.Name = "some/annotation"
 
-func TestName_AddToService(t *testing.T) {
-	tests := []struct {
-		name     string
-		value    interface{}
-		svc      corev1.Service
-		err      error
-		expected map[string]string
-	}{
-		{
-			name:     "set string",
-			value:    "some value",
-			expected: map[string]string{string(ann): "some value"},
-		},
-		{
-			name:     "set stringer",
-			value:    stringer{"some value"},
-			expected: map[string]string{string(ann): "some value"},
-		},
-
-		{
-			name:     "set bool",
-			value:    true,
-			expected: map[string]string{string(ann): "true"},
-		},
-		{
-			name:     "set int",
-			value:    10,
-			expected: map[string]string{string(ann): "10"},
-		},
-		{
-			name:     "set []string",
-			value:    []string{"a", "b"},
-			expected: map[string]string{string(ann): "a,b"},
-		},
-		{
-			name:     "set hcloud.LoadBalancerServiceProtocol",
-			value:    hcloud.LoadBalancerServiceProtocolTCP,
-			expected: map[string]string{string(ann): string(hcloud.LoadBalancerServiceProtocolTCP)},
-		},
-		{
-			name:     "set []*hcloud.Certificate",
-			value:    []*hcloud.Certificate{{ID: 1}, {ID: 2}},
-			expected: map[string]string{string(ann): "1,2"},
-		},
-		{
-			name:     "set []*hcloud.Certificate by name",
-			value:    []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
-			expected: map[string]string{string(ann): "cert-1,cert-2"},
-		},
-		{
-			name:  "set unsupported value",
-			value: struct{}{},
-			err:   fmt.Errorf("annotation/Name.AnnotateService: %v: unsupported type: %T", ann, struct{}{}),
-		},
-		{
-			name:  "does not overwrite unrelated annotations",
-			value: "some value",
-			svc: corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{"other/annotation": "other value"},
-				},
-			},
-			expected: map[string]string{
-				string(ann):        "some value",
-				"other/annotation": "other value",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ann.AnnotateService(&tt.svc, tt.value)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-				return
-			}
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expected, tt.svc.ObjectMeta.Annotations)
-		})
-	}
-}
-
 func TestName_StringFromService(t *testing.T) {
 	tests := []struct {
 		name           string
-		svcAnnotations map[annotation.Name]interface{}
+		svcAnnotations map[annotation.Name]string
 		ok             bool
 		expected       string
 	}{
 		{
 			name:           "value as string",
-			svcAnnotations: map[annotation.Name]interface{}{ann: "some value"},
+			svcAnnotations: map[annotation.Name]string{ann: "some value"},
 			ok:             true,
 			expected:       "some value",
 		},
@@ -124,11 +41,10 @@ func TestName_StringFromService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var svc corev1.Service
+			svc.Annotations = map[string]string{}
 
 			for k, v := range tt.svcAnnotations {
-				if err := k.AnnotateService(&svc, v); err != nil {
-					t.Error(err)
-				}
+				svc.Annotations[string(k)] = v
 			}
 			actual, ok := ann.StringFromService(&svc)
 			assert.Equal(t, tt.ok, ok)
@@ -141,7 +57,7 @@ func TestName_StringsFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "a,b,c",
 			},
 			expected: []string{"a", "b", "c"},
@@ -161,12 +77,12 @@ func TestName_BoolFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name:           "value set to true",
-			svcAnnotations: map[annotation.Name]interface{}{ann: "true"},
+			svcAnnotations: map[annotation.Name]string{ann: "true"},
 			expected:       true,
 		},
 		{
 			name:           "value set to false",
-			svcAnnotations: map[annotation.Name]interface{}{ann: "false"},
+			svcAnnotations: map[annotation.Name]string{ann: "false"},
 			expected:       false,
 		},
 		{
@@ -176,7 +92,7 @@ func TestName_BoolFromService(t *testing.T) {
 		},
 		{
 			name:           "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{ann: "invalid"},
+			svcAnnotations: map[annotation.Name]string{ann: "invalid"},
 			expected:       false,
 			err:            strconv.ErrSyntax,
 		},
@@ -191,7 +107,7 @@ func TestName_IntFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name:           "value set to 10",
-			svcAnnotations: map[annotation.Name]interface{}{ann: 10},
+			svcAnnotations: map[annotation.Name]string{ann: "10"},
 			expected:       10,
 		},
 		{
@@ -201,7 +117,7 @@ func TestName_IntFromService(t *testing.T) {
 		},
 		{
 			name:           "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{ann: "invalid"},
+			svcAnnotations: map[annotation.Name]string{ann: "invalid"},
 			expected:       0,
 			err:            strconv.ErrSyntax,
 		},
@@ -216,7 +132,7 @@ func TestName_IntsFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "5,8",
 			},
 			expected: []int{5, 8},
@@ -227,7 +143,7 @@ func TestName_IntsFromService(t *testing.T) {
 		},
 		{
 			name:           "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{ann: "invalid"},
+			svcAnnotations: map[annotation.Name]string{ann: "invalid"},
 			err:            strconv.ErrSyntax,
 		},
 	}
@@ -241,21 +157,21 @@ func TestName_IPFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set to valid IPv4",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: net.ParseIP("1.2.3.4"),
+			svcAnnotations: map[annotation.Name]string{
+				ann: "1.2.3.4",
 			},
 			expected: net.ParseIP("1.2.3.4"),
 		},
 		{
 			name: "value set to valid IPv6",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: net.ParseIP("3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2"),
+			svcAnnotations: map[annotation.Name]string{
+				ann: "3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2",
 			},
 			expected: net.ParseIP("3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2"),
 		},
 		{
 			name: "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "invalid",
 			},
 			err: errors.New("annotation/Name.IPFromService: invalid ip address: invalid"),
@@ -275,8 +191,8 @@ func TestName_DurationFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: time.Hour,
+			svcAnnotations: map[annotation.Name]string{
+				ann: "1h",
 			},
 			expected: time.Hour,
 		},
@@ -286,7 +202,7 @@ func TestName_DurationFromService(t *testing.T) {
 		},
 		{
 			name: "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "invalid",
 			},
 			err: errors.New("annotation/Name.DurationFromService: time: invalid duration \"invalid\""),
@@ -302,8 +218,8 @@ func TestName_LBSvcProtocolFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: hcloud.LoadBalancerServiceProtocolHTTP,
+			svcAnnotations: map[annotation.Name]string{
+				ann: string(hcloud.LoadBalancerServiceProtocolHTTP),
 			},
 			expected: hcloud.LoadBalancerServiceProtocolHTTP,
 		},
@@ -313,7 +229,7 @@ func TestName_LBSvcProtocolFromService(t *testing.T) {
 		},
 		{
 			name: "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "invalid",
 			},
 			err: errors.New("annotation/Name.LBSvcProtocolFromService: annotation/validateServiceProtocol: invalid: invalid"),
@@ -329,8 +245,8 @@ func TestName_LBAlgorithmTypeFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: hcloud.LoadBalancerAlgorithmTypeLeastConnections,
+			svcAnnotations: map[annotation.Name]string{
+				ann: string(hcloud.LoadBalancerAlgorithmTypeLeastConnections),
 			},
 			expected: hcloud.LoadBalancerAlgorithmTypeLeastConnections,
 		},
@@ -340,7 +256,7 @@ func TestName_LBAlgorithmTypeFromService(t *testing.T) {
 		},
 		{
 			name: "value invalid",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "invalid",
 			},
 			err: errors.New("annotation/Name.LBAlgorithmTypeFromService: annotation/validateAlgorithmType: invalid: invalid"),
@@ -356,8 +272,8 @@ func TestName_NetworkZoneFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "value set",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: hcloud.NetworkZoneEUCentral,
+			svcAnnotations: map[annotation.Name]string{
+				ann: string(hcloud.NetworkZoneEUCentral),
 			},
 			expected: hcloud.NetworkZoneEUCentral,
 		},
@@ -376,15 +292,15 @@ func TestName_CertificatesFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "ids set",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: []*hcloud.Certificate{{ID: 3}, {ID: 5}},
+			svcAnnotations: map[annotation.Name]string{
+				ann: "3,5",
 			},
 			expected: []*hcloud.Certificate{{ID: 3}, {ID: 5}},
 		},
 		{
 			name: "names set",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
+			svcAnnotations: map[annotation.Name]string{
+				ann: "cert-1,cert-2",
 			},
 			expected: []*hcloud.Certificate{{Name: "cert-1"}, {Name: "cert-2"}},
 		},
@@ -403,21 +319,21 @@ func TestName_CertificateTypeFromService(t *testing.T) {
 	tests := []typedAccessorTest{
 		{
 			name: "uploaded certificate",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: hcloud.CertificateTypeUploaded,
+			svcAnnotations: map[annotation.Name]string{
+				ann: string(hcloud.CertificateTypeUploaded),
 			},
 			expected: hcloud.CertificateTypeUploaded,
 		},
 		{
 			name: "managed certificate",
-			svcAnnotations: map[annotation.Name]interface{}{
-				ann: hcloud.CertificateTypeManaged,
+			svcAnnotations: map[annotation.Name]string{
+				ann: string(hcloud.CertificateTypeManaged),
 			},
 			expected: hcloud.CertificateTypeManaged,
 		},
 		{
 			name: "unsupported certificate type",
-			svcAnnotations: map[annotation.Name]interface{}{
+			svcAnnotations: map[annotation.Name]string{
 				ann: "unsupported type",
 			},
 			err: fmt.Errorf("annotation/Name.CertificateTypeFromService: annotation/Name.CertificateTypeFromService: unsupported certificate type: unsupported type"),
@@ -429,28 +345,21 @@ func TestName_CertificateTypeFromService(t *testing.T) {
 	})
 }
 
-type stringer struct{ Value string }
-
-func (s stringer) String() string {
-	return s.Value
-}
-
 type typedAccessorTest struct {
 	name           string
-	svcAnnotations map[annotation.Name]interface{}
+	svcAnnotations map[annotation.Name]string
 	err            error
 	expected       interface{}
 }
 
 func (tt *typedAccessorTest) run(t *testing.T, call func(svc *corev1.Service) (interface{}, error)) {
-	var svc corev1.Service
-
 	t.Helper()
 
+	var svc corev1.Service
+	svc.Annotations = map[string]string{}
+
 	for k, v := range tt.svcAnnotations {
-		if err := k.AnnotateService(&svc, v); !assert.NoError(t, err) {
-			return
-		}
+		svc.Annotations[string(k)] = v
 	}
 
 	actual, err := call(&svc)

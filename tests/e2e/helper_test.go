@@ -23,7 +23,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -295,15 +294,6 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 			return false, err
 		}
 
-		// Save load balancer id for cleanup
-		lbID, err := LoadBalancerIDFromService(lbSvc)
-		if err != nil {
-			l.t.Error(err)
-		}
-		if lbID != 0 {
-			testCluster.loadBalancers.Add(lbID)
-		}
-
 		ingressIPs := svc.Status.LoadBalancer.Ingress
 		if len(ingressIPs) > 0 {
 			lbSvc = svc
@@ -370,18 +360,4 @@ func WaitForHTTPAvailable(t *testing.T, ingressIP string, useHTTPS bool) {
 	if err != nil {
 		t.Errorf("%s not available: %s", ingressIP, err)
 	}
-}
-
-func LoadBalancerIDFromService(svc *corev1.Service) (int64, error) {
-	label, ok := svc.Labels[string(annotation.LBID)]
-	if !ok || label == "" {
-		return 0, nil
-	}
-
-	id, err := strconv.ParseInt(label, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
 }
