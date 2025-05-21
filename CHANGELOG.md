@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.25.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.25.1)
+
+### Bug Fixes
+
+- binaries are missing in the release (#930)
+
 ## [v1.25.1-rc.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.25.1-rc.0)
 
 ### Bug Fixes
