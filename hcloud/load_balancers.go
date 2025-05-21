@@ -196,6 +196,10 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		}
 	}
 
+	// Mutating the svc variable is not allowed
+	svc = svc.DeepCopy()
+	// This adds all settings from the LB as annotations on the service.
+	// This is never patched on the Kubernetes API. We only use it to pass around data internally in a "well-defined" manner.
 	if err := annotation.LBToService(svc, lb); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
