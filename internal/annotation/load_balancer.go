@@ -10,10 +10,6 @@ import (
 )
 
 const (
-	// LBID is the ID assigned to the Hetzner Cloud Load Balancer by the
-	// backend. Read-only.
-	LBID Name = "load-balancer.hetzner.cloud/id"
-
 	// LBPublicIPv4 is the public IPv4 address assigned to the Load Balancer by
 	// the backend. Read-only.
 	LBPublicIPv4 Name = "load-balancer.hetzner.cloud/ipv4"
@@ -209,6 +205,12 @@ const (
 	// LBSvcHealthCheckHTTPStatusCodes is a comma separated list of HTTP status
 	// codes which we expect.
 	LBSvcHealthCheckHTTPStatusCodes Name = "load-balancer.hetzner.cloud/http-status-codes"
+
+	// LBID is the ID assigned to the Hetzner Cloud Load Balancer by the
+	// backend. Read-only.
+	//
+	// Deprecated: This annotation is not used. It is reserved for possible future use.
+	LBID Name = "load-balancer.hetzner.cloud/id"
 )
 
 // LBToService sets the relevant annotations on svc to their respective values
@@ -219,7 +221,6 @@ func LBToService(svc *corev1.Service, lb *hcloud.LoadBalancer) error {
 
 	sa := &serviceAnnotator{Svc: svc}
 
-	sa.Annotate(LBID, lb.ID)
 	sa.Annotate(LBName, lb.Name)
 	sa.Annotate(LBType, lb.LoadBalancerType.Name)
 	sa.Annotate(LBAlgorithmType, lb.Algorithm.Type)

@@ -59,7 +59,6 @@ func TestLBToService_AddAnnotations(t *testing.T) {
 				},
 			},
 			expected: map[annotation.Name]interface{}{
-				annotation.LBID:            4711,
 				annotation.LBName:          "common annotations lb",
 				annotation.LBType:          "lb11",
 				annotation.LBAlgorithmType: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
@@ -129,7 +128,6 @@ func TestLBToService_AddAnnotations(t *testing.T) {
 				},
 			},
 			expected: map[annotation.Name]interface{}{
-				annotation.LBID:            4712,
 				annotation.LBName:          "https load balancer",
 				annotation.LBType:          "lb11",
 				annotation.LBAlgorithmType: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
