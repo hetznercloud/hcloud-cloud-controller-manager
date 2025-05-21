@@ -21,7 +21,7 @@ type LoadBalancerTestCase struct {
 	ClusterName                  string
 	NetworkID                    int
 	ServiceUID                   string
-	ServiceAnnotations           map[annotation.Name]interface{}
+	ServiceAnnotations           map[annotation.Name]string
 	DisablePrivateIngressDefault bool
 	DisableIPv6Default           bool
 	Nodes                        []*corev1.Node
@@ -54,12 +54,13 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.ClusterName = "test-cluster"
 	}
 	tt.Service = &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{UID: types.UID(tt.ServiceUID)},
+		ObjectMeta: metav1.ObjectMeta{
+			UID:         types.UID(tt.ServiceUID),
+			Annotations: map[string]string{},
+		},
 	}
 	for k, v := range tt.ServiceAnnotations {
-		if err := k.AnnotateService(tt.Service, v); err != nil {
-			t.Fatal(err)
-		}
+		tt.Service.Annotations[string(k)] = v
 	}
 	if tt.Ctx == nil {
 		tt.Ctx = context.Background()
@@ -77,7 +78,9 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 }
 
 func RunLoadBalancerTests(t *testing.T, tests []LoadBalancerTestCase) {
+	t.Helper()
+
 	for _, tt := range tests {
-		tt.run(t)
+		t.Run(tt.Name, func(t *testing.T) { tt.run(t) })
 	}
 }

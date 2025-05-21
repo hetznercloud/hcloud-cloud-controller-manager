@@ -196,14 +196,6 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		}
 	}
 
-	// Mutating the svc variable is not allowed
-	svc = svc.DeepCopy()
-	// This adds all settings from the LB as annotations on the service.
-	// This is never patched on the Kubernetes API. We only use it to pass around data internally in a "well-defined" manner.
-	if err := annotation.LBToService(svc, lb); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
 	// Either set the Hostname or the IPs (below).
 	// See: https://github.com/kubernetes/kubernetes/issues/66607
 	if v, ok := annotation.LBHostname.StringFromService(svc); ok {
@@ -236,12 +228,7 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 		ipMode = corev1.LoadBalancerIPModeProxy
 	}
 
-	disablePubNet, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	if !disablePubNet {
+	if lb.PublicNet.Enabled {
 		ingress = append(ingress, corev1.LoadBalancerIngress{
 			IP:     lb.PublicNet.IPv4.IP.String(),
 			IPMode: &ipMode,

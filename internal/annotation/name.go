@@ -20,54 +20,6 @@ var ErrNotSet = errors.New("not set")
 // Name defines the name of a K8S annotation.
 type Name string
 
-// AnnotateService adds the value v as an annotation with s.Name to svc.
-//
-// AnnotateService returns an error if converting v to a string fails.
-func (s Name) AnnotateService(svc *corev1.Service, v interface{}) error {
-	const op = "annotation/Name.AnnotateService"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	if svc.ObjectMeta.Annotations == nil {
-		svc.ObjectMeta.Annotations = make(map[string]string)
-	}
-	k := string(s)
-	switch vt := v.(type) {
-	case bool:
-		svc.ObjectMeta.Annotations[k] = strconv.FormatBool(vt)
-	case int:
-		svc.ObjectMeta.Annotations[k] = strconv.Itoa(vt)
-	case int64:
-		svc.ObjectMeta.Annotations[k] = strconv.FormatInt(vt, 10)
-	case string:
-		svc.ObjectMeta.Annotations[k] = vt
-	case []string:
-		svc.ObjectMeta.Annotations[k] = strings.Join(vt, ",")
-	case hcloud.CertificateType:
-		svc.ObjectMeta.Annotations[k] = string(vt)
-	case []*hcloud.Certificate:
-		idsOrNames := make([]string, len(vt))
-		for i, c := range vt {
-			if c.ID == 0 && c.Name != "" {
-				idsOrNames[i] = c.Name
-				continue
-			}
-			idsOrNames[i] = strconv.FormatInt(c.ID, 10)
-		}
-		svc.ObjectMeta.Annotations[k] = strings.Join(idsOrNames, ",")
-	case hcloud.NetworkZone:
-		svc.ObjectMeta.Annotations[k] = string(vt)
-	case hcloud.LoadBalancerAlgorithmType:
-		svc.ObjectMeta.Annotations[k] = string(vt)
-	case hcloud.LoadBalancerServiceProtocol:
-		svc.ObjectMeta.Annotations[k] = string(vt)
-	case fmt.Stringer:
-		svc.ObjectMeta.Annotations[k] = vt.String()
-	default:
-		return fmt.Errorf("%s: %v: unsupported type: %T", op, s, v)
-	}
-	return nil
-}
-
 // StringFromService retrieves the value belonging to the annotation from svc.
 //
 // If svc has no value for the annotation the second return value is false.
@@ -378,16 +330,4 @@ func validateServiceProtocol(protocol string) (hcloud.LoadBalancerServiceProtoco
 		return "", fmt.Errorf("%s: invalid: %s", op, protocol)
 	}
 	return hcloudProtocol, nil
-}
-
-type serviceAnnotator struct {
-	Svc *corev1.Service
-	Err error
-}
-
-func (sa *serviceAnnotator) Annotate(n Name, v interface{}) {
-	if sa.Err != nil {
-		return
-	}
-	sa.Err = n.AnnotateService(sa.Svc, v)
 }
