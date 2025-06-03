@@ -1,6 +1,6 @@
 # Load Balancers with Private Networks
 
-Load Balancer traffic to the targets can be routed via Private Networks. To achieve this, ensure you have set up a cluster with Private Network support according to [this guide](./private-network-setup.md).
+Load Balancer traffic to the targets can be routed via Private Networks. To achieve this, ensure you have set up a cluster with Private Network support according to [this guide](../private-network-setup.md).
 
 ## Sample Service with Networks:
 
