@@ -10,7 +10,7 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/syself/hrobot-go v0.2.6
-	golang.org/x/time v0.11.0
+	golang.org/x/time v0.12.0
 	k8s.io/api v0.33.1
 	k8s.io/apimachinery v0.33.1
 	k8s.io/client-go v0.33.1
