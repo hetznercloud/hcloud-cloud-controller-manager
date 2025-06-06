@@ -22,6 +22,9 @@ package main
 
 import (
 	"os"
+	"os/signal"
+	"runtime/coverage"
+	"syscall"
 
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -42,6 +45,8 @@ func main() {
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
 	}
+
+	setupCoverageSignalHandler()
 
 	fss := cliflag.NamedFlagSets{}
 	command := app.NewCloudControllerManagerCommand(ccmOptions, cloudInitializer, app.DefaultInitFuncConstructors, names.CCMControllerAliases(), fss, wait.NeverStop)
@@ -73,4 +78,25 @@ func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
 		}
 	}
 	return cloud
+}
+
+func setupCoverageSignalHandler() {
+	coverDir, exists := os.LookupEnv("GOCOVERDIR")
+	if !exists {
+		return
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGUSR1)
+
+	go func() {
+		for {
+			<-c
+			klog.Info("Writing coverage profile")
+
+			if err := coverage.WriteCountersDir(coverDir); err != nil {
+				klog.Warning("failed to write coverage profile", "err", err)
+			}
+		}
+	}()
 }

@@ -7,6 +7,8 @@ build:
     - image: docker.io/hetznercloud/hcloud-cloud-controller-manager
       docker:
         dockerfile: dev/Dockerfile
+        buildArgs:
+          GO_BUILDFLAGS: -covermode=atomic -coverpkg=github.com/hetznercloud/hcloud-cloud-controller-manager/...
   local:
     useBuildkit: true
   insecureRegistries:
@@ -24,6 +26,11 @@ manifests:
           # We circumvent this by co-locating the registry & HCCM, so it's always a local pull.
           affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].topologyKey: "kubernetes.io/hostname"
           affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchLabels.app: docker-registry
+          env.GOCOVERDIR.value: "/coverage"
+          extraVolumes[0].name: coverage
+          extraVolumes[0].emptyDir: {}
+          extraVolumeMounts[0].name: coverage
+          extraVolumeMounts[0].mountPath: "/coverage"
 
 profiles:
   # Clusters with Robot Servers do not support the native Routing functionality right now.
