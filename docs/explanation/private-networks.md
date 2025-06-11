@@ -9,7 +9,7 @@ The hcloud-cloud-controller-manager utilizes them for two features:
 
 ### Network Attachment Verification
 
-When a network is configured, HCCM uses the metadata service to verify whether the specified network is attached to the node it’s running on. This behavior can be disabled by setting the environment variable:
+When a network is configured, HCCM uses the [metadata service](https://docs.hetzner.cloud/#server-metadata) to verify whether the specified network is attached to the node it’s running on. This behavior can be disabled by setting the environment variable:
 
 ```bash
 HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK=true
