@@ -6,7 +6,7 @@ The service and route controller are not required and can be disabled independen
 
 ## Node Controller
 
-The node controller manages the lifecycle of nodes by tracking their status. It also provides the cluster with metadata about each node, such as the instance type.
+The node controller manages the lifecycle of nodes by tracking their status. It also provides the cluster with metadata about each node, such as the provider ID.
 
 When the kubelet flag `--cloud-provider=external` is set, the node is automatically tainted with `node.cloudprovider.kubernetes.io/uninitialized`. This prevents workloads from being scheduled on the node until it has been fully initialized by the cloud controller manager, which supplies cloud-specific information via the Hetzner Cloud API. Additionally, this flag tells Kubernetes to ignore local metadata and instead use the Hetzner Cloud API to obtain node details.
 
