@@ -44,6 +44,7 @@ jobs:
           !startsWith(github.head_ref, 'releaser-pleaser--')
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unit
 
   deploy-manifests:
     name: Check deployment manifests
