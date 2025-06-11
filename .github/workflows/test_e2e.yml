@@ -198,6 +198,20 @@ jobs:
           source dev/files/env.sh
           go test ./tests/e2e -tags e2e,robot -v -timeout 60m
 
+      - name: Fetch coverage data
+        run: |
+          source dev/files/env.sh
+          bash scripts/get-coverage-from-k8s.sh
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        if: >
+          !startsWith(github.head_ref, 'renovate/') &&
+          !startsWith(github.head_ref, 'releaser-pleaser--')
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage.txt
+
       - name: Dump logs & events
         if: always()
         continue-on-error: true
