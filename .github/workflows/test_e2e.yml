@@ -90,6 +90,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/coverage.txt
+          flags: e2e
 
       - name: Dump logs & events
         if: always()
@@ -211,6 +212,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/coverage.txt
+          flags: e2e
 
       - name: Dump logs & events
         if: always()
