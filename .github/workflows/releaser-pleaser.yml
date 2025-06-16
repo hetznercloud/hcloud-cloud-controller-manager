@@ -9,6 +9,10 @@ on:
       - labeled
       - unlabeled
 
+concurrency:
+  group: releaser-pleaser
+  cancel-in-progress: true
+
 jobs:
   releaser-pleaser:
     # Do not run on forks.
