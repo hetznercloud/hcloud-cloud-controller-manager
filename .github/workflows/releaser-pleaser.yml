@@ -9,6 +9,10 @@ on:
       - labeled
       - unlabeled
 
+concurrency:
+  group: releaser-pleaser
+  cancel-in-progress: true
+
 jobs:
   releaser-pleaser:
     # Do not run on forks.
@@ -20,7 +24,7 @@ jobs:
       pull-requests: write
     steps:
       - name: releaser-pleaser
-        uses: apricote/releaser-pleaser@v0.5.1
+        uses: apricote/releaser-pleaser@v0.6.0
         with:
           token: ${{ secrets.HCLOUD_BOT_TOKEN }}
           extra-files: |
