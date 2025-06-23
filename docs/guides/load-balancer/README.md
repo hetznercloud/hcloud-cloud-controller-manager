@@ -4,5 +4,4 @@ In this folder, you should find guides for you to accomplish specific tasks with
 
 - [Quickstart](quickstart.md)
 - [Configuration](configuration.md)
-- [Private Networks](private-networks.md)
-- [Robot Private Networks](robot-private-networks.md)
+- [Load Balancers and Private Networks](load-balancer-private-networks.md)
