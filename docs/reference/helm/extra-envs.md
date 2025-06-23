@@ -1,8 +1,4 @@
-# Configuration reference
-
-This page references the different configurations for the hcloud-cloud-controller-manager.
-
-## Extra Environment Variables
+# Helm - Extra Environment Variables
 
 Extra environment variables can be set via the `env` Helm value. The well-known Kubernetes formats `value` and `valueFrom` are supported.
 
