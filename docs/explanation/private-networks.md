@@ -1,6 +1,6 @@
 # Private Networks
 
-[Private Networks](https://docs.hetzner.cloud/#networks) can be used to communicate between servers over a dedicated network interface using IP addresses not available publicly.
+[Private Networks](https://docs.hetzner.cloud/reference/cloud#networks) can be used to communicate between servers over a dedicated network interface using IP addresses not available publicly.
 
 The hcloud-cloud-controller-manager utilizes them for two features:
 
@@ -9,7 +9,7 @@ The hcloud-cloud-controller-manager utilizes them for two features:
 
 ### Network Attachment Verification
 
-When a network is configured, HCCM uses the [metadata service](https://docs.hetzner.cloud/#server-metadata) to verify whether the specified network is attached to the node it’s running on. This behavior can be disabled by setting the environment variable:
+When a network is configured, HCCM uses the [metadata service](https://docs.hetzner.cloud/reference/cloud#server-metadata) to verify whether the specified network is attached to the node it’s running on. This behavior can be disabled by setting the environment variable:
 
 ```bash
 HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK=true
