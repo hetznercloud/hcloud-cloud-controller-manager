@@ -129,6 +129,10 @@ robot:
   # Set to true to enable support for Robot (Dedicated) servers.
   enabled: false
 
+rbac:
+  # Create a cluster role binding with admin access for the service account.
+  create: true
+
 podLabels: {}
 
 podAnnotations: {}
