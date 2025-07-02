@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.26.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.26.0)
+
+### Features
+
+- add Kubernetes v1.33 and remove EOL version v1.29 (#934)
+- **helm**: add value to disable ClusterRoleBinding for out-of-cluster install (#962)
+
 ## [v1.25.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.25.1)
 
 ### Bug Fixes
