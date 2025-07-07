@@ -4,3 +4,4 @@ In this folder, you should find guides for you to accomplish specific tasks with
 
 - [Quickstart](quickstart.md)
 - [Private Networks](private-networks.md)
+- [Migrating from Syself](migrating-from-syself.md)
