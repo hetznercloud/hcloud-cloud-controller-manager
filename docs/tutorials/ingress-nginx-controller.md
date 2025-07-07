@@ -23,7 +23,9 @@ In this tutorial, you will learn how to set up a lightweight Kubernetes cluster 
 
 ## 1. Set up Hetzner Cloud Resources
 
-### 1.1. Create SSH Key (Required for k3sup)
+### 1.1. Create SSH Key
+
+Lets create and upload a SSH key, which is used by k3sup to access our servers during the Kubernetes installation process.
 
 ```bash
 ssh-keygen -t ed25519 -f ./hcloud-k3s
@@ -31,6 +33,8 @@ hcloud ssh-key create --name k3s-key --public-key-from-file ./hcloud-k3s.pub
 ```
 
 ### 1.2. Create Control Plane and Worker Nodes
+
+Our cluster will consist of a single control plane with a single worker. These servers will be located in Falkenstein, use Ubunut as a base image and use the server-type cx22.
 
 ```bash
 hcloud server create --name tutorial-control-plane \
