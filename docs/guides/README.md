@@ -7,3 +7,4 @@ In this folder, you should find guides for you to accomplish specific tasks with
 - [Load Balancer](load-balancer/README.md)
 - [Robot](robot/README.md)
 - [Address Family](address-family.md)
+- [Troubleshooting](troubleshooting.md)

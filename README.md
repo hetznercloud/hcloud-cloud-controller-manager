@@ -8,7 +8,7 @@ The Hetzner Cloud [cloud-controller-manager](https://kubernetes.io/docs/concepts
 ## Docs
 
 - :rocket: See the [quick start guide](docs/guides/quickstart.md) to get you started.
-- :book: See the [configuration reference](docs/reference/configuration.md) for the available configuration.
+- :book: See the [configuration reference](docs/reference/README.md) for the available configuration.
 
 For more information, see the [documentation](docs/).
 
