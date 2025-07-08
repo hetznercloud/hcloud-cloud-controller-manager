@@ -4,4 +4,4 @@ In this folder, you should find technical references material of the hcloud-clou
 
 - [Helm](helm/README.md)
 - [Version Policy](version-policy.md)
-- [Load Balancer Annotations](load-balancer-annotations.md)
+- [Load Balancer Annotations](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation#pkg-types)
