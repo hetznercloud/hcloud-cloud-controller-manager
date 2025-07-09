@@ -56,9 +56,12 @@ jobs:
           kubectl: v1.33.2 # renovate: datasource=github-releases depName=kubernetes/kubernetes
           skaffold: v2.16.1 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
 
-      - name: Install k3sup
+      - name: Setup k3sup
+        env:
+          K3SUP_VERSION: 0.13.10 # renovate: datasource=github-releases depName=alexellis/k3sup
         run: |
-          curl -sLS https://get.k3sup.dev | sh
+          curl https://github.com/alexellis/k3sup/releases/download/$K3SUP_VERSION/k3sup -sSL -o /usr/local/bin/k3sup
+          chmod +x /usr/local/bin/k3sup
 
       - uses: hetznercloud/tps-action@main
         with:
