@@ -16,6 +16,8 @@ args:
   # https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/492
   webhook-secure-port: "0"
 
+  feature-gates: "CloudControllerManagerWatchBasedRoutesReconciliation=true"
+
 # Change deployment kind from "Deployment" to "DaemonSet"
 kind: Deployment
 
