@@ -16,7 +16,12 @@ args:
   # https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/492
   webhook-secure-port: "0"
 
-  feature-gates: "CloudControllerManagerWatchBasedRoutesReconciliation=true"
+  # Experimental feature, which enables route reconciliation based on the following Kubernetes events:
+  # - Node added
+  # - Node deleted
+  # - Node PodCIDRs, or Addresses updated
+  # This replaces the fixed route reconcile interval of 10s
+  feature-gates: "CloudControllerManagerWatchBasedRoutesReconciliation=false"
 
 # Change deployment kind from "Deployment" to "DaemonSet"
 kind: Deployment
