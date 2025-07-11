@@ -1,5 +1,33 @@
 # Changelog
 
+## [v1.27.0-alpha.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.27.0-alpha.0)
+
+This release introduces an experimental feature to address #395.
+
+### Watch-Based Route Reconciliation (Experimental)
+
+Currently, route reconciliation is performed at a fixed interval of 30 seconds. This leads to unnecessary API requests, as a `GET /v1/networks/{id}` call is triggered every 30 seconds, even when no changes have occurred.
+
+Upstream we have proposed an event-driven approach, similar to the mechanism used by other controllers such as the Load Balancer Controller. With this new approach, route reconciliation is triggered on node additions, node deletions, or when the `PodCIDRs` or `Addresses` of nodes change. Additionally, to ensure consistency, reconciliation will still occur periodically at a randomized interval between 12 and 24 hours.
+
+We are close to merging a [Kubernetes Enhancement Proposal (KEP)](https://github.com/kubernetes/enhancements/pull/5289). Furthermore, a [work-in-progress pull request](https://github.com/kubernetes/kubernetes/pull/131220) containing the implementation is already open in the Kubernetes repository.
+
+#### Forked Upstream Libraries
+
+In this release, we replaced the upstream `controller-manager` and `cloud-provider` libraries with our own forks. These forks are based on the upstream `v0.33.2` release (aligned with Kubernetes v1.33.2) and include our patches on top.
+
+#### Enabling the Feature
+
+This feature is **disabled by default** and will not impact existing deployments unless explicitly enabled. We **do not recommend** running this feature in production environments at this stage. However, we welcome early testers who can try it in non-critical setups. Running with this feature active is enough for us to analyze its impact. No additional feedback is required.
+
+To enable the feature, set the following Helm value:
+
+`args.feature-gates=CloudControllerManagerWatchBasedRoutesReconciliation=true`
+
+### Features
+
+- watch-based route reconciliation (#970)
+
 ## [v1.26.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.26.0)
 
 ### Features
