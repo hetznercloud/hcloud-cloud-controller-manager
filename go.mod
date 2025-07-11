@@ -9,7 +9,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
-	github.com/syself/hrobot-go v0.2.6
+	github.com/syself/hrobot-go v0.2.7
 	golang.org/x/time v0.12.0
 	k8s.io/api v0.33.2
 	k8s.io/apimachinery v0.33.2
