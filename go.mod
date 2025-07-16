@@ -11,11 +11,11 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/syself/hrobot-go v0.2.7
 	golang.org/x/time v0.12.0
-	k8s.io/api v0.33.2
-	k8s.io/apimachinery v0.33.2
-	k8s.io/client-go v0.33.2
-	k8s.io/cloud-provider v0.33.2
-	k8s.io/component-base v0.33.2
+	k8s.io/api v0.33.3
+	k8s.io/apimachinery v0.33.3
+	k8s.io/client-go v0.33.3
+	k8s.io/cloud-provider v0.33.3
+	k8s.io/component-base v0.33.3
 	k8s.io/klog/v2 v2.130.1
 )
 
@@ -98,10 +98,10 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.33.2 // indirect
-	k8s.io/component-helpers v0.33.2 // indirect
-	k8s.io/controller-manager v0.33.2 // indirect
-	k8s.io/kms v0.33.2 // indirect
+	k8s.io/apiserver v0.33.3 // indirect
+	k8s.io/component-helpers v0.33.3 // indirect
+	k8s.io/controller-manager v0.33.3 // indirect
+	k8s.io/kms v0.33.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
@@ -111,6 +111,6 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace k8s.io/cloud-provider v0.33.2 => github.com/lukasmetzner/cloud-provider v1.33.2-watch-based-route-reconcile
+replace k8s.io/cloud-provider => github.com/lukasmetzner/cloud-provider v1.33.2-watch-based-route-reconcile
 
-replace k8s.io/controller-manager v0.33.2 => github.com/lukasmetzner/controller-manager v1.33.2-watch-based-route-reconcile
+replace k8s.io/controller-manager => github.com/lukasmetzner/controller-manager v1.33.2-watch-based-route-reconcile
