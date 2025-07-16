@@ -111,6 +111,6 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace k8s.io/cloud-provider v0.33.2 => github.com/lukasmetzner/cloud-provider v1.33.2-watch-based-route-reconcile
+replace k8s.io/cloud-provider => github.com/lukasmetzner/cloud-provider v1.33.2-watch-based-route-reconcile
 
-replace k8s.io/controller-manager v0.33.2 => github.com/lukasmetzner/controller-manager v1.33.2-watch-based-route-reconcile
+replace k8s.io/controller-manager => github.com/lukasmetzner/controller-manager v1.33.2-watch-based-route-reconcile
