@@ -23,7 +23,7 @@ builds:
       - -s
       - -w
       - -X github.com/hetznercloud/hcloud-cloud-controller-manager/hcloud.providerVersion={{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
-      - -X k8s.io/component-base/version.gitVersion={{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+      - -X k8s.io/component-base/version.gitVersion=v0.0.0-master+v{{ .Version }}
 
 dockers:
   - build_flag_templates: [--platform=linux/amd64]
