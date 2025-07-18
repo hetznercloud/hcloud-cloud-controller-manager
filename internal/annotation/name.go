@@ -259,6 +259,112 @@ func (s Name) CertificatesFromService(svc *corev1.Service) ([]*hcloud.Certificat
 	return cs, err
 }
 
+// ProtocolPortsFromService retrieves the protocol configuration per port from svc.
+// The annotation format is "port:protocol,port:protocol" (e.g. "80:http,443:https,9000:tcp")
+// 
+// Returns a map of port -> protocol. Returns an empty map if the annotation was not set.
+func (s Name) ProtocolPortsFromService(svc *corev1.Service) (map[int]hcloud.LoadBalancerServiceProtocol, error) {
+	const op = "annotation/Name.ProtocolPortsFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	result := make(map[int]hcloud.LoadBalancerServiceProtocol)
+
+	v, ok := s.StringFromService(svc)
+	if !ok {
+		return result, nil // Return empty map if not set
+	}
+
+	if strings.TrimSpace(v) == "" {
+		return result, nil
+	}
+
+	pairs := strings.Split(v, ",")
+	for _, pair := range pairs {
+		parts := strings.Split(strings.TrimSpace(pair), ":")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("%s: invalid format for port:protocol pair: %s", op, pair)
+		}
+
+		port, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+		if err != nil {
+			return nil, fmt.Errorf("%s: invalid port number: %s", op, parts[0])
+		}
+
+		protocol, err := validateServiceProtocol(strings.TrimSpace(parts[1]))
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		result[port] = protocol
+	}
+
+	return result, nil
+}
+
+// CertificatePortsFromService retrieves the certificate configuration per port from svc.
+// The annotation format is "port:cert1,cert2;port:cert3,cert4" (e.g. "443:cert1,cert2;8443:cert3")
+//
+// Returns a map of port -> certificates. Returns an empty map if the annotation was not set.
+func (s Name) CertificatePortsFromService(svc *corev1.Service) (map[int][]*hcloud.Certificate, error) {
+	const op = "annotation/Name.CertificatePortsFromService"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	result := make(map[int][]*hcloud.Certificate)
+
+	v, ok := s.StringFromService(svc)
+	if !ok {
+		return result, nil // Return empty map if not set
+	}
+
+	if strings.TrimSpace(v) == "" {
+		return result, nil
+	}
+
+	// Split by semicolon to get port configurations
+	portConfigs := strings.Split(v, ";")
+	for _, portConfig := range portConfigs {
+		portConfig = strings.TrimSpace(portConfig)
+		if portConfig == "" {
+			continue
+		}
+
+		// Split by colon to get port and certificates
+		parts := strings.Split(portConfig, ":")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("%s: invalid format for port:certificates pair: %s", op, portConfig)
+		}
+
+		port, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+		if err != nil {
+			return nil, fmt.Errorf("%s: invalid port number: %s", op, parts[0])
+		}
+
+		// Parse certificates (same logic as CertificatesFromService)
+		certStrings := strings.Split(strings.TrimSpace(parts[1]), ",")
+		certificates := make([]*hcloud.Certificate, len(certStrings))
+
+		for i, certString := range certStrings {
+			certString = strings.TrimSpace(certString)
+			if certString == "" {
+				return nil, fmt.Errorf("%s: empty certificate reference", op)
+			}
+
+			id, err := strconv.ParseInt(certString, 10, 64)
+			if err != nil {
+				// If we could not parse the string as an integer we assume it
+				// is a name not an id.
+				certificates[i] = &hcloud.Certificate{Name: certString}
+			} else {
+				certificates[i] = &hcloud.Certificate{ID: id}
+			}
+		}
+
+		result[port] = certificates
+	}
+
+	return result, nil
+}
+
 // CertificateTypeFromService retrieves the hcloud.CertificateType value
 // belonging to the annotation from svc.
 //

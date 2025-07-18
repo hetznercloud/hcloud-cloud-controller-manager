@@ -1050,6 +1050,19 @@ func (b *hclbServiceOptsBuilder) extract() {
 
 	b.protocol = hcloud.LoadBalancerServiceProtocolTCP
 	b.do(func() error {
+		// First check for per-port protocol configuration
+		portProtocols, err := annotation.LBSvcProtocolPorts.ProtocolPortsFromService(b.Service)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		
+		// If per-port protocol is specified for this port, use it
+		if protocol, exists := portProtocols[b.listenPort]; exists {
+			b.protocol = protocol
+			return nil
+		}
+		
+		// Otherwise, fall back to the global protocol setting
 		p, err := annotation.LBSvcProtocol.LBSvcProtocolFromService(b.Service)
 		if errors.Is(err, annotation.ErrNotSet) {
 			return nil
@@ -1086,23 +1099,40 @@ func (b *hclbServiceOptsBuilder) extract() {
 			return nil
 		}
 
-		certs, err := annotation.LBSvcHTTPCertificates.CertificatesFromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
+		var certs []*hcloud.Certificate
+		var err error
+
+		// First check for per-port certificate configuration
+		portCerts, err := annotation.LBSvcHTTPCertificatesPorts.CertificatePortsFromService(b.Service)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		certs, err = b.resolveCertsByNameOrID(ctx, certs)
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+		// If per-port certificates are specified for this port, use them
+		if portCertificates, exists := portCerts[b.listenPort]; exists {
+			certs = portCertificates
+		} else {
+			// Otherwise, fall back to the global certificate setting
+			certs, err = annotation.LBSvcHTTPCertificates.CertificatesFromService(b.Service)
+			if errors.Is(err, annotation.ErrNotSet) {
+				return nil
+			}
+			if err != nil {
+				return fmt.Errorf("%s: %w", op, err)
+			}
 		}
-		b.httpOpts.Certificates = certs
-		b.addHTTP = true
+
+		if len(certs) > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			certs, err = b.resolveCertsByNameOrID(ctx, certs)
+			if err != nil {
+				return fmt.Errorf("%s: %w", op, err)
+			}
+			b.httpOpts.Certificates = certs
+			b.addHTTP = true
+		}
 		return nil
 	})
 
