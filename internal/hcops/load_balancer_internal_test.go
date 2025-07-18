@@ -360,6 +360,186 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:        "per-port protocol configuration - HTTP",
+			servicePort: corev1.ServicePort{Port: 80, NodePort: 8080},
+			serviceAnnotations: map[annotation.Name]string{
+				annotation.LBSvcProtocol:      string(hcloud.LoadBalancerServiceProtocolTCP), // Global default
+				annotation.LBSvcProtocolPorts: "80:http,443:https,9000:tcp",               // Per-port override
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Ptr(80),
+				DestinationPort: hcloud.Ptr(8080),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP, // Should use per-port config
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8080),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Ptr(8080),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8080),
+				},
+			},
+		},
+		{
+			name:        "per-port protocol configuration - HTTPS",
+			servicePort: corev1.ServicePort{Port: 443, NodePort: 8443},
+			serviceAnnotations: map[annotation.Name]string{
+				annotation.LBSvcProtocol:      string(hcloud.LoadBalancerServiceProtocolTCP), // Global default
+				annotation.LBSvcProtocolPorts: "80:http,443:https,9000:tcp",               // Per-port override
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Ptr(443),
+				DestinationPort: hcloud.Ptr(8443),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS, // Should use per-port config
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8443),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Ptr(8443),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8443),
+				},
+			},
+		},
+		{
+			name:        "per-port protocol configuration - TCP fallback",
+			servicePort: corev1.ServicePort{Port: 9000, NodePort: 9000},
+			serviceAnnotations: map[annotation.Name]string{
+				annotation.LBSvcProtocol:      string(hcloud.LoadBalancerServiceProtocolHTTP), // Global default
+				annotation.LBSvcProtocolPorts: "80:http,443:https,9000:tcp",                // Per-port override
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Ptr(9000),
+				DestinationPort: hcloud.Ptr(9000),
+				Protocol:        hcloud.LoadBalancerServiceProtocolTCP, // Should use per-port config
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(9000),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Ptr(9000),
+				Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(9000),
+				},
+			},
+		},
+		{
+			name:        "per-port protocol configuration - not configured port uses global",
+			servicePort: corev1.ServicePort{Port: 8080, NodePort: 8080},
+			serviceAnnotations: map[annotation.Name]string{
+				annotation.LBSvcProtocol:      string(hcloud.LoadBalancerServiceProtocolHTTP), // Global default
+				annotation.LBSvcProtocolPorts: "80:http,443:https,9000:tcp",                // Per-port override
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Ptr(8080),
+				DestinationPort: hcloud.Ptr(8080),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP, // Should use global config
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8080),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Ptr(8080),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8080),
+				},
+			},
+		},
+		{
+			name:        "per-port certificate configuration",
+			servicePort: corev1.ServicePort{Port: 443, NodePort: 8443},
+			serviceAnnotations: map[annotation.Name]string{
+				annotation.LBSvcProtocol:               string(hcloud.LoadBalancerServiceProtocolHTTPS),
+				annotation.LBSvcHTTPCertificates:       "global-cert1,global-cert2",                  // Global default
+				annotation.LBSvcHTTPCertificatesPorts:  "443:port-cert1,port-cert2;8443:port-cert3", // Per-port override
+			},
+			mock: func(_ *testing.T, tt *testCase) {
+				tt.certClient.
+					On("Get", mock.Anything, "port-cert1").
+					Return(&hcloud.Certificate{ID: 1, Name: "port-cert1"}, nil, nil)
+				tt.certClient.
+					On("Get", mock.Anything, "port-cert2").
+					Return(&hcloud.Certificate{ID: 2, Name: "port-cert2"}, nil, nil)
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Ptr(443),
+				DestinationPort: hcloud.Ptr(8443),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
+				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
+					Certificates: []*hcloud.Certificate{{ID: 1}, {ID: 2}}, // Should use per-port config
+				},
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8443),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Ptr(8443),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
+				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
+					Certificates: []*hcloud.Certificate{{ID: 1}, {ID: 2}},
+				},
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8443),
+				},
+			},
+		},
+		{
+			name:        "per-port certificate configuration - not configured port uses global",
+			servicePort: corev1.ServicePort{Port: 8443, NodePort: 8443},
+			serviceAnnotations: map[annotation.Name]string{
+				annotation.LBSvcProtocol:               string(hcloud.LoadBalancerServiceProtocolHTTPS),
+				annotation.LBSvcHTTPCertificates:       "global-cert1,global-cert2",                  // Global default
+				annotation.LBSvcHTTPCertificatesPorts:  "443:port-cert1,port-cert2;9443:port-cert3", // Per-port override
+			},
+			mock: func(_ *testing.T, tt *testCase) {
+				tt.certClient.
+					On("Get", mock.Anything, "global-cert1").
+					Return(&hcloud.Certificate{ID: 10, Name: "global-cert1"}, nil, nil)
+				tt.certClient.
+					On("Get", mock.Anything, "global-cert2").
+					Return(&hcloud.Certificate{ID: 11, Name: "global-cert2"}, nil, nil)
+			},
+			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
+				ListenPort:      hcloud.Ptr(8443),
+				DestinationPort: hcloud.Ptr(8443),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
+				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
+					Certificates: []*hcloud.Certificate{{ID: 10}, {ID: 11}}, // Should use global config
+				},
+				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8443),
+				},
+			},
+			expectedUpdateOpts: hcloud.LoadBalancerUpdateServiceOpts{
+				DestinationPort: hcloud.Ptr(8443),
+				Protocol:        hcloud.LoadBalancerServiceProtocolHTTPS,
+				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
+					Certificates: []*hcloud.Certificate{{ID: 10}, {ID: 11}},
+				},
+				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
+					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+					Port:     hcloud.Ptr(8443),
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

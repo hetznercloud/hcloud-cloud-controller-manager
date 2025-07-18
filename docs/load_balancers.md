@@ -94,3 +94,84 @@ will delete the associated Load Balancer. If the Load Balancer is managed
 through Terraform, this causes problems. To disable this, you can enable
 deletion protection on the Load Balancer, this way hcloud-cloud-controller-manager
 will just skip deleting it when the associated `Service` is deleted.
+
+## Per-Port Protocol and Certificate Configuration
+
+The hcloud-cloud-controller-manager supports configuring different protocols and certificates for different ports of a single service using per-port annotations.
+
+### Per-Port Protocol Configuration
+
+Use the `load-balancer.hetzner.cloud/protocol-ports` annotation to specify different protocols for different ports:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-protocol-service
+  annotations:
+    load-balancer.hetzner.cloud/protocol-ports: "80:http,443:https,9000:tcp"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  - name: tcp
+    port: 9000
+    targetPort: 9000
+    protocol: TCP
+  selector:
+    app: my-app
+```
+
+### Per-Port Certificate Configuration
+
+Use the `load-balancer.hetzner.cloud/http-certificates-ports` annotation to specify different certificates for different HTTPS ports:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-https-service
+  annotations:
+    load-balancer.hetzner.cloud/protocol-ports: "443:https,8443:https"
+    load-balancer.hetzner.cloud/http-certificates-ports: "443:cert1,cert2;8443:cert3"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: https-main
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  - name: https-alt
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+  selector:
+    app: my-app
+```
+
+### Format Specification
+
+**Protocol Ports Format:**
+- Format: `"port:protocol,port:protocol,..."`
+- Example: `"80:http,443:https,9000:tcp"`
+- Supported protocols: `tcp`, `http`, `https`
+
+**Certificate Ports Format:**
+- Format: `"port:cert1,cert2;port:cert3,..."`
+- Example: `"443:cert1,cert2;8443:cert3"`
+- Supports both certificate names and IDs
+- Use semicolons (`;`) to separate different ports
+- Use commas (`,`) to separate multiple certificates for the same port
+
+### Fallback Behavior
+
+- If per-port configuration is not specified for a port, the global annotation values are used
+- Global annotations: `load-balancer.hetzner.cloud/protocol` and `load-balancer.hetzner.cloud/http-certificates`
+- If no global annotation is set, defaults to `tcp` protocol

@@ -54,6 +54,11 @@ const (
 	// values: tcp, http, https
 	LBSvcProtocol Name = "load-balancer.hetzner.cloud/protocol"
 
+	// LBSvcProtocolPorts specifies the protocol per port for the service. This allows
+	// different ports to use different protocols. Format: "80:http,443:https,9000:tcp"
+	// If set, this takes precedence over LBSvcProtocol for the specified ports.
+	LBSvcProtocolPorts Name = "load-balancer.hetzner.cloud/protocol-ports"
+
 	// LBAlgorithmType specifies the algorithm type of the Load Balancer.
 	//
 	// Possible values: round_robin, least_connections
@@ -128,6 +133,13 @@ const (
 	//
 	// HTTPS only.
 	LBSvcHTTPCertificates Name = "load-balancer.hetzner.cloud/http-certificates"
+
+	// LBSvcHTTPCertificatesPorts specifies certificates per port for HTTPS services.
+	// Format: "443:cert1,cert2;8443:cert3,cert4"
+	// If set, this takes precedence over LBSvcHTTPCertificates for the specified ports.
+	// 
+	// HTTPS only.
+	LBSvcHTTPCertificatesPorts Name = "load-balancer.hetzner.cloud/http-certificates-ports"
 
 	// LBSvcHTTPManagedCertificateName contains the names of the managed
 	// certificate to create by the Cloud Controller manager. Ignored if
