@@ -129,7 +129,7 @@ const (
 	// HTTPS only.
 	LBSvcHTTPCertificates Name = "load-balancer.hetzner.cloud/http-certificates"
 
-	// LBSvcHTTPManagedCertificateName contains the names of the managed
+	// LBSvcHTTPManagedCertificateName contains the name of the managed
 	// certificate to create by the Cloud Controller manager. Ignored if
 	// LBSvcHTTPCertificateType is missing or set to "uploaded". Optional.
 	LBSvcHTTPManagedCertificateName Name = "load-balancer.hetzner.cloud/http-managed-certificate-name"
@@ -142,7 +142,7 @@ const (
 	// remains or continues to function as it currently functions.
 	LBSvcHTTPManagedCertificateUseACMEStaging Name = "load-balancer.hetzner.cloud/http-managed-certificate-acme-staging"
 
-	// LBSvcHTTPManagedCertificateDomains contains a coma separated list of the
+	// LBSvcHTTPManagedCertificateDomains contains a comma separated list of the
 	// domain names of the managed certificate.
 	//
 	// All domains are used to create a single managed certificate.
