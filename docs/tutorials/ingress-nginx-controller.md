@@ -12,7 +12,6 @@ In this tutorial, you will learn how to set up a lightweight Kubernetes cluster 
 
 - Basic knowledge of Kubernetes concepts
 - Installed command-line tools:
-
   - [hcloud CLI](https://github.com/hetznercloud/cli)
   - [k3sup](https://github.com/alexellis/k3sup)
   - [kubectl](https://kubernetes.io/docs/tasks/tools/)
