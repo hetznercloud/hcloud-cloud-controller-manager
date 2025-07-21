@@ -1,4 +1,4 @@
-# How to attach load balancers to Robot private IPs
+# Attach Load Balancers to Robot Private IPs
 
 With the v1.24.0 release we introduced the option to configure Internal IPs for Robot servers. This allows creating a cluster with private networks and a mixture of Robot and Cloud servers. Using the routing feature of private networks is not supported, so this requires a CNI plugin with encapsulation methods, such as Cilium with routing mode `tunnel`. Load Balancers can have targets of type IP, which can either be a public or private (vSwitch) IP of a Robot server ([API reference](https://docs.hetzner.cloud/reference/cloud#load-balancer-actions-add-target)).
 
@@ -6,7 +6,7 @@ As a result, the annotation `load-balancer.hetzner.cloud/use-private-ip` can be 
 
 ## Prerequisite
 
-Enable Robot support as outlined in the [Robot setup guide](./robot.md). As mentioned there, for a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with `kubectl get nodes -o json | jq ".items.[].status.addresses"` if you have configured an InternalIP.
+Enable Robot support as outlined in the [Robot setup guide](TODO). As mentioned there, for a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with `kubectl get nodes -o json | jq ".items.[].status.addresses"` if you have configured an InternalIP.
 
 ## Configuration
 
