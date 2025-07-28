@@ -150,9 +150,9 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 			},
 		},
 		{
-			Name:                         "get load balancer with private network and without private ingress",
-			ServiceUID:                   "1",
-			DisablePrivateIngressDefault: true,
+			Name:                     "get load balancer with private network and without private ingress",
+			ServiceUID:               "1",
+			UsePrivateIngressDefault: hcloud.Ptr(false),
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
 				Name:             "with-priv-net-without-private-ingress",
@@ -374,7 +374,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			ServiceAnnotations: map[annotation.Name]string{
 				annotation.LBName: "with-priv-net-no-priv-ingress",
 			},
-			DisablePrivateIngressDefault: true,
+			UsePrivateIngressDefault: hcloud.Ptr(false),
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
 				Name:             "with-priv-net-no-priv-ingress",

@@ -1191,7 +1191,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.True(t, changed)
 			},
 			cfg: config.HCCMConfiguration{
-				LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: false},
+				LoadBalancer: config.LoadBalancerConfiguration{UseIPv6: true},
 				Robot:        config.RobotConfiguration{Enabled: true},
 			},
 		},
@@ -1255,7 +1255,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
-			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
+			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{UseIPv6: false}},
 		},
 		{
 			name: "too many targets",
@@ -1284,7 +1284,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
-			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
+			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{UseIPv6: false}},
 		},
 		{
 			name: "provider id does not have one of the the expected prefixes",
@@ -1319,7 +1319,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				LoadBalancer: config.LoadBalancerConfiguration{
 					// Make sure the annotation overrides the default
 					UsePrivateIP: true,
-					DisableIPv6:  true,
+					UseIPv6:      false,
 				},
 			},
 			k8sNodes: []*corev1.Node{
@@ -1357,7 +1357,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				LoadBalancer: config.LoadBalancerConfiguration{
 					// Make sure the annotation overrides the default
 					UsePrivateIP: false,
-					DisableIPv6:  true,
+					UseIPv6:      false,
 				},
 			},
 			k8sNodes: []*corev1.Node{
@@ -1398,7 +1398,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				LoadBalancer: config.LoadBalancerConfiguration{
 					// Make sure the annotation overrides the default
 					UsePrivateIP: true,
-					DisableIPv6:  true,
+					UseIPv6:      false,
 				},
 			},
 			k8sNodes: []*corev1.Node{

@@ -18,16 +18,16 @@ type LoadBalancerTestCase struct {
 	Name string
 
 	// Defined in test case as needed
-	ClusterName                  string
-	NetworkID                    int
-	ServiceUID                   string
-	ServiceAnnotations           map[annotation.Name]string
-	DisablePrivateIngressDefault bool
-	DisableIPv6Default           bool
-	Nodes                        []*corev1.Node
-	LB                           *hcloud.LoadBalancer
-	LBCreateResult               *hcloud.LoadBalancerCreateResult
-	Mock                         func(t *testing.T, tt *LoadBalancerTestCase)
+	ClusterName              string
+	NetworkID                int
+	ServiceUID               string
+	ServiceAnnotations       map[annotation.Name]string
+	UsePrivateIngressDefault *bool
+	UseIPv6Default           *bool
+	Nodes                    []*corev1.Node
+	LB                       *hcloud.LoadBalancer
+	LBCreateResult           *hcloud.LoadBalancerCreateResult
+	Mock                     func(t *testing.T, tt *LoadBalancerTestCase)
 
 	// Defines the actual test
 	Perform func(t *testing.T, tt *LoadBalancerTestCase)
@@ -43,6 +43,14 @@ type LoadBalancerTestCase struct {
 
 func (tt *LoadBalancerTestCase) run(t *testing.T) {
 	t.Helper()
+
+	if tt.UsePrivateIngressDefault == nil {
+		tt.UsePrivateIngressDefault = hcloud.Ptr(true)
+	}
+
+	if tt.UseIPv6Default == nil {
+		tt.UseIPv6Default = hcloud.Ptr(true)
+	}
 
 	tt.LBOps = &hcops.MockLoadBalancerOps{}
 	tt.LBOps.Test(t)
@@ -70,7 +78,7 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, tt.DisablePrivateIngressDefault, tt.DisableIPv6Default)
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, *tt.UsePrivateIngressDefault, *tt.UseIPv6Default)
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)

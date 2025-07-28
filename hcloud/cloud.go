@@ -108,7 +108,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 		}
 		networkID = n.ID
 
-		if !cfg.Network.DisableAttachedCheck {
+		if cfg.Network.UseAttachedCheck {
 			attached, err := serverIsAttachedToNetwork(metadataClient, networkID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
@@ -181,7 +181,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 		Recorder:      c.recorder,
 	}
 
-	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.DisablePrivateIngress, c.cfg.LoadBalancer.DisableIPv6), true
+	return newLoadBalancers(lbOps, c.cfg.LoadBalancer.UsePrivateIngress, c.cfg.LoadBalancer.UseIPv6), true
 }
 
 func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
