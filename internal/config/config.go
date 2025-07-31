@@ -76,17 +76,17 @@ type InstanceConfiguration struct {
 }
 
 type LoadBalancerConfiguration struct {
-	Enabled           bool
-	Location          string
-	NetworkZone       string
-	UsePrivateIngress bool
-	UsePrivateIP      bool
-	UseIPv6           bool
+	Enabled               bool
+	Location              string
+	NetworkZone           string
+	PrivateIngressEnabled bool
+	PrivateIPEnabled      bool
+	IPv6Enabled           bool
 }
 
 type NetworkConfiguration struct {
-	NameOrID         string
-	UseAttachedCheck bool
+	NameOrID             string
+	AttachedCheckEnabled bool
 }
 
 type RouteConfiguration struct {
@@ -172,29 +172,29 @@ func Read() (HCCMConfiguration, error) {
 	cfg.LoadBalancer.Location = os.Getenv(hcloudLoadBalancersLocation)
 	cfg.LoadBalancer.NetworkZone = os.Getenv(hcloudLoadBalancersNetworkZone)
 
-	cfg.LoadBalancer.UsePrivateIngress, err = getEnvBool(hcloudLoadBalancersDisablePrivateIngress, false)
+	disablePrivateIngress, err := getEnvBool(hcloudLoadBalancersDisablePrivateIngress, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.LoadBalancer.UsePrivateIngress = !cfg.LoadBalancer.UsePrivateIngress // Invert the logic, as the env var is prefixed with DISABLE_.
+	cfg.LoadBalancer.PrivateIngressEnabled = !disablePrivateIngress // Invert the logic, as the env var is prefixed with DISABLE_.
 
-	cfg.LoadBalancer.UsePrivateIP, err = getEnvBool(hcloudLoadBalancersUsePrivateIP, false)
+	cfg.LoadBalancer.PrivateIPEnabled, err = getEnvBool(hcloudLoadBalancersUsePrivateIP, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	cfg.LoadBalancer.UseIPv6, err = getEnvBool(hcloudLoadBalancersDisableIPv6, false)
+	disableIPv6, err := getEnvBool(hcloudLoadBalancersDisableIPv6, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.LoadBalancer.UseIPv6 = !cfg.LoadBalancer.UseIPv6 // Invert the logic, as the env var is prefixed with DISABLE_.
+	cfg.LoadBalancer.IPv6Enabled = !disableIPv6 // Invert the logic, as the env var is prefixed with DISABLE_.
 
 	cfg.Network.NameOrID = os.Getenv(hcloudNetwork)
-	cfg.Network.UseAttachedCheck, err = getEnvBool(hcloudNetworkDisableAttachedCheck, false)
+	disableAttachedCheck, err := getEnvBool(hcloudNetworkDisableAttachedCheck, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.Network.UseAttachedCheck = !cfg.Network.UseAttachedCheck // Invert the logic, as the env var is prefixed with DISABLE_.
+	cfg.Network.AttachedCheckEnabled = !disableAttachedCheck // Invert the logic, as the env var is prefixed with DISABLE_.
 
 	// Enabling Routes only makes sense when a Network is configured, otherwise there is no network to add the routes to.
 	if cfg.Network.NameOrID != "" {
