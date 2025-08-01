@@ -79,14 +79,14 @@ type LoadBalancerConfiguration struct {
 	Enabled               bool
 	Location              string
 	NetworkZone           string
-	DisablePrivateIngress bool
-	UsePrivateIP          bool
-	DisableIPv6           bool
+	PrivateIngressEnabled bool
+	PrivateIPEnabled      bool
+	IPv6Enabled           bool
 }
 
 type NetworkConfiguration struct {
 	NameOrID             string
-	DisableAttachedCheck bool
+	AttachedCheckEnabled bool
 }
 
 type RouteConfiguration struct {
@@ -171,24 +171,30 @@ func Read() (HCCMConfiguration, error) {
 	}
 	cfg.LoadBalancer.Location = os.Getenv(hcloudLoadBalancersLocation)
 	cfg.LoadBalancer.NetworkZone = os.Getenv(hcloudLoadBalancersNetworkZone)
-	cfg.LoadBalancer.DisablePrivateIngress, err = getEnvBool(hcloudLoadBalancersDisablePrivateIngress, false)
+
+	disablePrivateIngress, err := getEnvBool(hcloudLoadBalancersDisablePrivateIngress, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.LoadBalancer.UsePrivateIP, err = getEnvBool(hcloudLoadBalancersUsePrivateIP, false)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	cfg.LoadBalancer.DisableIPv6, err = getEnvBool(hcloudLoadBalancersDisableIPv6, false)
+	cfg.LoadBalancer.PrivateIngressEnabled = !disablePrivateIngress // Invert the logic, as the env var is prefixed with DISABLE_.
+
+	cfg.LoadBalancer.PrivateIPEnabled, err = getEnvBool(hcloudLoadBalancersUsePrivateIP, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	cfg.Network.NameOrID = os.Getenv(hcloudNetwork)
-	cfg.Network.DisableAttachedCheck, err = getEnvBool(hcloudNetworkDisableAttachedCheck, false)
+	disableIPv6, err := getEnvBool(hcloudLoadBalancersDisableIPv6, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
+	cfg.LoadBalancer.IPv6Enabled = !disableIPv6 // Invert the logic, as the env var is prefixed with DISABLE_.
+
+	cfg.Network.NameOrID = os.Getenv(hcloudNetwork)
+	disableAttachedCheck, err := getEnvBool(hcloudNetworkDisableAttachedCheck, false)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	cfg.Network.AttachedCheckEnabled = !disableAttachedCheck // Invert the logic, as the env var is prefixed with DISABLE_.
 
 	// Enabling Routes only makes sense when a Network is configured, otherwise there is no network to add the routes to.
 	if cfg.Network.NameOrID != "" {

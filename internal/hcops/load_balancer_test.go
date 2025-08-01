@@ -1191,7 +1191,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.True(t, changed)
 			},
 			cfg: config.HCCMConfiguration{
-				LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: false},
+				LoadBalancer: config.LoadBalancerConfiguration{IPv6Enabled: true},
 				Robot:        config.RobotConfiguration{Enabled: true},
 			},
 		},
@@ -1255,7 +1255,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
-			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
+			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{IPv6Enabled: false}},
 		},
 		{
 			name: "too many targets",
@@ -1284,7 +1284,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
-			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{DisableIPv6: true}},
+			cfg: config.HCCMConfiguration{LoadBalancer: config.LoadBalancerConfiguration{IPv6Enabled: false}},
 		},
 		{
 			name: "provider id does not have one of the the expected prefixes",
@@ -1318,8 +1318,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
 					// Make sure the annotation overrides the default
-					UsePrivateIP: true,
-					DisableIPv6:  true,
+					PrivateIPEnabled: true,
+					IPv6Enabled:      false,
 				},
 			},
 			k8sNodes: []*corev1.Node{
@@ -1356,8 +1356,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
 					// Make sure the annotation overrides the default
-					UsePrivateIP: false,
-					DisableIPv6:  true,
+					PrivateIPEnabled: false,
+					IPv6Enabled:      false,
 				},
 			},
 			k8sNodes: []*corev1.Node{
@@ -1397,8 +1397,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
 					// Make sure the annotation overrides the default
-					UsePrivateIP: true,
-					DisableIPv6:  true,
+					PrivateIPEnabled: true,
+					IPv6Enabled:      false,
 				},
 			},
 			k8sNodes: []*corev1.Node{
