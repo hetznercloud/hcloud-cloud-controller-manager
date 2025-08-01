@@ -39,4 +39,3 @@
 | `load-balancer.hetzner.cloud/type` | `lb11` | `load-balancer.hetzner.cloud/type` specifies the type of the Load Balancer. |
 | `load-balancer.hetzner.cloud/use-private-ip` | `false` | `load-balancer.hetzner.cloud/use-private-ip` configures the Load Balancer to use the private IP for Load Balancer server targets. |
 | `load-balancer.hetzner.cloud/uses-proxyprotocol` | `false` | `load-balancer.hetzner.cloud/uses-proxyprotocol` specifies if the Load Balancer services should use the proxy protocol. |
-
