@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"go/ast"
@@ -64,6 +65,14 @@ func main() {
 		}
 	}
 
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, Template{GoConstTable: tableStr.String()}); err != nil {
+		fmt.Println("error executing template:", err)
+		os.Exit(1)
+	}
+
+	result := strings.TrimRight(buf.String(), "\n") + "\n"
+
 	file, err := os.Create(outputPath)
 	if err != nil {
 		fmt.Println("error creating file:", err)
@@ -71,8 +80,8 @@ func main() {
 	}
 	defer file.Close()
 
-	if err := tmpl.Execute(file, Template{GoConstTable: tableStr.String()}); err != nil {
-		fmt.Println("error executing template:", err)
+	if _, err := file.WriteString(result); err != nil {
+		fmt.Println("error writing to file:", err)
 	}
 }
 
