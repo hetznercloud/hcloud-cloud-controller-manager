@@ -28,17 +28,13 @@ const (
 	// the Hetzner Cloud API console.
 	LBName Name = "load-balancer.hetzner.cloud/name"
 
-	// LBDisablePublicNetwork disables the public network of the Hetzner Cloud
-	// Load Balancer. It will still have a public network assigned, but all
-	// traffic is routed over the private network.
+	// Default: false.
 	LBDisablePublicNetwork Name = "load-balancer.hetzner.cloud/disable-public-network"
 
-	// LBDisablePrivateIngress disables the use of the private network for
-	// ingress.
+	// Default: false.
 	LBDisablePrivateIngress Name = "load-balancer.hetzner.cloud/disable-private-ingress"
 
-	// LBUsePrivateIP configures the Load Balancer to use the private IP for
-	// Load Balancer server targets.
+	// Default: false.
 	LBUsePrivateIP Name = "load-balancer.hetzner.cloud/use-private-ip"
 
 	// LBPrivateIPv4 specifies the IPv4 address to assign to the load balancer in the
@@ -50,8 +46,7 @@ const (
 	// specified.
 	LBHostname Name = "load-balancer.hetzner.cloud/hostname"
 
-	// LBSvcProtocol specifies the protocol of the service. Default: tcp, Possible
-	// values: tcp, http, https
+	// Default: tcp.
 	LBSvcProtocol Name = "load-balancer.hetzner.cloud/protocol"
 
 	// LBAlgorithmType specifies the algorithm type of the Load Balancer.
