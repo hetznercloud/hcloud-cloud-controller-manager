@@ -20,7 +20,11 @@ const outputPath = "../docs/reference/load_balancer_annotations.md"
 var TemplateStr string
 
 type Template struct {
-	GoConstTable string
+	AnnotationsTable string
+}
+
+type Table struct {
+	table map[string]*TableEntry
 }
 
 type TableEntry struct {
@@ -28,64 +32,73 @@ type TableEntry struct {
 	Default *string
 }
 
-//go:generate go run $GOFILE
-
-func main() {
-	node, err := parser.ParseFile(&token.FileSet{}, annotationsFilePath, nil, parser.ParseComments)
-	if err != nil {
-		fmt.Println("error parsing file:", err)
-		os.Exit(1)
-	}
-
-	table := make(map[string]TableEntry)
-	ast.Inspect(node, walk(table))
-
-	tmpl, err := template.New("annotations").Parse(TemplateStr)
-	if err != nil {
-		fmt.Println("error parsing template:", err)
-		os.Exit(1)
-	}
-
-	tableStr := strings.Builder{}
-	tableStr.WriteString("| Annotation | Default | Description |\n")
-	tableStr.WriteString("| --- | --- | --- |\n")
-
-	annotations := make([]string, 0, len(table))
-	for key := range table {
-		annotations = append(annotations, key)
-	}
-
-	sort.Strings(annotations)
-
-	for _, annotation := range annotations {
-		if table[annotation].Default != nil {
-			tableStr.WriteString(fmt.Sprintf("| %s | `%s` | %s |\n", annotation, *table[annotation].Default, table[annotation].Comment))
-		} else {
-			tableStr.WriteString(fmt.Sprintf("| %s | `-` | %s |\n", annotation, table[annotation].Comment))
-		}
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, Template{GoConstTable: tableStr.String()}); err != nil {
-		fmt.Println("error executing template:", err)
-		os.Exit(1)
-	}
-
-	result := strings.TrimRight(buf.String(), "\n") + "\n"
-
-	file, err := os.Create(outputPath)
-	if err != nil {
-		fmt.Println("error creating file:", err)
-		os.Exit(1)
-	}
-	defer file.Close()
-
-	if _, err := file.WriteString(result); err != nil {
-		fmt.Println("error writing to file:", err)
+func NewTable() *Table {
+	return &Table{
+		table: make(map[string]*TableEntry),
 	}
 }
 
-func walk(table map[string]TableEntry) func(n ast.Node) bool {
+func (t *Table) setDefault(annotation, value string) {
+	if _, ok := t.table[annotation]; !ok {
+		t.table[annotation] = &TableEntry{Default: &value}
+	} else {
+		t.table[annotation].Default = &value
+	}
+}
+
+func (t *Table) appendComment(annotation, value string) {
+	if value == "" {
+		return
+	}
+
+	// trim comment artifacts
+	comment := strings.Trim(value, "/ \n")
+	if comment == "" {
+		return
+	}
+
+	if current, ok := t.table[annotation]; !ok {
+		t.table[annotation] = &TableEntry{Comment: comment}
+	} else {
+		t.table[annotation].Comment = fmt.Sprintf("%s %s", current.Comment, comment)
+	}
+}
+
+func (t *Table) String() string {
+	tableStr := strings.Builder{}
+
+	tableStr.WriteString("| Annotation | Default | Description |\n")
+	tableStr.WriteString("| --- | --- | --- |\n")
+
+	// sorted keys (annotations)
+	annotations := make([]string, 0, len(t.table))
+	for key := range t.table {
+		annotations = append(annotations, key)
+	}
+	sort.Strings(annotations)
+
+	for _, annotation := range annotations {
+		var defaultVal string
+		if t.table[annotation].Default != nil {
+			defaultVal = *t.table[annotation].Default
+		} else {
+			defaultVal = "-"
+		}
+
+		tableStr.WriteString(
+			fmt.Sprintf(
+				"| %s | `%s` | %s |\n",
+				annotation,
+				defaultVal,
+				t.table[annotation].Comment,
+			),
+		)
+	}
+
+	return tableStr.String()
+}
+
+func walk(table *Table) func(n ast.Node) bool {
 	return func(n ast.Node) bool {
 		genDecl, ok := n.(*ast.GenDecl)
 		if !ok {
@@ -119,20 +132,21 @@ func walk(table map[string]TableEntry) func(n ast.Node) bool {
 			// Put in backquotes for Markdown formatting
 			annotation := strings.ReplaceAll(literal.Value, "\"", "`")
 
-			if valueSpec.Doc != nil {
-				for _, comment := range valueSpec.Doc.List {
-					if !strings.Contains(comment.Text, "Default: ") {
-						commentText := strings.ReplaceAll(comment.Text, constName, annotation)
-						addTableComment(annotation, commentText, table)
-						continue
-					}
+			if valueSpec.Doc == nil {
+				continue
+			}
 
-					parts := strings.Split(comment.Text, "Default: ")
-					if len(parts) < 2 {
-						continue
+			for _, comment := range valueSpec.Doc.List {
+				switch {
+				case strings.Contains(comment.Text, "Default: "):
+					if parts := strings.Split(comment.Text, "Default: "); len(parts) == 2 {
+						defaultValue := strings.Trim(parts[1], " \n.")
+						table.setDefault(annotation, defaultValue)
 					}
-					def := strings.Trim(parts[1], " \n.")
-					setTableDefault(annotation, def, table)
+				default:
+					// replace constant name with annotation name
+					commentText := strings.ReplaceAll(comment.Text, constName, annotation)
+					table.appendComment(annotation, commentText)
 				}
 			}
 		}
@@ -141,38 +155,40 @@ func walk(table map[string]TableEntry) func(n ast.Node) bool {
 	}
 }
 
-func setTableDefault(key, value string, table map[string]TableEntry) {
-	if value == "" {
-		return
+//go:generate go run $GOFILE
+func main() {
+	node, err := parser.ParseFile(&token.FileSet{}, annotationsFilePath, nil, parser.ParseComments)
+	if err != nil {
+		fmt.Println("error parsing file:", err)
+		os.Exit(1)
 	}
 
-	if current, ok := table[key]; !ok {
-		table[key] = TableEntry{Default: &value}
-	} else {
-		table[key] = TableEntry{
-			Comment: current.Comment,
-			Default: &value,
-		}
-	}
-}
+	table := NewTable()
+	ast.Inspect(node, walk(table))
 
-func addTableComment(key, value string, table map[string]TableEntry) {
-	if value == "" {
-		return
+	tmpl, err := template.New("annotations").Parse(TemplateStr)
+	if err != nil {
+		fmt.Println("error parsing template:", err)
+		os.Exit(1)
 	}
 
-	// trim comment artifacts
-	comment := strings.Trim(value, "/ \n")
-	if comment == "" {
-		return
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, Template{AnnotationsTable: table.String()}); err != nil {
+		fmt.Println("error executing template:", err)
+		os.Exit(1)
 	}
 
-	if current, ok := table[key]; !ok {
-		table[key] = TableEntry{Comment: comment}
-	} else {
-		table[key] = TableEntry{
-			Comment: fmt.Sprintf("%s %s", current.Comment, comment),
-			Default: current.Default,
-		}
+	// end-of-file fix
+	result := strings.TrimRight(buf.String(), "\n") + "\n"
+
+	file, err := os.Create(outputPath)
+	if err != nil {
+		fmt.Println("error creating file:", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(result); err != nil {
+		fmt.Println("error writing to file:", err)
 	}
 }
