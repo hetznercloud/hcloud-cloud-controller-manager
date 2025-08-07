@@ -2,7 +2,7 @@
 
 This guide teaches you how to setup HCCM with support for Private Networks. Please familiarize yourself with the explanation document about [Private Networks](../explanation/private-networks.md).
 
-Before setting up the hcloud-cloud-controller-manager you need to configure your cluster appropriatly. When creating your cluster you need to provide the `kubelet` [option](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/#options) `--cloud-provider=external`. How this is done depends on your Kubernetes distribution.
+Before setting up the hcloud-cloud-controller-manager you need to configure your cluster appropriately. When creating your cluster you need to provide the `kubelet` [option](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/#options) `--cloud-provider=external`. How this is done depends on your Kubernetes distribution.
 
 By default, the HCCM's route controller is enabled. For this reason, you need to choose an appropriate CNI plugin, which supports native routing capabilities of the underlying infrastructure. As an example, Cilium can be set to use the [`routing-mode: native`](https://docs.cilium.io/en/stable/network/concepts/routing/#native-routing).
 
