@@ -22,4 +22,4 @@ spec:
   type: LoadBalancer
 ```
 
-This sample service will create a Load Balancer in the location `hel1`. The `listen_port` will be 80. The `destination_port` will be a random random node port selected by Kubernetes. Traffic arriving at the Load Balancer on Port 80 will be routed to the public interface of the targets on a node port.
+This sample service will create a Load Balancer in the location `hel1`. The `listen_port` will be 80. The `destination_port` will be a random node port selected by Kubernetes. Traffic arriving at the Load Balancer on Port 80 will be routed to the public interface of the targets on a node port.

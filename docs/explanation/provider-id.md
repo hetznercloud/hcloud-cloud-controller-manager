@@ -1,6 +1,6 @@
 # Provider ID
 
-The provider ID is a unique identifier of a machine assigned to a Kubernets Node object. It enables cloud providers to link Kubernetes Nodes with their underlying infrastructure. In Kubernetes, this ID is specified under `spec.providerID` in the Node specification. The Hetzner Cloud Controller Manager sets this value during node initialization.
+The provider ID is a unique identifier of a machine assigned to a Kubernetes Node object. It enables cloud providers to link Kubernetes Nodes with their underlying infrastructure. In Kubernetes, this ID is specified under `spec.providerID` in the Node specification. The Hetzner Cloud Controller Manager sets this value during node initialization.
 
 In the Hetzner ecosystem, the following provider ID formats are used:
 

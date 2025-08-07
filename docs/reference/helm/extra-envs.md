@@ -4,13 +4,13 @@ Extra environment variables can be set via the `env` Helm value. The well-known 
 
 ```yaml
 env:
-  ROBUT_USER:
+  ROBOT_USER:
     value: "<robot-user>"
 ```
 
 ```yaml
 env:
-  ROBUT_USER:
+  ROBOT_USER:
     valueFrom:
       secretKeyRef:
         name: hcloud

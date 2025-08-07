@@ -54,7 +54,7 @@ skaffold dev
 
 On code change, skaffold will rebuild the image, redeploy it and print all logs.
 
-⚠️ Do not forget to clean up the development cluster once are finished:
+⚠️ Do not forget to clean up the development cluster once you are finished:
 
 ```sh
 make -C dev down
