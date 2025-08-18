@@ -11,11 +11,11 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/syself/hrobot-go v0.2.7
 	golang.org/x/time v0.12.0
-	k8s.io/api v0.33.3
-	k8s.io/apimachinery v0.33.3
-	k8s.io/client-go v0.33.3
-	k8s.io/cloud-provider v0.33.3
-	k8s.io/component-base v0.33.3
+	k8s.io/api v0.33.4
+	k8s.io/apimachinery v0.33.4
+	k8s.io/client-go v0.33.4
+	k8s.io/cloud-provider v0.33.4
+	k8s.io/component-base v0.33.4
 	k8s.io/klog/v2 v2.130.1
 )
 
