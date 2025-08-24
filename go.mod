@@ -8,7 +8,7 @@ require (
 	github.com/hetznercloud/hcloud-go/v2 v2.22.0
 	github.com/prometheus/client_golang v1.23.0
 	github.com/spf13/pflag v1.0.7
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/syself/hrobot-go v0.2.7
 	golang.org/x/time v0.12.0
 	k8s.io/api v0.33.4
