@@ -24,7 +24,7 @@ jobs:
       pull-requests: write
     steps:
       - name: releaser-pleaser
-        uses: apricote/releaser-pleaser@v0.6.1
+        uses: apricote/releaser-pleaser@v0.7.0
         with:
           token: ${{ secrets.HCLOUD_BOT_TOKEN }}
           extra-files: |
