@@ -58,7 +58,7 @@ jobs:
 
       - name: Setup k3sup
         env:
-          K3SUP_VERSION: 0.13.10 # renovate: datasource=github-releases depName=alexellis/k3sup
+          K3SUP_VERSION: 0.13.11 # renovate: datasource=github-releases depName=alexellis/k3sup
         run: |
           curl https://github.com/alexellis/k3sup/releases/download/$K3SUP_VERSION/k3sup -sSL -o /usr/local/bin/k3sup
           chmod +x /usr/local/bin/k3sup
