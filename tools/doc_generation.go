@@ -236,8 +236,9 @@ func run() error {
 		return fmt.Errorf("error parsing template: %w", err)
 	}
 
+	tmplData := Template{AnnotationsTable: table.String()}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, Template{AnnotationsTable: table.String()}); err != nil {
+	if err := tmpl.Execute(&buf, tmplData); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
 	}
 
