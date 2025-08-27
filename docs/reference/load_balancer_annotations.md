@@ -1,41 +1,47 @@
 # Annotations
 
-| Annotation | Default | Description |
-| --- | --- | --- |
-| `load-balancer.hetzner.cloud/algorithm-type` | `round_robin` | `load-balancer.hetzner.cloud/algorithm-type` specifies the algorithm type of the Load Balancer. Possible values: round_robin, least_connections |
-| `load-balancer.hetzner.cloud/certificate-type` | `-` | `load-balancer.hetzner.cloud/certificate-type` defines the type of certificate the Load Balancer should use. Possible values are "uploaded" and "managed". If not set `load-balancer.hetzner.cloud/certificate-type` defaults to "uploaded". LBSvcHTTPManagedCertificateDomains is ignored in this case. HTTPS only. |
-| `load-balancer.hetzner.cloud/disable-private-ingress` | `false` | `load-balancer.hetzner.cloud/disable-private-ingress` disables the use of the private network for ingress. |
-| `load-balancer.hetzner.cloud/disable-public-network` | `false` | `load-balancer.hetzner.cloud/disable-public-network` disables the public network of the Hetzner Cloud Load Balancer. It will still have a public network assigned, but all traffic is routed over the private network. |
-| `load-balancer.hetzner.cloud/health-check-http-domain` | `-` | `load-balancer.hetzner.cloud/health-check-http-domain` specifies the domain we try to access when performing the health check. |
-| `load-balancer.hetzner.cloud/health-check-http-path` | `-` | `load-balancer.hetzner.cloud/health-check-http-path` specifies the path we try to access when performing the health check. |
-| `load-balancer.hetzner.cloud/health-check-http-validate-certificate` | `-` | `load-balancer.hetzner.cloud/health-check-http-validate-certificate` specifies whether the health check should validate the SSL certificate that comes from the target nodes. |
-| `load-balancer.hetzner.cloud/health-check-interval` | `-` | `load-balancer.hetzner.cloud/health-check-interval` specifies the interval in which time we perform a health check in seconds. |
-| `load-balancer.hetzner.cloud/health-check-port` | `-` | `load-balancer.hetzner.cloud/health-check-port` specifies the port the health check is be performed on. |
-| `load-balancer.hetzner.cloud/health-check-protocol` | `tcp` | `load-balancer.hetzner.cloud/health-check-protocol` sets the protocol the health check should be performed over. Possible values: tcp, http, https |
-| `load-balancer.hetzner.cloud/health-check-retries` | `-` | `load-balancer.hetzner.cloud/health-check-retries` specifies the number of time a health check is retried until a target is marked as unhealthy. |
-| `load-balancer.hetzner.cloud/health-check-timeout` | `-` | `load-balancer.hetzner.cloud/health-check-timeout` specifies the timeout of a single health check. |
-| `load-balancer.hetzner.cloud/hostname` | `-` | `load-balancer.hetzner.cloud/hostname` specifies the hostname of the Load Balancer. This will be used as ingress address instead of the Load Balancer IP addresses if specified. |
-| `load-balancer.hetzner.cloud/http-certificates` | `-` | `load-balancer.hetzner.cloud/http-certificates` a comma separated list of IDs or Names of Certificates assigned to the service. HTTPS only. |
-| `load-balancer.hetzner.cloud/http-cookie-lifetime` | `-` | `load-balancer.hetzner.cloud/http-cookie-lifetime` specifies the lifetime of the HTTP cookie. |
-| `load-balancer.hetzner.cloud/http-cookie-name` | `-` | `load-balancer.hetzner.cloud/http-cookie-name` specifies the cookie name when using  HTTP or HTTPS as protocol. |
-| `load-balancer.hetzner.cloud/http-managed-certificate-acme-staging` | `-` | `load-balancer.hetzner.cloud/http-managed-certificate-acme-staging` tells the cloud controller manager to create the certificate using Let's Encrypt staging. This annotation is exclusively for Hetzner internal testing purposes. Users should not use this annotation. There is no guarantee that it remains or continues to function as it currently functions. |
-| `load-balancer.hetzner.cloud/http-managed-certificate-domains` | `-` | `load-balancer.hetzner.cloud/http-managed-certificate-domains` contains a comma separated list of the domain names of the managed certificate. All domains are used to create a single managed certificate. |
-| `load-balancer.hetzner.cloud/http-managed-certificate-name` | `-` | `load-balancer.hetzner.cloud/http-managed-certificate-name` contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if LBSvcHTTPCertificateType is missing or set to "uploaded". Optional. |
-| `load-balancer.hetzner.cloud/http-redirect-http` | `-` | `load-balancer.hetzner.cloud/http-redirect-http` create a redirect from HTTP to HTTPS. HTTPS only. |
-| `load-balancer.hetzner.cloud/http-status-codes` | `-` | `load-balancer.hetzner.cloud/http-status-codes` is a comma separated list of HTTP status codes which we expect. |
-| `load-balancer.hetzner.cloud/http-sticky-sessions` | `false` | `load-balancer.hetzner.cloud/http-sticky-sessions` enables the sticky sessions feature of Hetzner Cloud HTTP Load Balancers. |
-| `load-balancer.hetzner.cloud/id` | `-` | `load-balancer.hetzner.cloud/id` is the ID assigned to the Hetzner Cloud Load Balancer by the backend. Read-only. Deprecated: This annotation is not used. It is reserved for possible future use. |
-| `load-balancer.hetzner.cloud/ipv4-rdns` | `-` | `load-balancer.hetzner.cloud/ipv4-rdns` is the reverse DNS record assigned to the IPv4 address of the Load Balancer. |
-| `load-balancer.hetzner.cloud/ipv4` | `-` | `load-balancer.hetzner.cloud/ipv4` is the public IPv4 address assigned to the Load Balancer by the backend. Read-only. |
-| `load-balancer.hetzner.cloud/ipv6-disabled` | `false` | `load-balancer.hetzner.cloud/ipv6-disabled` disables the use of IPv6 for the Load Balancer. Set this annotation if you use external-dns. |
-| `load-balancer.hetzner.cloud/ipv6-rdns` | `-` | `load-balancer.hetzner.cloud/ipv6-rdns` is the reverse DNS record assigned to the IPv6 address of the Load Balancer. |
-| `load-balancer.hetzner.cloud/ipv6` | `-` | `load-balancer.hetzner.cloud/ipv6` is the public IPv6 address assigned to the Load Balancer by the backend. Read-only. |
-| `load-balancer.hetzner.cloud/location` | `-` | `load-balancer.hetzner.cloud/location` specifies the location where the Load Balancer will be created in. Changing the location to a different value after the load balancer was created has no effect. In order to move a load balancer to a different location it is necessary to delete and re-create it. Note, that this will lead to the load balancer getting new public IPs assigned. Mutually exclusive with LBNetworkZone. |
-| `load-balancer.hetzner.cloud/name` | `-` | `load-balancer.hetzner.cloud/name` is the name of the Load Balancer. The name will be visible in the Hetzner Cloud API console. |
-| `load-balancer.hetzner.cloud/network-zone` | `-` | `load-balancer.hetzner.cloud/network-zone` specifies the network zone where the Load Balancer will be created in. Changing the network zone to a different value after the load balancer was created has no effect.  In order to move a load balancer to a different network zone it is necessary to delete and re-create it. Note, that this will lead to the load balancer getting new public IPs assigned. Mutually exclusive with LBLocation. |
-| `load-balancer.hetzner.cloud/node-selector` | `-` | `load-balancer.hetzner.cloud/node-selector` can be set to restrict which Nodes are added as targets to the Load Balancer. It accepts a Kubernetes label selector string, using either the set-based or equality-based formats. If the selector can not be parsed, the targets in the Load Balancer are not updated and an Event is created with the error message. Format: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors |
-| `load-balancer.hetzner.cloud/private-ipv4` | `-` | `load-balancer.hetzner.cloud/private-ipv4` specifies the IPv4 address to assign to the load balancer in the private network that it's attached to. |
-| `load-balancer.hetzner.cloud/protocol` | `tcp` | `load-balancer.hetzner.cloud/protocol` specifies the protocol of the service. Possible values: tcp, http, https |
-| `load-balancer.hetzner.cloud/type` | `lb11` | `load-balancer.hetzner.cloud/type` specifies the type of the Load Balancer. |
-| `load-balancer.hetzner.cloud/use-private-ip` | `false` | `load-balancer.hetzner.cloud/use-private-ip` configures the Load Balancer to use the private IP for Load Balancer server targets. |
-| `load-balancer.hetzner.cloud/uses-proxyprotocol` | `false` | `load-balancer.hetzner.cloud/uses-proxyprotocol` specifies if the Load Balancer services should use the proxy protocol. |
+This page contains all annotations, which can be found at a load balancer.
+
+Read-only annotations are set by the HCCM.
+
+Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
+
+| Annotation | Default | Type | Read-only | Description |
+| --- | --- | --- | --- | --- |
+| `load-balancer.hetzner.cloud/algorithm-type` | `round_robin` | `round_robin \| least_connections` | `No` | Specifies the algorithm type of the Load Balancer. |
+| `load-balancer.hetzner.cloud/certificate-type` | `uploaded` | `uploaded \| managed` | `No` | Defines the type of certificate the Load Balancer should use. |
+| `load-balancer.hetzner.cloud/disable-private-ingress` | `false` | `bool` | `No` | Disables the use of the private network for ingress. |
+| `load-balancer.hetzner.cloud/disable-public-network` | `false` | `bool` | `No` | Disables the public network of the Hetzner Cloud Load Balancer. It will still have a public network assigned, but all traffic is routed over the private network. |
+| `load-balancer.hetzner.cloud/health-check-http-domain` | `-` | `string` | `No` | Specifies the domain we try to access when performing the health check. |
+| `load-balancer.hetzner.cloud/health-check-http-path` | `-` | `string` | `No` | Specifies the path we try to access when performing the health check. |
+| `load-balancer.hetzner.cloud/health-check-http-validate-certificate` | `-` | `bool` | `No` | Specifies whether the health check should validate the SSL certificate that comes from the target nodes. |
+| `load-balancer.hetzner.cloud/health-check-interval` | `-` | `int` | `No` | Specifies the interval in which time we perform a health check in seconds. |
+| `load-balancer.hetzner.cloud/health-check-port` | `-` | `int` | `No` | Specifies the port the health check is be performed on. |
+| `load-balancer.hetzner.cloud/health-check-protocol` | `tcp` | `tcp \| http \| https` | `No` | Sets the protocol the health check should be performed over. |
+| `load-balancer.hetzner.cloud/health-check-retries` | `-` | `int` | `No` | Specifies the number of time a health check is retried until a target is marked as unhealthy. |
+| `load-balancer.hetzner.cloud/health-check-timeout` | `-` | `int` | `No` | Specifies the timeout of a single health check. |
+| `load-balancer.hetzner.cloud/hostname` | `-` | `string` | `No` | Specifies the hostname of the Load Balancer. This will be used as ingress address instead of the Load Balancer IP addresses if specified. |
+| `load-balancer.hetzner.cloud/http-certificates` | `-` | `string` | `No` | A comma separated list of IDs or Names of Certificates assigned to the service. |
+| `load-balancer.hetzner.cloud/http-cookie-lifetime` | `-` | `int` | `No` | Specifies the lifetime of the HTTP cookie. |
+| `load-balancer.hetzner.cloud/http-cookie-name` | `-` | `string` | `No` | Specifies the cookie name when using  HTTP or HTTPS as protocol. |
+| `load-balancer.hetzner.cloud/http-managed-certificate-acme-staging` | `false` | `bool` | `No` | Tells the cloud controller manager to create the certificate using Let's Encrypt staging. This annotation is exclusively for Hetzner internal testing purposes. Users should not use this annotation. There is no guarantee that it remains or continues to function as it currently functions. |
+| `load-balancer.hetzner.cloud/http-managed-certificate-domains` | `-` | `string` | `No` | Contains a comma separated list of the domain names of the managed certificate. All domains are used to create a single managed certificate. |
+| `load-balancer.hetzner.cloud/http-managed-certificate-name` | `-` | `string` | `No` | Contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if `load-balancer.hetzner.cloud/http-managed-certificate-name` is missing or set to "uploaded". Optional. |
+| `load-balancer.hetzner.cloud/http-redirect-http` | `false` | `bool` | `No` | Create a redirect from HTTP to HTTPS. HTTPS only. |
+| `load-balancer.hetzner.cloud/http-status-codes` | `-` | `string` | `No` | Is a comma separated list of HTTP status codes which we expect. |
+| `load-balancer.hetzner.cloud/http-sticky-sessions` | `false` | `bool` | `No` | Enables the sticky sessions feature of Hetzner Cloud HTTP Load Balancers. |
+| `load-balancer.hetzner.cloud/id` | `-` | `-` | `Yes` | Is the ID assigned to the Hetzner Cloud Load Balancer by the backend. Deprecated: This annotation is not used. It is reserved for possible future use. |
+| `load-balancer.hetzner.cloud/ipv4` | `-` | `string` | `Yes` | Is the public IPv4 address assigned to the Load Balancer by the backend. |
+| `load-balancer.hetzner.cloud/ipv4-rdns` | `-` | `string` | `Yes` | Is the reverse DNS record assigned to the IPv4 address of the Load Balancer. |
+| `load-balancer.hetzner.cloud/ipv6` | `-` | `string` | `Yes` | Is the public IPv6 address assigned to the Load Balancer by the backend. Read-only. |
+| `load-balancer.hetzner.cloud/ipv6-disabled` | `false` | `bool` | `No` | Disables the use of IPv6 for the Load Balancer. Set this annotation if you use external-dns. |
+| `load-balancer.hetzner.cloud/ipv6-rdns` | `-` | `string` | `Yes` | Is the reverse DNS record assigned to the IPv6 address of the Load Balancer. |
+| `load-balancer.hetzner.cloud/location` | `-` | `string` | `No` | Specifies the location where the Load Balancer will be created in. Changing the location to a different value after the load balancer was created has no effect. In order to move a load balancer to a different location it is necessary to delete and re-create it. Note, that this will lead to the load balancer getting new public IPs assigned. Mutually exclusive with LBNetworkZone. |
+| `load-balancer.hetzner.cloud/name` | `-` | `string` | `No` | Is the name of the Load Balancer. The name will be visible in the Hetzner Cloud API console. |
+| `load-balancer.hetzner.cloud/network-zone` | `-` | `string` | `No` | Specifies the network zone where the Load Balancer will be created in. Changing the network zone to a different value after the load balancer was created has no effect.  In order to move a load balancer to a different network zone it is necessary to delete and re-create it. Note, that this will lead to the load balancer getting new public IPs assigned. Mutually exclusive with LBLocation. |
+| `load-balancer.hetzner.cloud/node-selector` | `-` | `string` | `No` | Can be set to restrict which Nodes are added as targets to the Load Balancer. It accepts a Kubernetes label selector string, using either the set-based or equality-based formats. If the selector can not be parsed, the targets in the Load Balancer are not updated and an Event is created with the error message. Format: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors |
+| `load-balancer.hetzner.cloud/private-ipv4` | `-` | `string` | `No` | Specifies the IPv4 address to assign to the load balancer in the private network that it's attached to. |
+| `load-balancer.hetzner.cloud/protocol` | `tcp` | `tcp \| http \| https` | `No` | Specifies the protocol of the service. |
+| `load-balancer.hetzner.cloud/type` | `lb11` | `string` | `No` | Specifies the type of the Load Balancer. |
+| `load-balancer.hetzner.cloud/use-private-ip` | `false` | `bool` | `No` | Configures the Load Balancer to use the private IP for Load Balancer server targets. |
+| `load-balancer.hetzner.cloud/uses-proxyprotocol` | `false` | `bool` | `No` | Specifies if the Load Balancer services should use the proxy protocol. |

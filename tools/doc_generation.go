@@ -9,6 +9,7 @@ import (
 	"go/token"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -28,8 +29,13 @@ type Table struct {
 }
 
 type TableEntry struct {
-	Comment string
-	Default *string
+	commentLines []string
+	constName    string
+
+	Description string
+	Default     *string
+	Type        *string
+	ReadOnly    *bool
 }
 
 func NewTable() *Table {
@@ -38,15 +44,14 @@ func NewTable() *Table {
 	}
 }
 
-func (t *Table) setDefault(annotation, value string) {
-	if _, ok := t.table[annotation]; !ok {
-		t.table[annotation] = &TableEntry{Default: &value}
-	} else {
-		t.table[annotation].Default = &value
+func (t *Table) AddEntry(annotation, constName string) {
+	t.table[annotation] = &TableEntry{
+		commentLines: make([]string, 0),
+		constName:    constName,
 	}
 }
 
-func (t *Table) appendComment(annotation, value string) {
+func (t *Table) AppendComment(annotation, value string) {
 	if value == "" {
 		return
 	}
@@ -57,20 +62,75 @@ func (t *Table) appendComment(annotation, value string) {
 		return
 	}
 
-	if current, ok := t.table[annotation]; !ok {
-		t.table[annotation] = &TableEntry{Comment: comment}
-	} else {
-		t.table[annotation].Comment = fmt.Sprintf("%s %s", current.Comment, comment)
+	t.table[annotation].commentLines = append(t.table[annotation].commentLines, comment)
+}
+
+func getValueFromLine(line, key string) string {
+	parts := strings.Split(line, key)
+	if len(parts) > 1 {
+		return strings.Trim(parts[1], " \n.")
 	}
+	return ""
+}
+
+func (t *Table) FromAST(node ast.Node) *Table {
+	ast.Inspect(node, t.visitFunc())
+
+	for annotation, entry := range t.table {
+		commentBuilder := strings.Builder{}
+
+		for i, line := range entry.commentLines {
+			switch {
+			case strings.Contains(line, "Default: "):
+				defaultVal := getValueFromLine(line, "Default: ")
+				entry.Default = &defaultVal
+			case strings.Contains(line, "Type: "):
+				typeVal := getValueFromLine(line, "Type: ")
+				entry.Type = &typeVal
+			case strings.Contains(line, "Read-only: "):
+				readOnlyVal := getValueFromLine(line, "Read-only: ")
+				if readOnly, err := strconv.ParseBool(readOnlyVal); err == nil {
+					entry.ReadOnly = &readOnly
+				}
+			default:
+				if i == 0 {
+					line = strings.ReplaceAll(line, fmt.Sprintf("%s ", entry.constName), "")
+					line = strings.ToUpper(line[:1]) + line[1:]
+				}
+
+				commentBuilder.WriteString(" ")
+				commentBuilder.WriteString(line)
+			}
+		}
+
+		comment := strings.Trim(commentBuilder.String(), " ")
+		for annotationInner, entryInner := range t.table {
+			if annotationInner == annotation {
+				comment = strings.ReplaceAll(comment, fmt.Sprintf("%s ", entryInner.constName), "")
+				if len(comment) > 0 {
+					comment = strings.ToUpper(comment[:1]) + comment[1:]
+				}
+				continue
+			}
+			comment = strings.ReplaceAll(
+				comment,
+				fmt.Sprintf("%s ", entryInner.constName),
+				fmt.Sprintf("`%s` ", annotation),
+			)
+		}
+		entry.Description = comment
+	}
+
+	return t
 }
 
 func (t *Table) String() string {
 	tableStr := strings.Builder{}
 
-	tableStr.WriteString("| Annotation | Default | Description |\n")
-	tableStr.WriteString("| --- | --- | --- |\n")
+	tableStr.WriteString("| Annotation | Default | Type | Read-only | Description |\n")
+	tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
 
-	// sorted keys (annotations)
+	// sort annotations
 	annotations := make([]string, 0, len(t.table))
 	for key := range t.table {
 		annotations = append(annotations, key)
@@ -78,19 +138,35 @@ func (t *Table) String() string {
 	sort.Strings(annotations)
 
 	for _, annotation := range annotations {
-		var defaultVal string
+		typeVal := "-"
+		defaultVal := "-"
+		readOnlyVal := "No"
+
 		if t.table[annotation].Default != nil {
 			defaultVal = *t.table[annotation].Default
-		} else {
-			defaultVal = "-"
+		}
+
+		if t.table[annotation].Type != nil {
+			typeVal = *t.table[annotation].Type
+			if strings.Contains(typeVal, "|") {
+				typeVal = strings.ReplaceAll(typeVal, "|", "\\|")
+			}
+		}
+
+		if t.table[annotation].ReadOnly != nil {
+			if ro := *t.table[annotation].ReadOnly; ro {
+				readOnlyVal = "Yes"
+			}
 		}
 
 		tableStr.WriteString(
 			fmt.Sprintf(
-				"| %s | `%s` | %s |\n",
+				"| `%s` | `%s` | `%s` | `%s` | %s |\n",
 				annotation,
 				defaultVal,
-				t.table[annotation].Comment,
+				typeVal,
+				readOnlyVal,
+				t.table[annotation].Description,
 			),
 		)
 	}
@@ -98,7 +174,7 @@ func (t *Table) String() string {
 	return tableStr.String()
 }
 
-func walk(table *Table) func(n ast.Node) bool {
+func (t *Table) visitFunc() func(n ast.Node) bool {
 	return func(n ast.Node) bool {
 		genDecl, ok := n.(*ast.GenDecl)
 		if !ok {
@@ -115,11 +191,13 @@ func walk(table *Table) func(n ast.Node) bool {
 				continue
 			}
 
-			if len(valueSpec.Values) != 1 {
-				continue
-			}
+			hasSingleName := len(valueSpec.Names) != 1
+			hasSingleValue := len(valueSpec.Values) != 1
+			// If hasNoDocs, then there is at least one comment.
+			// len(valueSpec.Doc.List) > 0
+			hasNoDocs := valueSpec.Doc == nil
 
-			if len(valueSpec.Names) != 1 {
+			if hasSingleName || hasSingleValue || hasNoDocs {
 				continue
 			}
 
@@ -129,25 +207,12 @@ func walk(table *Table) func(n ast.Node) bool {
 			}
 
 			constName := valueSpec.Names[0].Name
-			// Put in backquotes for Markdown formatting
-			annotation := strings.ReplaceAll(literal.Value, "\"", "`")
+			annotation := strings.ReplaceAll(literal.Value, "\"", "")
 
-			if valueSpec.Doc == nil {
-				continue
-			}
+			t.AddEntry(annotation, constName)
 
 			for _, comment := range valueSpec.Doc.List {
-				switch {
-				case strings.Contains(comment.Text, "Default: "):
-					if parts := strings.Split(comment.Text, "Default: "); len(parts) == 2 {
-						defaultValue := strings.Trim(parts[1], " \n.")
-						table.setDefault(annotation, defaultValue)
-					}
-				default:
-					// replace constant name with annotation name
-					commentText := strings.ReplaceAll(comment.Text, constName, annotation)
-					table.appendComment(annotation, commentText)
-				}
+				t.AppendComment(annotation, comment.Text)
 			}
 		}
 
@@ -155,40 +220,47 @@ func walk(table *Table) func(n ast.Node) bool {
 	}
 }
 
-//go:generate go run $GOFILE
-func main() {
+func run() error {
+	// Parse AST
 	node, err := parser.ParseFile(&token.FileSet{}, annotationsFilePath, nil, parser.ParseComments)
 	if err != nil {
-		fmt.Println("error parsing file:", err)
-		os.Exit(1)
+		return fmt.Errorf("error parsing file: %w", err)
 	}
 
-	table := NewTable()
-	ast.Inspect(node, walk(table))
+	// Create table from AST
+	table := NewTable().FromAST(node)
 
+	// Create Markdown file from template
 	tmpl, err := template.New("annotations").Parse(TemplateStr)
 	if err != nil {
-		fmt.Println("error parsing template:", err)
-		os.Exit(1)
+		return fmt.Errorf("error parsing template: %w", err)
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, Template{AnnotationsTable: table.String()}); err != nil {
-		fmt.Println("error executing template:", err)
-		os.Exit(1)
+		return fmt.Errorf("error executing template: %w", err)
 	}
 
-	// end-of-file fix
-	result := strings.TrimRight(buf.String(), "\n") + "\n"
+	result := strings.TrimRight(buf.String(), "\n") + "\n" // end-of-file fix
 
+	// Write file to output path
 	file, err := os.Create(outputPath)
 	if err != nil {
-		fmt.Println("error creating file:", err)
-		os.Exit(1)
+		return fmt.Errorf("error creating file: %w", err)
 	}
 	defer file.Close()
 
 	if _, err := file.WriteString(result); err != nil {
-		fmt.Println("error writing to file:", err)
+		return fmt.Errorf("error writing to file: %w", err)
+	}
+
+	return nil
+}
+
+//go:generate go run $GOFILE
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }
