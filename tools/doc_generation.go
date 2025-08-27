@@ -73,7 +73,7 @@ func getValueFromLine(line, key string) string {
 	return ""
 }
 
-func (t *Table) FromAST(node ast.Node) *Table {
+func (t *Table) FromAST(node ast.Node) (*Table, error) {
 	ast.Inspect(node, t.visitFunc())
 
 	for annotation, entry := range t.table {
@@ -103,6 +103,10 @@ func (t *Table) FromAST(node ast.Node) *Table {
 			}
 		}
 
+		if entry.Type == nil || *entry.Type == "" {
+			return nil, fmt.Errorf("missing Type for annotation %s", annotation)
+		}
+
 		comment := strings.Trim(commentBuilder.String(), " ")
 		for annotationInner, entryInner := range t.table {
 			if annotationInner == annotation {
@@ -121,7 +125,7 @@ func (t *Table) FromAST(node ast.Node) *Table {
 		entry.Description = comment
 	}
 
-	return t
+	return t, nil
 }
 
 func (t *Table) String() string {
@@ -228,7 +232,10 @@ func run() error {
 	}
 
 	// Create table from AST
-	table := NewTable().FromAST(node)
+	table, err := NewTable().FromAST(node)
+	if err != nil {
+		return err
+	}
 
 	// Create Markdown file from template
 	tmpl, err := template.New("annotations").Parse(TemplateStr)
