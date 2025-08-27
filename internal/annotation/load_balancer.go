@@ -264,6 +264,7 @@ const (
 	//
 	// Deprecated: This annotation is not used. It is reserved for possible future use.
 	//
+	// Type: string
 	// Read-only: true
 	LBID Name = "load-balancer.hetzner.cloud/id"
 )

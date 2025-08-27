@@ -30,7 +30,7 @@ Enums are depicted in the `Type` column and possible options are separated via t
 | `load-balancer.hetzner.cloud/http-redirect-http` | `bool` | `false` | `No` | Create a redirect from HTTP to HTTPS. HTTPS only. |
 | `load-balancer.hetzner.cloud/http-status-codes` | `string` | `-` | `No` | Is a comma separated list of HTTP status codes which we expect. |
 | `load-balancer.hetzner.cloud/http-sticky-sessions` | `bool` | `false` | `No` | Enables the sticky sessions feature of Hetzner Cloud HTTP Load Balancers. |
-| `load-balancer.hetzner.cloud/id` | `-` | `-` | `Yes` | Is the ID assigned to the Hetzner Cloud Load Balancer by the backend. Deprecated: This annotation is not used. It is reserved for possible future use. |
+| `load-balancer.hetzner.cloud/id` | `string` | `-` | `Yes` | Is the ID assigned to the Hetzner Cloud Load Balancer by the backend. Deprecated: This annotation is not used. It is reserved for possible future use. |
 | `load-balancer.hetzner.cloud/ipv4` | `string` | `-` | `Yes` | Is the public IPv4 address assigned to the Load Balancer by the backend. |
 | `load-balancer.hetzner.cloud/ipv4-rdns` | `string` | `-` | `Yes` | Is the reverse DNS record assigned to the IPv4 address of the Load Balancer. |
 | `load-balancer.hetzner.cloud/ipv6` | `string` | `-` | `Yes` | Is the public IPv6 address assigned to the Load Balancer by the backend. Read-only. |
