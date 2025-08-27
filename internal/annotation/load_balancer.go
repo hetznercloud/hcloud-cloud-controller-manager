@@ -3,28 +3,28 @@ package annotation
 const (
 	// LBPublicIPv4 is the public IPv4 address assigned to the Load Balancer by
 	// the backend.
-	// 
+	//
 	// Read-only: true
 	// Type: string
 	LBPublicIPv4 Name = "load-balancer.hetzner.cloud/ipv4"
 
 	// LBPublicIPv4RDNS is the reverse DNS record assigned to the IPv4 address of
 	// the Load Balancer.
-	// 
+	//
 	// Read-only: true
 	// Type: string
 	LBPublicIPv4RDNS Name = "load-balancer.hetzner.cloud/ipv4-rdns"
 
 	// LBPublicIPv6 is the public IPv6 address assigned to the Load Balancer by
 	// the backend. Read-only.
-	// 
+	//
 	// Read-only: true
 	// Type: string
 	LBPublicIPv6 Name = "load-balancer.hetzner.cloud/ipv6"
 
 	// LBPublicIPv6RDNS is the reverse DNS record assigned to the IPv6 address of
 	// the Load Balancer.
-	// 
+	//
 	// Read-only: true
 	// Type: string
 	LBPublicIPv6RDNS Name = "load-balancer.hetzner.cloud/ipv6-rdns"
