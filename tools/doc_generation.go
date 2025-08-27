@@ -127,7 +127,7 @@ func (t *Table) FromAST(node ast.Node) *Table {
 func (t *Table) String() string {
 	tableStr := strings.Builder{}
 
-	tableStr.WriteString("| Annotation | Default | Type | Read-only | Description |\n")
+	tableStr.WriteString("| Annotation | Type | Default | Read-only | Description |\n")
 	tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
 
 	// sort annotations
@@ -163,8 +163,8 @@ func (t *Table) String() string {
 			fmt.Sprintf(
 				"| `%s` | `%s` | `%s` | `%s` | %s |\n",
 				annotation,
-				defaultVal,
 				typeVal,
+				defaultVal,
 				readOnlyVal,
 				t.table[annotation].Description,
 			),
