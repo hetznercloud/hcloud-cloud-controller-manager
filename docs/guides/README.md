@@ -8,3 +8,4 @@ In this folder, you should find guides for you to accomplish specific tasks with
 - [Robot](robot/README.md)
 - [Address Family](address-family.md)
 - [Troubleshooting](troubleshooting.md)
+- [Annotation Reference Generation](annotation-reference-generation.md)
