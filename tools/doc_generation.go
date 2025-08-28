@@ -17,7 +17,7 @@ import (
 const annotationsFilePath = "../internal/annotation/load_balancer.go"
 const outputPath = "../docs/reference/load_balancer_annotations.md"
 
-//go:embed annotations.md.tmpl
+//go:embed load_balancer_annotations.md.tmpl
 var TemplateStr string
 
 type Template struct {
