@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	_ "embed"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -13,12 +12,6 @@ import (
 	"strings"
 	"text/template"
 )
-
-const annotationsFilePath = "../internal/annotation/load_balancer.go"
-const outputPath = "../docs/reference/load_balancer_annotations.md"
-
-//go:embed load_balancer_annotations.md.tmpl
-var TemplateStr string
 
 type Template struct {
 	AnnotationsTable string
@@ -224,9 +217,15 @@ func (t *Table) visitFunc() func(n ast.Node) bool {
 	}
 }
 
-func run() error {
+func run(templatePath string, annotationsPath string, outputPath string) error {
+	// Read template file
+	tmplStr, err := os.ReadFile(templatePath)
+	if err != nil {
+		return err
+	}
+
 	// Parse AST
-	node, err := parser.ParseFile(&token.FileSet{}, annotationsFilePath, nil, parser.ParseComments)
+	node, err := parser.ParseFile(&token.FileSet{}, annotationsPath, nil, parser.ParseComments)
 	if err != nil {
 		return fmt.Errorf("error parsing file: %w", err)
 	}
@@ -238,7 +237,7 @@ func run() error {
 	}
 
 	// Create Markdown file from template
-	tmpl, err := template.New("annotations").Parse(TemplateStr)
+	tmpl, err := template.New("annotations").Parse(string(tmplStr))
 	if err != nil {
 		return fmt.Errorf("error parsing template: %w", err)
 	}
@@ -267,7 +266,12 @@ func run() error {
 
 //go:generate go run $GOFILE
 func main() {
-	if err := run(); err != nil {
+	// Generate Load Balancer annotations documentation
+	lbTemplatePath := "./load_balancer_annotations.md.tmpl"
+	lbAnnotationsPath := "../internal/annotation/load_balancer.go"
+	lbOutputPath := "../docs/reference/load_balancer_annotations.md"
+
+	if err := run(lbTemplatePath, lbAnnotationsPath, lbOutputPath); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
