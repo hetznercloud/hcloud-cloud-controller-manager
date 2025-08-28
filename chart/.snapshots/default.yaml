@@ -64,7 +64,6 @@ spec:
           args:
             - "--allow-untagged-cloud"
             - "--cloud-provider=hcloud"
-            - "--feature-gates=CloudControllerManagerWatchBasedRoutesReconciliation=false"
             - "--route-reconciliation-period=30s"
             - "--webhook-secure-port=0"
             - "--leader-elect=false"
