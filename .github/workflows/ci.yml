@@ -27,6 +27,22 @@ jobs:
 
       - uses: pre-commit/action@v3.0.1
 
+  generate-docs:
+    name: Generate Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Go generate
+        run: go generate ./...
+
+      - name: Check for diff
+        run: git diff --exit-code -- docs/
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest

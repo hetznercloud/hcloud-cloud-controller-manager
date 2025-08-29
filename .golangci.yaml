@@ -54,6 +54,9 @@ linters:
 
 issues:
   exclude-rules:
+    - path: internal/annotation/load_balancer.go
+      linters:
+        - godot
     - path: (_test\.go|testing\.go|testsupport|e2etests)
       linters:
         - gosec
