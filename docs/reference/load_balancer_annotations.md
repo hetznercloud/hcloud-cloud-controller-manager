@@ -2,9 +2,8 @@
 
 This page contains all annotations, which can be specified at a Service of type `LoadBalancer` to configure a Hetzner Cloud Load Balancer. Additionally, this includes read-only annotations, which are set by the Cloud Controller Manager.
 
-Read-only annotations are set by the Cloud Controller Manager.
-
-Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
+- Read-only annotations are set by the Cloud Controller Manager.
+- Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
 
 | Annotation | Type | Default | Read-only | Description |
 | --- | --- | --- | --- | --- |
