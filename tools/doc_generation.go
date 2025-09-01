@@ -59,14 +59,6 @@ func (t *Table) AppendComment(annotation, value string) {
 	t.table[annotation].commentLines = append(t.table[annotation].commentLines, comment)
 }
 
-func getValueFromLine(line, key string) string {
-	parts := strings.Split(line, key)
-	if len(parts) > 1 {
-		return strings.Trim(parts[1], " \n.")
-	}
-	return ""
-}
-
 func (t *Table) FromAST(node ast.Node) (*Table, error) {
 	ast.Inspect(node, t.visitFunc())
 
@@ -74,13 +66,13 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 		commentBuilder := strings.Builder{}
 
 		for i, line := range entry.commentLines {
-			if val := getValueFromLine(line, "Default: "); val != "" {
-				entry.Default = &val
+			if val := getValueFromLine(line, "Type: "); val != "" {
+				entry.Type = val
 				continue
 			}
 
-			if val := getValueFromLine(line, "Type: "); val != "" {
-				entry.Type = val
+			if val := getValueFromLine(line, "Default: "); val != "" {
+				entry.Default = &val
 				continue
 			}
 
@@ -92,7 +84,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 			}
 
 			if i == 0 {
-				// Remove constant name from line and uppercase first letter
+				// Remove constant name from beginning of the line and uppercase first letter
 				line = strings.ReplaceAll(line, fmt.Sprintf("%s ", entry.constName), "")
 				line = strings.ToUpper(line[:1]) + line[1:]
 			}
@@ -106,14 +98,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 		}
 
 		comment := strings.Trim(commentBuilder.String(), " ")
-		for annotationInner, entryInner := range t.table {
-			if annotationInner == annotation {
-				comment = strings.ReplaceAll(comment, fmt.Sprintf("%s ", entryInner.constName), "")
-				if len(comment) > 0 {
-					comment = strings.ToUpper(comment[:1]) + comment[1:]
-				}
-				continue
-			}
+		for _, entryInner := range t.table {
 			comment = strings.ReplaceAll(
 				comment,
 				fmt.Sprintf("%s ", entryInner.constName),
@@ -135,15 +120,15 @@ func (t *Table) String() string {
 	annotations := slices.Sorted(maps.Keys(t.table))
 
 	for _, annotation := range annotations {
-		defaultVal := "-"
-		readOnlyVal := "No"
-
+		// Escape pipe characters in Type to avoid breaking the table
 		typeVal := strings.ReplaceAll(t.table[annotation].Type, "|", "\\|")
 
+		defaultVal := "-"
 		if t.table[annotation].Default != nil {
 			defaultVal = *t.table[annotation].Default
 		}
 
+		readOnlyVal := "No"
 		if t.table[annotation].ReadOnly != nil {
 			if ro := *t.table[annotation].ReadOnly; ro {
 				readOnlyVal = "Yes"
@@ -209,6 +194,14 @@ func (t *Table) visitFunc() func(n ast.Node) bool {
 
 		return true
 	}
+}
+
+func getValueFromLine(line, key string) string {
+	parts := strings.Split(line, key)
+	if len(parts) > 1 {
+		return strings.Trim(parts[1], " \n.")
+	}
+	return ""
 }
 
 func run(templatePath string, annotationsPath string, outputPath string) error {
