@@ -46,10 +46,6 @@ func (t *Table) AddEntry(annotation, constName string) {
 }
 
 func (t *Table) AppendComment(annotation, value string) {
-	if value == "" {
-		return
-	}
-
 	// trim comment artifacts
 	comment := strings.Trim(value, "/ \n")
 	if comment == "" {
