@@ -27,8 +27,8 @@ type TableEntry struct {
 	constName    string
 
 	Description string
+	Type        string
 	Default     *string
-	Type        *string
 	ReadOnly    *bool
 }
 
@@ -80,7 +80,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 			}
 
 			if val := getValueFromLine(line, "Type: "); val != "" {
-				entry.Type = &val
+				entry.Type = val
 				continue
 			}
 
@@ -101,7 +101,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 			commentBuilder.WriteString(line)
 		}
 
-		if entry.Type == nil || *entry.Type == "" {
+		if entry.Type == "" {
 			return nil, fmt.Errorf("missing Type for annotation %s", annotation)
 		}
 
@@ -135,17 +135,13 @@ func (t *Table) String() string {
 	annotations := slices.Sorted(maps.Keys(t.table))
 
 	for _, annotation := range annotations {
-		typeVal := "-"
 		defaultVal := "-"
 		readOnlyVal := "No"
 
+		typeVal := strings.ReplaceAll(t.table[annotation].Type, "|", "\\|")
+
 		if t.table[annotation].Default != nil {
 			defaultVal = *t.table[annotation].Default
-		}
-
-		if t.table[annotation].Type != nil {
-			typeVal = *t.table[annotation].Type
-			typeVal = strings.ReplaceAll(typeVal, "|", "\\|")
 		}
 
 		if t.table[annotation].ReadOnly != nil {
