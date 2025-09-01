@@ -181,6 +181,7 @@ const (
 	//
 	// Type: bool
 	// Default: false
+	// Internal: true
 	LBSvcHTTPManagedCertificateUseACMEStaging Name = "load-balancer.hetzner.cloud/http-managed-certificate-acme-staging"
 
 	// LBSvcHTTPManagedCertificateDomains contains a comma separated list of the

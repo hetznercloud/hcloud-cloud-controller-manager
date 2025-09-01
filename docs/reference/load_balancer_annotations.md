@@ -23,7 +23,6 @@ This page contains all annotations, which can be specified at a Service of type 
 | `load-balancer.hetzner.cloud/http-certificates` | `string` | `-` | `No` | A comma separated list of IDs or Names of Certificates assigned to the service. |
 | `load-balancer.hetzner.cloud/http-cookie-lifetime` | `int` | `-` | `No` | Specifies the lifetime of the HTTP cookie. |
 | `load-balancer.hetzner.cloud/http-cookie-name` | `string` | `-` | `No` | Specifies the cookie name when using  HTTP or HTTPS as protocol. |
-| `load-balancer.hetzner.cloud/http-managed-certificate-acme-staging` | `bool` | `false` | `No` | Tells the cloud controller manager to create the certificate using Let's Encrypt staging. This annotation is exclusively for Hetzner internal testing purposes. Users should not use this annotation. There is no guarantee that it remains or continues to function as it currently functions. |
 | `load-balancer.hetzner.cloud/http-managed-certificate-domains` | `string` | `-` | `No` | Contains a comma separated list of the domain names of the managed certificate. All domains are used to create a single managed certificate. |
 | `load-balancer.hetzner.cloud/http-managed-certificate-name` | `string` | `-` | `No` | Contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if `load-balancer.hetzner.cloud/http-managed-certificate-name` is missing or set to "uploaded". Optional. |
 | `load-balancer.hetzner.cloud/http-redirect-http` | `bool` | `false` | `No` | Create a redirect from HTTP to HTTPS. HTTPS only. |

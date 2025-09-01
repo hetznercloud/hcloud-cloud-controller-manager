@@ -28,8 +28,9 @@ type TableEntry struct {
 
 	Description string
 	Type        string
-	Default     *string
-	ReadOnly    *bool
+	Default     string
+	ReadOnly    bool
+	Internal    bool
 }
 
 func NewTable() *Table {
@@ -68,13 +69,20 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 			}
 
 			if val := getValueFromLine(line, "Default: "); val != "" {
-				entry.Default = &val
+				entry.Default = val
 				continue
 			}
 
 			if val := getValueFromLine(line, "Read-only: "); val != "" {
 				if readOnly, err := strconv.ParseBool(val); err == nil {
-					entry.ReadOnly = &readOnly
+					entry.ReadOnly = readOnly
+				}
+				continue
+			}
+
+			if val := getValueFromLine(line, "Internal: "); val != "" {
+				if internal, err := strconv.ParseBool(val); err == nil {
+					entry.Internal = internal
 				}
 				continue
 			}
@@ -116,19 +124,22 @@ func (t *Table) String() string {
 	annotations := slices.Sorted(maps.Keys(t.table))
 
 	for _, annotation := range annotations {
+		// Skip internal annotations
+		if t.table[annotation].Internal {
+			continue
+		}
+
 		// Escape pipe characters in Type to avoid breaking the table
 		typeVal := strings.ReplaceAll(t.table[annotation].Type, "|", "\\|")
 
 		defaultVal := "-"
-		if t.table[annotation].Default != nil {
-			defaultVal = *t.table[annotation].Default
+		if t.table[annotation].Default != "" {
+			defaultVal = t.table[annotation].Default
 		}
 
 		readOnlyVal := "No"
-		if t.table[annotation].ReadOnly != nil {
-			if ro := *t.table[annotation].ReadOnly; ro {
-				readOnlyVal = "Yes"
-			}
+		if t.table[annotation].ReadOnly {
+			readOnlyVal = "Yes"
 		}
 
 		tableStr.WriteString(

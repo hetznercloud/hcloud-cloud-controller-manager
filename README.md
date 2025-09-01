@@ -115,6 +115,7 @@ The docstring format contains a description, starting with the constant name. Th
 - `Type`: Specifies the type of the annotation. If the annotation is an enum, all possible values need to be separated via a pipe symbol `|`.
 - `Default`: Specifies the default value of the annotation. When no default value is set, `-` is displayed.
 - `Read-only`: Specifies whether the annotation is read-only or not. If the annotation is read-only, it will be set by the HCCM and cannot be set by the user.
+- `Internal`: Specifies whether the annotation is for internal use only. If the annotation is internal, it will not be displayed in the reference documentation.
 
 #### Example
 
