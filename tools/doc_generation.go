@@ -74,27 +74,31 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 		commentBuilder := strings.Builder{}
 
 		for i, line := range entry.commentLines {
-			switch {
-			case strings.Contains(line, "Default: "):
-				defaultVal := getValueFromLine(line, "Default: ")
-				entry.Default = &defaultVal
-			case strings.Contains(line, "Type: "):
-				typeVal := getValueFromLine(line, "Type: ")
-				entry.Type = &typeVal
-			case strings.Contains(line, "Read-only: "):
-				readOnlyVal := getValueFromLine(line, "Read-only: ")
-				if readOnly, err := strconv.ParseBool(readOnlyVal); err == nil {
+			if val := getValueFromLine(line, "Default: "); val != "" {
+				entry.Default = &val
+				continue
+			}
+
+			if val := getValueFromLine(line, "Type: "); val != "" {
+				entry.Type = &val
+				continue
+			}
+
+			if val := getValueFromLine(line, "Read-only: "); val != "" {
+				if readOnly, err := strconv.ParseBool(val); err == nil {
 					entry.ReadOnly = &readOnly
 				}
-			default:
-				if i == 0 {
-					line = strings.ReplaceAll(line, fmt.Sprintf("%s ", entry.constName), "")
-					line = strings.ToUpper(line[:1]) + line[1:]
-				}
-
-				commentBuilder.WriteString(" ")
-				commentBuilder.WriteString(line)
+				continue
 			}
+
+			if i == 0 {
+				// Remove constant name from line and uppercase first letter
+				line = strings.ReplaceAll(line, fmt.Sprintf("%s ", entry.constName), "")
+				line = strings.ToUpper(line[:1]) + line[1:]
+			}
+
+			commentBuilder.WriteString(" ")
+			commentBuilder.WriteString(line)
 		}
 
 		if entry.Type == nil || *entry.Type == "" {
