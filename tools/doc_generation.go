@@ -6,8 +6,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"maps"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -127,12 +128,7 @@ func (t *Table) String() string {
 	tableStr.WriteString("| Annotation | Type | Default | Read-only | Description |\n")
 	tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
 
-	// sort annotations
-	annotations := make([]string, 0, len(t.table))
-	for key := range t.table {
-		annotations = append(annotations, key)
-	}
-	sort.Strings(annotations)
+	annotations := slices.Sorted(maps.Keys(t.table))
 
 	for _, annotation := range annotations {
 		typeVal := "-"
