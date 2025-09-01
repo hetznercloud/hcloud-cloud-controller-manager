@@ -145,9 +145,7 @@ func (t *Table) String() string {
 
 		if t.table[annotation].Type != nil {
 			typeVal = *t.table[annotation].Type
-			if strings.Contains(typeVal, "|") {
-				typeVal = strings.ReplaceAll(typeVal, "|", "\\|")
-			}
+			typeVal = strings.ReplaceAll(typeVal, "|", "\\|")
 		}
 
 		if t.table[annotation].ReadOnly != nil {
