@@ -24,14 +24,14 @@ This page contains all annotations, which can be specified at a Service of type 
 | `load-balancer.hetzner.cloud/http-cookie-lifetime` | `int` | `-` | `No` | Specifies the lifetime of the HTTP cookie. |
 | `load-balancer.hetzner.cloud/http-cookie-name` | `string` | `-` | `No` | Specifies the cookie name when using  HTTP or HTTPS as protocol. |
 | `load-balancer.hetzner.cloud/http-managed-certificate-domains` | `string` | `-` | `No` | Contains a comma separated list of the domain names of the managed certificate. All domains are used to create a single managed certificate. |
-| `load-balancer.hetzner.cloud/http-managed-certificate-name` | `string` | `-` | `No` | Contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if `load-balancer.hetzner.cloud/http-managed-certificate-name` is missing or set to "uploaded". Optional. |
-| `load-balancer.hetzner.cloud/http-redirect-http` | `bool` | `false` | `No` | Create a redirect from HTTP to HTTPS. HTTPS only. |
+| `load-balancer.hetzner.cloud/http-managed-certificate-name` | `string` | `-` | `No` | Contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if `load-balancer.hetzner.cloud/http-managed-certificate-name` is missing or set to "uploaded". |
+| `load-balancer.hetzner.cloud/http-redirect-http` | `bool` | `false` | `No` | Create a redirect from HTTP to HTTPS. |
 | `load-balancer.hetzner.cloud/http-status-codes` | `string` | `-` | `No` | Is a comma separated list of HTTP status codes which we expect. |
 | `load-balancer.hetzner.cloud/http-sticky-sessions` | `bool` | `false` | `No` | Enables the sticky sessions feature of Hetzner Cloud HTTP Load Balancers. |
 | `load-balancer.hetzner.cloud/id` | `string` | `-` | `Yes` | Is the ID assigned to the Hetzner Cloud Load Balancer by the backend. Deprecated: This annotation is not used. It is reserved for possible future use. |
 | `load-balancer.hetzner.cloud/ipv4` | `string` | `-` | `Yes` | Is the public IPv4 address assigned to the Load Balancer by the backend. |
 | `load-balancer.hetzner.cloud/ipv4-rdns` | `string` | `-` | `Yes` | Is the reverse DNS record assigned to the IPv4 address of the Load Balancer. |
-| `load-balancer.hetzner.cloud/ipv6` | `string` | `-` | `Yes` | Is the public IPv6 address assigned to the Load Balancer by the backend. Read-only. |
+| `load-balancer.hetzner.cloud/ipv6` | `string` | `-` | `Yes` | Is the public IPv6 address assigned to the Load Balancer by the backend. |
 | `load-balancer.hetzner.cloud/ipv6-disabled` | `bool` | `false` | `No` | Disables the use of IPv6 for the Load Balancer. Set this annotation if you use external-dns. |
 | `load-balancer.hetzner.cloud/ipv6-rdns` | `string` | `-` | `Yes` | Is the reverse DNS record assigned to the IPv6 address of the Load Balancer. |
 | `load-balancer.hetzner.cloud/location` | `string` | `-` | `No` | Specifies the location where the Load Balancer will be created in. Changing the location to a different value after the load balancer was created has no effect. In order to move a load balancer to a different location it is necessary to delete and re-create it. Note, that this will lead to the load balancer getting new public IPs assigned. Mutually exclusive with LBNetworkZone. |

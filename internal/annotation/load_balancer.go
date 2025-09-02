@@ -16,7 +16,7 @@ const (
 	LBPublicIPv4RDNS Name = "load-balancer.hetzner.cloud/ipv4-rdns"
 
 	// LBPublicIPv6 is the public IPv6 address assigned to the Load Balancer by
-	// the backend. Read-only.
+	// the backend.
 	//
 	// Type: string
 	// Read-only: true
@@ -167,7 +167,7 @@ const (
 
 	// LBSvcHTTPManagedCertificateName contains the name of the managed
 	// certificate to create by the Cloud Controller manager. Ignored if
-	// LBSvcHTTPCertificateType is missing or set to "uploaded". Optional.
+	// LBSvcHTTPCertificateType is missing or set to "uploaded".
 	//
 	// Type: string
 	LBSvcHTTPManagedCertificateName Name = "load-balancer.hetzner.cloud/http-managed-certificate-name"
@@ -192,7 +192,7 @@ const (
 	// Type: string
 	LBSvcHTTPManagedCertificateDomains Name = "load-balancer.hetzner.cloud/http-managed-certificate-domains"
 
-	// LBSvcRedirectHTTP create a redirect from HTTP to HTTPS. HTTPS only.
+	// LBSvcRedirectHTTP create a redirect from HTTP to HTTPS.
 	//
 	// Type: bool
 	// Default: false
