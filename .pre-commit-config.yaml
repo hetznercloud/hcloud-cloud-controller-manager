@@ -34,7 +34,7 @@ repos:
         require_serial: false
         additional_dependencies: [prettier@3.6.2]
         files: \.(md|ya?ml)$
-        exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*)$
+        exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*|docs/reference/load_balancer_annotations\.md)$
 
   - repo: local
     hooks:
@@ -57,3 +57,13 @@ repos:
       - id: golangci-lint-full
         args: [--timeout=5m]
         language_version: 1.24.6 # renovate: datasource=golang-version depName=go
+
+  - repo: local
+    hooks:
+      - id: generate
+        name: generate
+        description: Ensure generated files are up to date
+        language: golang
+        entry: go generate ./...
+        pass_filenames: false
+        files: (^\.md\.tmpl|\.go$)
