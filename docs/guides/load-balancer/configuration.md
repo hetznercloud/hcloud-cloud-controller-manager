@@ -1,6 +1,6 @@
 # Configuration
 
-Load Balancers are configured via Kubernetes [annotations](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/). You can find a full list of annotations and their description in [this table](TODO).
+Load Balancers are configured via Kubernetes [annotations](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/). You can find a full list of annotations and their description in [this table](../../reference/load_balancer_annotations.md).
 
 ## Cluster-Wide Defaults
 
