@@ -159,3 +159,49 @@ extraVolumes: []
 #   - name: token-volume
 #     secret:
 #       secretName: hcloud-token
+
+# NetworkPolicy for the hcloud-cloud-controller-manager Pod.
+networkPolicy:
+  enabled: false
+  ingress:
+    # Metrics
+    - ports:
+      - port: 8233
+        protocol: TCP
+  egress:
+    # Hetzner API
+    - ports:
+      - port: 80
+        protocol: TCP
+      - port: 443
+        protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 213.239.246.73/32 # api.hetzner.cloud
+    # DNS
+    - ports:
+      - port: 53
+        protocol: UDP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    # Kubernetes API
+    ## ClusterAPI
+    - ports:
+      - port: 6443
+        protocol: TCP
+      to:
+        ## ClusterAPI
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              component: kube-apiserver
+        ## K3s
+        - ipBlock:         
+            cidr: 10.0.0.0/24 # Your k3s cluster network. Use `kubectl get endpoints --namespace default kubernetes`
