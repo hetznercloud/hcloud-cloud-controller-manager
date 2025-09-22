@@ -50,7 +50,7 @@ jobs:
     name: Check deployment manifests
     runs-on: ubuntu-latest
     steps:
-      - uses: yokawasa/action-setup-kube-tools@v0.11.3
+      - uses: yokawasa/action-setup-kube-tools@v0.13.0
         with:
           setup-tools: |
             helm
@@ -71,7 +71,7 @@ jobs:
     name: Verify snapshots
     runs-on: ubuntu-latest
     steps:
-      - uses: yokawasa/action-setup-kube-tools@v0.11.3
+      - uses: yokawasa/action-setup-kube-tools@v0.13.0
         with:
           setup-tools: |
             helm
