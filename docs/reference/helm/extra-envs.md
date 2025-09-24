@@ -1,6 +1,6 @@
 # Helm - Extra Environment Variables
 
-Extra environment variables can be set via the `env` Helm value. The well-known Kubernetes formats `value` and `valueFrom` are supported.
+You can define extra environment variables for the HCCM. Both Kubernetes formats are supported: `value` and `valueFrom`. The `valueFrom` field can reference multiple sources such as ConfigMaps and Secrets, but also supports other options. For more details, see the Kubernetes documentation on [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/#using-configmaps-as-environment-variables) and [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables).
 
 ```yaml
 env:
