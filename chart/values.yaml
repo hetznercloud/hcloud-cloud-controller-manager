@@ -161,7 +161,7 @@ extraVolumes: []
 #       secretName: hcloud-token
 
 # set dns config for deployment
-dnsPolicy: default
+dnsPolicy: Default
 dnsConfig: {}
 # # Example
 # dnsConfig:
