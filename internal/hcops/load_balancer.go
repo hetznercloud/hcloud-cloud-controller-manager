@@ -480,7 +480,10 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	const op = "hcops/LoadBalancerOps.attachToNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
+	var err error
+
 	privateIPv4String, privateIPv4configured := annotation.LBPrivateIPv4.StringFromService(svc)
+	ipRangeString, ipRangeConfigured := annotation.NetworkIPRange.StringFromService(svc)
 	// Don't attach the Load Balancer if network is not set, or the load
 	// balancer is already attached.
 	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID, privateIPv4String) {
@@ -492,6 +495,14 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		privateIPv4 = net.ParseIP(privateIPv4String)
 		if privateIPv4 == nil {
 			return false, fmt.Errorf("%s: %w", op, fmt.Errorf("could not parse private IPv4 '%s'", privateIPv4))
+		}
+	}
+
+	var ipRange *net.IPNet
+	if ipRangeConfigured {
+		_, ipRange, err = net.ParseCIDR(ipRangeString)
+		if err != nil {
+			return false, fmt.Errorf("%s: %w", op, fmt.Errorf("could not parse IP range '%s'", ipRangeString))
 		}
 	}
 
@@ -516,6 +527,9 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
 	if privateIPv4 != nil {
 		opts.IP = privateIPv4
+	}
+	if ipRange != nil {
+		opts.IPRange = ipRange
 	}
 	a, _, err := l.LBClient.AttachToNetwork(ctx, lb, opts)
 	if hcloud.IsError(err, hcloud.ErrorCodeConflict, hcloud.ErrorCodeLocked) {
