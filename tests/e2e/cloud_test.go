@@ -174,7 +174,7 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	lbSvcDefinition := lbTest.ServiceDefinition(pod, map[string]string{
 		string(annotation.LBLocation):     "nbg1",
 		string(annotation.LBUsePrivateIP): "true",
-		string(annotation.NetworkIPRange): ipRange.String(),
+		string(annotation.SubnetIPRange): ipRange.String(),
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvcDefinition)

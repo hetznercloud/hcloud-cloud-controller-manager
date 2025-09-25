@@ -483,7 +483,7 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	var err error
 
 	privateIPv4String, privateIPv4configured := annotation.LBPrivateIPv4.StringFromService(svc)
-	ipRangeString, ipRangeConfigured := annotation.NetworkIPRange.StringFromService(svc)
+	ipRangeString, ipRangeConfigured := annotation.SubnetIPRange.StringFromService(svc)
 	// Don't attach the Load Balancer if network is not set, or the load
 	// balancer is already attached.
 	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID, privateIPv4String) {
