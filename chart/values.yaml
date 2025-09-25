@@ -29,7 +29,12 @@ kind: Deployment
 # change replicaCount (only used when kind is "Deployment")
 replicaCount: 1
 
-# hccm environment variables
+# You can define extra environment variables for the HCCM.
+# Both Kubernetes formats are supported: `value` and `valueFrom`.
+# Note: `valueFrom` can reference ConfigMaps, Secrets, or other supported sources.
+# Examples:
+# - ConfigMaps: https://kubernetes.io/docs/concepts/configuration/configmap/#using-configmaps-as-environment-variables
+# - Secrets: https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables
 env:
   # The following variables are managed by the chart and should *not* be set here:
   # HCLOUD_METRICS_ENABLED - see monitoring.enabled
