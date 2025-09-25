@@ -92,6 +92,8 @@ github.com/hetznercloud/hcloud-go/v2 v2.22.0 h1:RwcOkgB5y7kvi9Nxt40lHej8HjaS/P+9
 github.com/hetznercloud/hcloud-go/v2 v2.22.0/go.mod h1:t14Logj+iLXyS03DGwEyrN+y7/C9243CJt3IArTHbyM=
 github.com/hetznercloud/hcloud-go/v2 v2.24.0 h1:57YlEQOc9QperCGck+iX4MqCrwEsznEdK7bPrsdAgOQ=
 github.com/hetznercloud/hcloud-go/v2 v2.24.0/go.mod h1:uQdAWaW3d9TimiyOjQWY8HKShs0Nd6S4wNYqo0HjvIY=
+github.com/hetznercloud/hcloud-go/v2 v2.25.0 h1:vW8rC+ArxSAI7YYkRWQf+7CKnYE+Z++MabzZADaPvi4=
+github.com/hetznercloud/hcloud-go/v2 v2.25.0/go.mod h1:uQdAWaW3d9TimiyOjQWY8HKShs0Nd6S4wNYqo0HjvIY=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=
