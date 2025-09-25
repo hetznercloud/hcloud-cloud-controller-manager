@@ -12,10 +12,11 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 
 | Kubernetes | Cloud Controller Manager |                                                                                             Deployment File |
 | ---------- | -----------------------: | ----------------------------------------------------------------------------------------------------------: |
+| 1.34       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.33       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.32       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
 | 1.31       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
-| 1.30       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml |
+| 1.30       |                  v1.26.0 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.26.0/ccm-networks.yaml |
 | 1.29       |                  v1.25.1 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.25.1/ccm-networks.yaml |
 | 1.28       |                  v1.20.0 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm-networks.yaml |
 | 1.27       |                  v1.20.0 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm-networks.yaml |
@@ -28,10 +29,11 @@ Current Kubernetes Releases: https://kubernetes.io/releases/
 
 | Kubernetes | Cloud Controller Manager |                                                                                    Deployment File |
 | ---------- | -----------------------: | -------------------------------------------------------------------------------------------------: |
+| 1.34       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.33       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.32       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
 | 1.31       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
-| 1.30       |                   latest |  https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm.yaml |
+| 1.30       |                  v1.26.0 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.26.0/ccm.yaml |
 | 1.29       |                  v1.25.1 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.25.1/ccm.yaml |
 | 1.28       |                  v1.20.0 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm.yaml |
 | 1.27       |                  v1.20.0 | https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm.yaml |
