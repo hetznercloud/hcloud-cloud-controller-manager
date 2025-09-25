@@ -159,3 +159,15 @@ extraVolumes: []
 #   - name: token-volume
 #     secret:
 #       secretName: hcloud-token
+
+# Set the dns policy for the deployment.
+# See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
+dnsPolicy: Default
+# Set the dns config for the deployment.
+# See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
+dnsConfig: {}
+# # Example
+# dnsConfig:
+#   nameservers:
+#     - 8.8.8.8
+#     - 1.1.1.1
