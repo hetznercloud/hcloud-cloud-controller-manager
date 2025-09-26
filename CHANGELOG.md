@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.27.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.27.0)
+
+### Features
+
+- watch-based route reconciliation (#970)
+- set dns config via helm chart values (#1027)
+- support Kubernetes v1.34 and drop v1.30  (#1037)
+
+### Bug Fixes
+
+- feature gate cannot be enabled (#980)
+
 ## [v1.27.0-alpha.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.27.0-alpha.1)
 
 This release introduces an experimental feature to address #395.
