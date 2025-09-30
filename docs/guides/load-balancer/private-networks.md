@@ -27,7 +27,7 @@ For IPVS based plugins (kube-router, kube-proxy in ipvs mode, etc...) make sure 
 
 ## Join Load Balancer to a Subnet
 
-If your CCM is configured for a Private Network, Load Balancers can join one of its subnets. Each subnet is identified by its CIDR block and must already exist. To place a Load Balancer in a specific subnet, use the `load-balancer.hetzner.cloud/private-subnet-ip-range annotation`.
+If your CCM is configured for a Private Network, Load Balancers can join one of its subnets. Each subnet is identified by its CIDR block and must already exist. To place a Load Balancer in a specific subnet, use the `load-balancer.hetzner.cloud/private-subnet-ip-range` annotation.
 
 ```yaml
 apiVersion: v1
