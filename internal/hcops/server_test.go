@@ -405,7 +405,7 @@ func (tt *allServersCacheTestCase) run(t *testing.T) {
 		return
 	}
 	if tt.ExpectedErr != nil {
-		assert.Truef(t, errors.Is(err, tt.ExpectedErr), "expected error: %v; got %v", tt.ExpectedErr, err)
+		assert.ErrorIsf(t, err, tt.ExpectedErr, "expected error: %v; got %v", tt.ExpectedErr, err)
 		return
 	}
 	assert.Equal(t, tt.Expected, actual)

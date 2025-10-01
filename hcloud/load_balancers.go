@@ -78,7 +78,7 @@ func (l *loadBalancers) GetLoadBalancer(
 		if errors.Is(err, hcops.ErrNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, fmt.Errorf("%s: %v", op, err)
+		return nil, false, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if v, ok := annotation.LBHostname.StringFromService(service); ok {
@@ -89,7 +89,7 @@ func (l *loadBalancers) GetLoadBalancer(
 
 	ingress, err := l.buildLoadBalancerStatusIngress(lb, service)
 	if err != nil {
-		return nil, false, fmt.Errorf("%s: %v", op, err)
+		return nil, false, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &corev1.LoadBalancerStatus{Ingress: ingress}, true, nil
@@ -128,7 +128,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 
 	lb, err = l.lbOps.GetByK8SServiceUID(ctx, svc)
 	if err != nil && !errors.Is(err, hcops.ErrNotFound) {
-		return nil, fmt.Errorf("%s: %v", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Try the load balancer's name if we were not able to find it using the
@@ -143,7 +143,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 	if errors.Is(err, hcops.ErrNotFound) {
 		lb, err = l.lbOps.GetByName(ctx, lbName)
 		if err != nil && !errors.Is(err, hcops.ErrNotFound) {
-			return nil, fmt.Errorf("%s: %v", op, err)
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 	}
 

@@ -224,7 +224,7 @@ func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int64)
 
 	serverPrivateNetworks, err := metadataClient.PrivateNetworks()
 	if err != nil {
-		return false, fmt.Errorf("%s: %s", op, err)
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	return strings.Contains(serverPrivateNetworks, fmt.Sprintf("network_id: %d\n", networkID)), nil
 }

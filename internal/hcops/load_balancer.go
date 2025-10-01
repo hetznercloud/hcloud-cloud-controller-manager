@@ -99,7 +99,7 @@ func (l *LoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *corev1.Se
 	}
 	lbs, err := l.LBClient.AllWithOpts(ctx, opts)
 	if err != nil {
-		return nil, fmt.Errorf("%s: api error: %v", op, err)
+		return nil, fmt.Errorf("%s: api error: %w", op, err)
 	}
 	if len(lbs) == 0 {
 		return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
@@ -236,7 +236,7 @@ func (l *LoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) e
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
@@ -885,7 +885,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	var changed bool
 
 	if err := l.reconcileManagedCertificate(ctx, svc); err != nil {
-		return false, fmt.Errorf("%s: %v", op, err)
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
 	hclbListenPorts := make(map[int]bool, len(lb.Services))
@@ -1001,7 +1001,7 @@ func (l *LoadBalancerOps) reconcileManagedCertificate(ctx context.Context, svc *
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }

@@ -19,7 +19,7 @@ func TestRateLimit(t *testing.T) {
 
 	servers, err := client.ServerGetList()
 	assert.NoError(t, err)
-	assert.Len(t, servers, 0)
+	assert.Empty(t, servers)
 	mock.AssertNumberOfCalls(t, "ServerGetList", 1)
 
 	mock.On("ServerGetList").Return(nil, hrobotmodels.Error{Code: hrobotmodels.ErrorCodeRateLimitExceeded, Message: "Rate limit exceeded"}).Once()

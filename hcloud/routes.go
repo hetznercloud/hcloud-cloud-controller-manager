@@ -108,7 +108,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 
 	srv, err := r.serverCache.ByName(string(route.TargetNode))
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
@@ -116,7 +116,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 		r.serverCache.InvalidateCache()
 		srv, err = r.serverCache.ByName(string(route.TargetNode))
 		if err != nil {
-			return fmt.Errorf("%s: %v", op, err)
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		privNet, ok = findServerPrivateNetByID(srv, r.network.ID)
@@ -134,7 +134,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 	clusterNetSize, _ := r.clusterCIDR.Mask.Size()
 	destNetSize, _ := cidr.Mask.Size()
 
-	if !(r.clusterCIDR.Contains(cidr.IP) && destNetSize >= clusterNetSize) {
+	if !r.clusterCIDR.Contains(cidr.IP) || destNetSize < clusterNetSize {
 		node := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      string(route.TargetNode),
@@ -286,7 +286,7 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 		if _route.Destination.String() == route.DestinationCIDR {
 			srv, err := r.serverCache.ByName(string(route.TargetNode))
 			if err != nil {
-				return false, fmt.Errorf("%s: %v", op, err)
+				return false, fmt.Errorf("%s: %w", op, err)
 			}
 			privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
 			if !ok {
