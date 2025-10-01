@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"slices"
 	"testing"
 	"time"
 
@@ -165,14 +166,30 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 
 	pod := lbTest.DeployTestPod()
 
+	ipRange := &net.IPNet{
+		IP:   net.IPv4(10, 0, 0, 0),
+		Mask: net.CIDRMask(24, 32),
+	}
+
 	lbSvcDefinition := lbTest.ServiceDefinition(pod, map[string]string{
 		string(annotation.LBLocation):     "nbg1",
 		string(annotation.LBUsePrivateIP): "true",
+		string(annotation.PrivateSubnetIPRange): ipRange.String(),
 	})
 
 	lbSvc, err := lbTest.CreateService(lbSvcDefinition)
 	if assert.NoError(t, err, "deploying test svc") {
 		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+
+		anyInIPRange := slices.ContainsFunc(lbSvc.Status.LoadBalancer.Ingress, func(ingress corev1.LoadBalancerIngress) bool {
+			ip := net.ParseIP(ingress.IP)
+			if ip == nil {
+				return false
+			}
+			return ipRange.Contains(ip)
+		})
+
+		assert.True(t, anyInIPRange)
 	}
 
 	lbTest.TearDown()

@@ -70,6 +70,14 @@ const (
 	// Type: string
 	LBPrivateIPv4 Name = "load-balancer.hetzner.cloud/private-ipv4"
 
+	// PrivateSubnetIPRange specifies an existing subnet to which the load balancer will be attached.
+	// The value must be in the CIDR notation. The subnet must belong to the network defined
+	// in the CCM configuration and must already exist.
+	// See: https://docs.hetzner.cloud/reference/cloud#network-actions-add-a-subnet-to-a-network
+	//
+	// Type: string
+	PrivateSubnetIPRange Name = "load-balancer.hetzner.cloud/private-subnet-ip-range"
+
 	// LBHostname specifies the hostname of the Load Balancer. This will be
 	// used as ingress address instead of the Load Balancer IP addresses if
 	// specified.
