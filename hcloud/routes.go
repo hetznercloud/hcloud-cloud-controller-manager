@@ -90,7 +90,7 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 
 	routes := make([]*cloudprovider.Route, 0, len(r.network.Routes))
 	for _, route := range r.network.Routes {
-		ro, err := r.hcloudRouteToRoute(route)
+		ro, err := r.hcloudRouteToRoute(ctx, route)
 		if err != nil {
 			return routes, fmt.Errorf("%s: %w", op, err)
 		}
@@ -106,7 +106,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 	const op = "hcloud/CreateRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	srv, err := r.serverCache.ByName(string(route.TargetNode))
+	srv, err := r.serverCache.ByName(ctx, string(route.TargetNode))
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -114,7 +114,7 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 	privNet, ok := findServerPrivateNetByID(srv, r.network.ID)
 	if !ok {
 		r.serverCache.InvalidateCache()
-		srv, err = r.serverCache.ByName(string(route.TargetNode))
+		srv, err = r.serverCache.ByName(ctx, string(route.TargetNode))
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -250,7 +250,7 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 	return nil
 }
 
-func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.Route, error) {
+func (r *routes) hcloudRouteToRoute(ctx context.Context, route hcloud.NetworkRoute) (*cloudprovider.Route, error) {
 	const op = "hcloud/hcloudRouteToRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -259,7 +259,7 @@ func (r *routes) hcloudRouteToRoute(route hcloud.NetworkRoute) (*cloudprovider.R
 		Name:            fmt.Sprintf("%s-%s", route.Gateway.String(), route.Destination.String()),
 	}
 
-	srv, err := r.serverCache.ByPrivateIP(route.Gateway)
+	srv, err := r.serverCache.ByPrivateIP(ctx, route.Gateway)
 	if err != nil {
 		if errors.Is(err, hcops.ErrNotFound) {
 			// Route belongs to non-existing target
@@ -284,7 +284,7 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 
 	for _, _route := range r.network.Routes {
 		if _route.Destination.String() == route.DestinationCIDR {
-			srv, err := r.serverCache.ByName(string(route.TargetNode))
+			srv, err := r.serverCache.ByName(ctx, string(route.TargetNode))
 			if err != nil {
 				return false, fmt.Errorf("%s: %w", op, err)
 			}
@@ -295,7 +295,7 @@ func (r *routes) checkIfRouteAlreadyExists(ctx context.Context, route *cloudprov
 			ip := privNet.IP
 
 			if !_route.Gateway.Equal(ip) {
-				action, _, err := r.client.Network.DeleteRoute(context.Background(), r.network, hcloud.NetworkDeleteRouteOpts{
+				action, _, err := r.client.Network.DeleteRoute(ctx, r.network, hcloud.NetworkDeleteRouteOpts{
 					Route: _route,
 				})
 				if err != nil {
