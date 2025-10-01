@@ -9,7 +9,7 @@ before:
     - ./scripts/release-generate-deployment-yamls.sh {{ .Version }}
 
 builds:
-  - id: hcloud-cloud-controller-manager
+  - id: binary
     env:
       - CGO_ENABLED=0
     goos:
@@ -26,19 +26,22 @@ builds:
       - -X k8s.io/component-base/version.gitVersion=v0.0.0-master+v{{ .Version }}
 
 dockers:
-  - build_flag_templates: [--platform=linux/amd64]
+  - id: docker-amd64
+    build_flag_templates: [--platform=linux/amd64]
     dockerfile: Dockerfile
     goarch: amd64
     image_templates:
       - hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64
     use: buildx
-  - build_flag_templates: [--platform=linux/arm64]
+  - id: docker-arm64
+    build_flag_templates: [--platform=linux/arm64]
     dockerfile: Dockerfile
     goarch: arm64
     image_templates:
       - hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-arm64v8
     use: buildx
-  - build_flag_templates: [--platform=linux/arm/v6]
+  - id: docker-armv6
+    build_flag_templates: [--platform=linux/arm/v6]
     dockerfile: Dockerfile
     goarch: arm
     goarm: 6
@@ -47,16 +50,17 @@ dockers:
     use: buildx
 
 docker_manifests:
-  - name_template: hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
+  - id: docker-manifest
+    name_template: hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}
     image_templates:
       - hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-amd64
       - hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-arm64v8
       - hetznercloud/hcloud-cloud-controller-manager:{{ if not .IsSnapshot }}v{{ end }}{{ .Version }}-armv6
 
 archives:
-  - id: hcloud-cloud-controller-manager-archive
-    builds:
-      - hcloud-cloud-controller-manager
+  - id: archive
+    ids:
+      - binary
     name_template: "{{ .Binary }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     files:
       - LICENSE
@@ -64,17 +68,16 @@ archives:
 
 release:
   ids:
-    - hcloud-cloud-controller-manager-archive
+    - archive
   extra_files:
     - glob: ./deploy/ccm*.yaml
     - glob: ./hcloud-cloud-controller-manager-*.tgz
 
 publishers:
-  - name: helm-chart-repo
+  - name: publish-helm-chart
 
-    # make sure that this is only executed once. There are no separate ids per binary built,
-    # we filter for no actual ID and then run the publisher for the checksum.
-    ids: [""]
+    # Only execute once by filtering all ids, and only running for the checksum.
+    ids: ["none"]
     checksum: true
 
     cmd: ./scripts/publish-helm-chart.sh hcloud-cloud-controller-manager-{{ .Version }}.tgz
