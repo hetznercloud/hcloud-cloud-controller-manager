@@ -1,5 +1,44 @@
 # Changelog
 
+## [v1.27.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.27.0)
+
+### Attach Load Balancer to a Subnet
+
+If your CCM is configured for a Private Network, Load Balancers can now join one of its subnets. To place a Load Balancer in a specific subnet, use the new `load-balancer.hetzner.cloud/private-subnet-ip-range` annotation. Learn more about this feature [here](./docs/guides/load-balancer/private-networks.md).
+
+### Watch-Based Route Reconciliation (Experimental)
+
+Currently, route reconciliation is performed at a fixed interval of 30s. This leads to unnecessary API requests, as a `GET /v1/networks/{id}` call is triggered every 30s, even when no changes have occurred.
+
+Upstream we have proposed an event-driven approach, similar to the mechanism used by other controllers such as the Load Balancer Controller. With this new approach, route reconciliation is triggered on node additions, node deletions, or when the `PodCIDRs` or `Addresses` of nodes change. Additionally, to ensure consistency, reconciliation will still occur periodically at a randomized interval between 12 and 24 hours.
+
+We are close to merging a [Kubernetes Enhancement Proposal (KEP)](https://github.com/kubernetes/enhancements/pull/5289). Furthermore, a pull request containing the implementation is already open in the Kubernetes repository.
+
+#### Forked Upstream Libraries
+
+In this release, we replaced the upstream `controller-manager` and `cloud-provider` libraries with our own forks. These forks are based on the upstream `v0.34.1` release (aligned with Kubernetes v1.34.1) and include our patches on top.
+
+#### Enabling the Feature
+
+This feature is **disabled by default** and will not affect existing deployments unless explicitly enabled. We recommend testing it in a non-production environment before considering use in production.
+
+As the KEP has not yet been reviewed for production readiness, the feature gate name may change in an upcoming release. Since this feature is marked as experimental, such changes will not be considered breaking.
+
+To enable the feature, set the following Helm value:
+
+`args.feature-gates=CloudControllerManagerWatchBasedRoutesReconciliation=true`
+
+### Features
+
+- watch-based route reconciliation (#970)
+- set dns config via helm chart values (#1027)
+- support Kubernetes v1.34 and drop v1.30  (#1037)
+- **load-balancer**: attach load balancer to specific subnetwork (#1031)
+
+### Bug Fixes
+
+- feature gate cannot be enabled (#980)
+
 ## [v1.27.0-alpha.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.27.0-alpha.1)
 
 This release introduces an experimental feature to address #395.
