@@ -36,7 +36,7 @@ test:lint:
     paths:
       - $GOLANGCI_LINT_CACHE
   script:
-    - golangci-lint run -v --timeout 5m
+    - golangci-lint run -v
 
 test:unit:
   stage: test
