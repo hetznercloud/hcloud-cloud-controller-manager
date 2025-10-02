@@ -53,22 +53,18 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - serviceaccounts
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
       - persistentvolumes
     verbs:
       - get
       - list
       - update
       - watch
-  - apiGroups:
-      - ""
-    resources:
-      - endpoints
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
   - apiGroups:
       - coordination.k8s.io
     resources:
