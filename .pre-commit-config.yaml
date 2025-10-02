@@ -52,10 +52,9 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.64.8
+    rev: v2.5.0
     hooks:
       - id: golangci-lint-full
-        args: [--timeout=5m]
         language_version: 1.25.1 # renovate: datasource=golang-version depName=go
 
   - repo: local

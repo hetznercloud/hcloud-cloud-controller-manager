@@ -53,7 +53,7 @@ func (co *CertificateOps) GetCertificateByLabel(ctx context.Context, label strin
 	opts := hcloud.CertificateListOpts{ListOpts: hcloud.ListOpts{LabelSelector: label}}
 	certs, err := co.CertClient.AllWithOpts(ctx, opts)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %v", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if len(certs) == 0 {
 		return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
@@ -86,7 +86,7 @@ func (co *CertificateOps) CreateManagedCertificate(
 		return fmt.Errorf("%s: %w", op, ErrAlreadyExists)
 	}
 	if err != nil {
-		return fmt.Errorf("%s: %v", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }

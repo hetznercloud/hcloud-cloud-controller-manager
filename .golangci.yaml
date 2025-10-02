@@ -1,67 +1,116 @@
----
-linters-settings:
-  exhaustive:
-    default-signifies-exhaustive: true
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/hetznercloud)
+version: "2"
 
-  importas:
-    no-unaliased: true
-    alias:
-      # Kubernetes
-      - pkg: k8s.io/api/core/v1
-        alias: corev1
-      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
-        alias: metav1
-
-      - pkg: github.com/syself/hrobot-go
-        alias: hrobot
-      - pkg: github.com/syself/hrobot-go/models
-        alias: hrobotmodels
-
-  misspell:
-    locale: "US"
+run:
+  timeout: 5m
 
 linters:
-  disable-all: true
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
+    - contextcheck
     - copyloopvar
+    - durationcheck
     - errcheck
+    - errchkjson
     - errname
+    - errorlint
     - exhaustive
-    - gci
+    - forbidigo
+    - gocheckcompilerdirectives
+    - gochecksumtype
     - gocritic
     - godot
-    - goimports
+    - gomoddirectives
     - gomodguard
     - gosec
-    - gosimple
+    - gosmopolitan
     - govet
     - importas
     - ineffassign
+    - loggercheck
+    - makezero
     - misspell
+    - musttag
+    - nilerr
+    - nilnesserr
+    - noctx
     - prealloc
+    - protogetter
+    - reassign
+    - recvcheck
     - revive
+    - rowserrcheck
+    - spancheck
     - staticcheck
-    - typecheck
+    - testifylint
     - unparam
     - unused
     - whitespace
 
-issues:
-  exclude-rules:
-    - path: internal/annotation/load_balancer.go
-      linters:
-        - godot
-    - path: (_test\.go|testing\.go|testsupport|e2etests)
-      linters:
-        - gosec
-        - errcheck
-    - path: internal/mocks
-      linters:
-        - unparam
-        - revive
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+
+    staticcheck:
+      checks: ["all", "-QF1008"]
+
+    gomoddirectives:
+      replace-allow-list:
+        - github.com/hetznercloud/hcloud-go/v2
+        - k8s.io/cloud-provider
+        - k8s.io/controller-manager
+
+    importas:
+      alias:
+        - pkg: k8s.io/api/core/v1
+          alias: corev1
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
+        - pkg: github.com/syself/hrobot-go
+          alias: hrobot
+        - pkg: github.com/syself/hrobot-go/models
+          alias: hrobotmodels
+      no-unaliased: true
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+    rules:
+      - linters:
+          - testifylint
+        text: require-error
+      - linters:
+          - godot
+        path: internal/annotation/load_balancer.go
+      - linters:
+          - errcheck
+          - gosec
+        path: (_test\.go|testing\.go|testsupport|e2etests)
+      - linters:
+          - revive
+          - unparam
+        path: internal/mocks
+      - linters:
+          - revive
+        path: internal/utils/.+\.go
+        text: var-naming
+
+formatters:
+  enable:
+    - gci
+    - goimports
+
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/hetznercloud)
+
+  exclusions:
+    generated: lax

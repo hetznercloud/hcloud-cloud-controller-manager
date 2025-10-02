@@ -58,7 +58,7 @@ func TestAllServersCache_CacheHit(t *testing.T) {
 				Once()
 
 			// Perform any cache op to initialize caches
-			if _, err := tt.Cache.ByName(srv.Name); err != nil {
+			if _, err := tt.Cache.ByName(t.Context(), srv.Name); err != nil {
 				t.Fatalf("SetUp: %v", err)
 			}
 		},
@@ -92,7 +92,7 @@ func TestAllServersCache_InvalidateCache(t *testing.T) {
 				Times(2)
 
 			// Perform any cache op to initialize caches
-			if _, err := tt.Cache.ByName(srv.Name); err != nil {
+			if _, err := tt.Cache.ByName(t.Context(), srv.Name); err != nil {
 				t.Fatalf("SetUp: %v", err)
 			}
 
@@ -100,7 +100,7 @@ func TestAllServersCache_InvalidateCache(t *testing.T) {
 			tt.Cache.InvalidateCache()
 
 			// Perform a second cache lookup
-			if _, err := tt.Cache.ByName(srv.Name); err != nil {
+			if _, err := tt.Cache.ByName(t.Context(), srv.Name); err != nil {
 				t.Fatalf("SetUp: %v", err)
 			}
 		},
@@ -132,7 +132,7 @@ func TestAllServersCache_CacheRefresh(t *testing.T) {
 				On("All", mock.Anything).
 				Return([]*hcloud.Server{srv}, nil)
 
-			if _, err := tt.Cache.ByName(srv.Name); err != nil {
+			if _, err := tt.Cache.ByName(t.Context(), srv.Name); err != nil {
 				t.Fatalf("SetUp: %v", err)
 			}
 			// Set the maximum cache age to a ridiculously low time to
@@ -173,7 +173,7 @@ func TestAllServersCache_CacheMissRefresh(t *testing.T) {
 				Return([]*hcloud.Server{srv}, nil).Once()
 
 			// Setup initial cache
-			result, err := tt.Cache.ByName(srv.Name)
+			result, err := tt.Cache.ByName(t.Context(), srv.Name)
 			assert.Error(t, err)
 			assert.Nil(t, result)
 		},
@@ -205,11 +205,11 @@ func TestAllServersCache_CacheRefreshLimited(t *testing.T) {
 				On("All", mock.Anything).
 				Return([]*hcloud.Server{}, nil)
 
-			result, err := tt.Cache.ByName(srv.Name)
+			result, err := tt.Cache.ByName(t.Context(), srv.Name)
 			assert.Error(t, err)
 			assert.Nil(t, result)
 
-			result, err = tt.Cache.ByName(srv.Name)
+			result, err = tt.Cache.ByName(t.Context(), srv.Name)
 			assert.Error(t, err)
 			assert.Nil(t, result)
 		},
@@ -292,7 +292,7 @@ func TestAllServersCache_CacheMissRefreshClientError(t *testing.T) {
 				Return([]*hcloud.Server{}, nil).Once()
 
 			// Load the cache once
-			result, err := tt.Cache.ByName(srv.Name)
+			result, err := tt.Cache.ByName(t.Context(), srv.Name)
 			assert.Error(t, err)
 			assert.Nil(t, result)
 
@@ -367,13 +367,13 @@ func newAllServersCacheOps(t *testing.T, srv *hcloud.Server) map[string]allServe
 			if ip == nil {
 				t.Fatal("ByPrivateIP: server has no private ip")
 			}
-			return c.ByPrivateIP(ip)
+			return c.ByPrivateIP(t.Context(), ip)
 		},
 		"ByName": func(c *hcops.AllServersCache) (*hcloud.Server, error) {
 			if srv.Name == "" {
 				t.Fatal("ByName: server has no name")
 			}
-			return c.ByName(srv.Name)
+			return c.ByName(t.Context(), srv.Name)
 		},
 	}
 }
@@ -405,7 +405,7 @@ func (tt *allServersCacheTestCase) run(t *testing.T) {
 		return
 	}
 	if tt.ExpectedErr != nil {
-		assert.Truef(t, errors.Is(err, tt.ExpectedErr), "expected error: %v; got %v", tt.ExpectedErr, err)
+		assert.ErrorIsf(t, err, tt.ExpectedErr, "expected error: %v; got %v", tt.ExpectedErr, err)
 		return
 	}
 	assert.Equal(t, tt.Expected, actual)

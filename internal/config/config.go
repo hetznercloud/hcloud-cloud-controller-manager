@@ -259,7 +259,7 @@ func getEnvBool(key string, defaultValue bool) (bool, error) {
 
 	b, err := strconv.ParseBool(v)
 	if err != nil {
-		return false, fmt.Errorf("failed to parse %s: %v", key, err)
+		return false, fmt.Errorf("failed to parse %s: %w", key, err)
 	}
 
 	return b, nil
@@ -275,7 +275,7 @@ func getEnvDuration(key string) (time.Duration, error) {
 
 	b, err := time.ParseDuration(v)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse %s: %v", key, err)
+		return 0, fmt.Errorf("failed to parse %s: %w", key, err)
 	}
 
 	return b, nil
