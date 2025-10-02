@@ -13,11 +13,18 @@ if [[ -z "$CHART_FILE" ]]; then
   exit 1
 fi
 
-TMP_DIR=$(mktemp --directory hccm-chart-repo.XXXXX)
+TMP_DIR=$(mktemp --directory chart-repo.XXXXX)
+# shellcheck disable=SC2064
+trap "rm -Rf '$(realpath "$TMP_DIR")'" EXIT
 
 git clone --depth 1 -b "${CHART_REPO_BRANCH}" "${CHART_REPO_REMOTE}" "${TMP_DIR}"
 
-mkdir "${TMP_DIR}"/new-chart
+if [[ -f "${TMP_DIR}/${CHART_FILE}" ]]; then
+  echo "chart file already exists: ${CHART_FILE}"
+  exit 0
+fi
+
+mkdir "${TMP_DIR}/new-chart"
 cp "${CHART_FILE}" "${TMP_DIR}/new-chart"
 
 pushd "${TMP_DIR}/new-chart"
@@ -41,4 +48,3 @@ git commit -m "feat: add ${CHART_FILE}"
 git push
 
 popd
-rm -rf "${TMP_DIR}"
