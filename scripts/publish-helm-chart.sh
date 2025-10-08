@@ -13,6 +13,12 @@ if [[ -z "$CHART_FILE" ]]; then
   exit 1
 fi
 
+# Ensures we only publish once, when $1 == $GORELEASER_ARTIFACT_FILE
+if [[ -n "${GORELEASER_ARTIFACT_FILE}" && "${GORELEASER_ARTIFACT_FILE}" != "${CHART_FILE}" ]]; then
+  echo "skipping artifact: ${GORELEASER_ARTIFACT_FILE}" >&2
+  exit 0
+fi
+
 TMP_DIR=$(mktemp --directory chart-repo.XXXXX)
 # shellcheck disable=SC2064
 trap "rm -Rf '$(realpath "$TMP_DIR")'" EXIT
