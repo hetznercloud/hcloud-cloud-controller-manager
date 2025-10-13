@@ -38,18 +38,14 @@ rules:
       - services
     verbs:
       - list
-      - patch
-      - update
       - watch
   - apiGroups:
       - ""
     resources:
       - services/status
     verbs:
-      - list
       - patch
       - update
-      - watch
   - apiGroups:
       - ""
     resources:
@@ -75,16 +71,4 @@ rules:
       - list
       - watch
       - update
-  - apiGroups:
-      - authentication.k8s.io
-    resources:
-      - tokenreviews
-    verbs:
-      - create
-  - apiGroups:
-      - authorization.k8s.io
-    resources:
-      - subjectaccessreviews
-    verbs:
-      - create
 {{- end }}
