@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 func TestRead(t *testing.T) {
@@ -123,6 +124,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 				"HCLOUD_ENDPOINT", "https://api.example.com",
 				"HCLOUD_DEBUG", "true",
+				"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE", "10.1.0.0/24",
+				"HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL", "true",
+				"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE", "least_connections",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL", "30s",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT", "5s",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES", "5",
+				"HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK", "true",
+				"HCLOUD_LOAD_BALANCERS_TYPE", "lb21",
 			},
 			want: HCCMConfiguration{
 				HCloudClient: HCloudClientConfiguration{
@@ -137,9 +146,18 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					AttachedCheckEnabled: true,
 				},
 				LoadBalancer: LoadBalancerConfiguration{
-					Enabled:               true,
-					PrivateIngressEnabled: true,
-					IPv6Enabled:           true,
+					Enabled:                 true,
+					PrivateIngressEnabled:   true,
+					IPv6Enabled:             true,
+					PrivateSubnetIPRange:    "10.1.0.0/24",
+					ProxyProtocolEnabled:    true,
+					ProxyProtocolEnabledSet: true,
+					AlgorithmType:           hcloud.LoadBalancerAlgorithmTypeLeastConnections,
+					HealthCheckInterval:     30 * time.Second,
+					HealthCheckTimeout:      5 * time.Second,
+					HealthCheckRetries:      5,
+					DisablePublicNetwork:    true,
+					Type:                    "lb21",
 				},
 			},
 			wantErr: nil,
