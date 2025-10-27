@@ -145,6 +145,27 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			wantErr: nil,
 		},
 		{
+			name: "metrics",
+			env: []string{
+				"HCLOUD_METRICS_ENABLED", "false",
+				"HCLOUD_METRICS_ADDRESS", "127.0.0.1:9999",
+			},
+			want: HCCMConfiguration{
+				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:  MetricsConfiguration{Enabled: false, Address: "127.0.0.1:9999"},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Network: NetworkConfiguration{
+					AttachedCheckEnabled: true,
+				},
+				LoadBalancer: LoadBalancerConfiguration{
+					Enabled:               true,
+					PrivateIngressEnabled: true,
+					IPv6Enabled:           true,
+				},
+			},
+			wantErr: nil,
+		},
+		{
 			name: "robot",
 			env: []string{
 				"ROBOT_ENABLED", "true",
