@@ -33,17 +33,17 @@ hcloud ssh-key create --name k3s-key --public-key-from-file ./hcloud-k3s.pub
 
 ### 1.2. Create Control Plane and Worker Nodes
 
-Our cluster will consist of a single control plane with a single worker. These servers will be located in Falkenstein, use Ubunut as a base image and use the server-type cx22.
+Our cluster will consist of a single control plane with a single worker. These servers will be located in Falkenstein, use Ubunut as a base image and use the server-type cpx22.
 
 ```bash
 hcloud server create --name tutorial-control-plane \
-  --type cx22 \
+  --type cpx22 \
   --location fsn1 \
   --image ubuntu-24.04 \
   --ssh-key k3s-key
 
 hcloud server create --name tutorial-worker \
-  --type cx22 \
+  --type cpx22 \
   --location fsn1 \
   --image ubuntu-24.04 \
   --ssh-key k3s-key
