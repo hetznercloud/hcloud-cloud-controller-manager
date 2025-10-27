@@ -39,7 +39,7 @@ const (
 	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 
 	hcloudMetricsEnabled = "HCLOUD_METRICS_ENABLED"
-	hcloudMetricsAddress = ":8233"
+	hcloudMetricsAddress = "HCLOUD_METRICS_ADDRESS"
 )
 
 type HCloudClientConfiguration struct {
@@ -157,7 +157,12 @@ func Read() (HCCMConfiguration, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.Metrics.Address = hcloudMetricsAddress
+
+	if addr, ok := os.LookupEnv(hcloudMetricsAddress); ok {
+		cfg.Metrics.Address = addr
+	} else {
+		cfg.Metrics.Address = ":8233"
+	}
 
 	// Validation happens in [HCCMConfiguration.Validate]
 	cfg.Instance.AddressFamily = AddressFamily(os.Getenv(hcloudInstancesAddressFamily))
