@@ -84,7 +84,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			name:        "proxy protocol annotation overrides config default",
 			servicePort: corev1.ServicePort{Port: 86, NodePort: 8086},
 			cfg: config.LoadBalancerConfiguration{
-				ProxyProtocolEnabled: true,
+				ProxyProtocolEnabled: hcloud.Ptr(true),
 			},
 			serviceAnnotations: map[annotation.Name]string{
 				annotation.LBSvcProxyProtocol: "false",

@@ -209,13 +209,12 @@ func (l *LoadBalancerOps) Create(
 	}
 
 	disablePubIface, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
-	if err != nil && !errors.Is(err, annotation.ErrNotSet) {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
 	if err == nil {
 		opts.PublicInterface = hcloud.Ptr(!disablePubIface)
 	} else if errors.Is(err, annotation.ErrNotSet) {
-		opts.PublicInterface = hcloud.Ptr(!l.Cfg.LoadBalancer.DisablePublicNetwork)
+		if l.Cfg.LoadBalancer.DisablePublicNetwork != nil {
+			opts.PublicInterface = hcloud.Ptr(!*l.Cfg.LoadBalancer.DisablePublicNetwork)
+		}
 	} else {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -577,19 +576,24 @@ func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.
 	var a *hcloud.Action
 
 	disable, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
-	if err != nil {
-		if errors.Is(err, annotation.ErrNotSet) {
-			disable = l.Cfg.LoadBalancer.DisablePublicNetwork
-		} else {
-			return false, fmt.Errorf("%s: %w", op, err)
-		}
+	var desiredDisable *bool
+	if err == nil {
+		desiredDisable = hcloud.Ptr(disable)
+	} else if errors.Is(err, annotation.ErrNotSet) {
+		desiredDisable = l.Cfg.LoadBalancer.DisablePublicNetwork
+	} else {
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if disable == !lb.PublicNet.Enabled {
+	if desiredDisable == nil {
 		return false, nil
 	}
 
-	if disable {
+	if *desiredDisable == !lb.PublicNet.Enabled {
+		return false, nil
+	}
+
+	if *desiredDisable {
 		a, _, err = l.LBClient.DisablePublicInterface(ctx, lb)
 	} else {
 		a, _, err = l.LBClient.EnablePublicInterface(ctx, lb)
@@ -1084,8 +1088,8 @@ func (b *hclbServiceOptsBuilder) extract() {
 			return nil
 		} else if errors.Is(err, annotation.ErrNotSet) {
 			// Workaround to keep bug https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/876
-			if b.cfg.ProxyProtocolEnabledSet {
-				b.proxyProtocol = hcloud.Ptr(b.cfg.ProxyProtocolEnabled)
+			if b.cfg.ProxyProtocolEnabled != nil {
+				b.proxyProtocol = hcloud.Ptr(*b.cfg.ProxyProtocolEnabled)
 			}
 			return nil
 		} else {

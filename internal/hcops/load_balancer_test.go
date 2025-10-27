@@ -266,7 +266,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location: &hcloud.Location{
 					Name: "fsn1",
 				},
-				PublicInterface: hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "some-lb-uid",
 				},
@@ -287,7 +286,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -307,7 +305,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location: &hcloud.Location{
 					Name: "fsn1",
 				},
-				PublicInterface: hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "some-lb-uid",
 				},
@@ -325,7 +322,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "some-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "some-lb-uid",
 				},
@@ -347,7 +343,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -371,7 +366,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location: &hcloud.Location{
 					Name: "fsn1",
 				},
-				PublicInterface: hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -394,7 +388,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -411,7 +404,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "another-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
 				Location:         &hcloud.Location{Name: "nbg1"},
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -429,7 +421,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
 				Algorithm:        &hcloud.LoadBalancerAlgorithm{Type: hcloud.LoadBalancerAlgorithmTypeLeastConnections},
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "another-lb-uid",
 				},
@@ -448,7 +439,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Name:             "lb-default-type",
 				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
 				Location:         &hcloud.Location{Name: "nbg1"},
-				PublicInterface:  hcloud.Ptr(true),
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "lb-default-type-uid",
 				},
@@ -460,7 +450,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
 					Location:             "nbg1",
-					DisablePublicNetwork: true,
+					DisablePublicNetwork: hcloud.Ptr(true),
 				},
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
@@ -1141,7 +1131,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			name: "disable enabled public network from config default",
 			cfg: config.HCCMConfiguration{
 				LoadBalancer: config.LoadBalancerConfiguration{
-					DisablePublicNetwork: true,
+					DisablePublicNetwork: hcloud.Ptr(true),
 				},
 			},
 			initialLB: &hcloud.LoadBalancer{

@@ -86,21 +86,20 @@ type InstanceConfiguration struct {
 }
 
 type LoadBalancerConfiguration struct {
-	AlgorithmType           hcloud.LoadBalancerAlgorithmType
-	DisablePublicNetwork    bool
-	Enabled                 bool
-	HealthCheckInterval     time.Duration
-	HealthCheckRetries      int
-	HealthCheckTimeout      time.Duration
-	IPv6Enabled             bool
-	Location                string
-	NetworkZone             string
-	PrivateIngressEnabled   bool
-	PrivateIPEnabled        bool
-	PrivateSubnetIPRange    string
-	ProxyProtocolEnabled    bool
-	ProxyProtocolEnabledSet bool
-	Type                    string
+	AlgorithmType         hcloud.LoadBalancerAlgorithmType
+	DisablePublicNetwork  *bool
+	Enabled               bool
+	HealthCheckInterval   time.Duration
+	HealthCheckRetries    int
+	HealthCheckTimeout    time.Duration
+	IPv6Enabled           bool
+	Location              string
+	NetworkZone           string
+	PrivateIngressEnabled bool
+	PrivateIPEnabled      bool
+	PrivateSubnetIPRange  string
+	ProxyProtocolEnabled  *bool
+	Type                  string
 }
 
 type NetworkConfiguration struct {
@@ -207,13 +206,9 @@ func Read() (HCCMConfiguration, error) {
 		errs = append(errs, err)
 	}
 
-	cfg.LoadBalancer.ProxyProtocolEnabled, err = getEnvBool(hcloudLoadBalancersUsesProxyProtocol, false)
+	cfg.LoadBalancer.ProxyProtocolEnabled, err = getEnvBoolPtr(hcloudLoadBalancersUsesProxyProtocol)
 	if err != nil {
 		errs = append(errs, err)
-	}
-	// Workaround to keep bug https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/876
-	if _, exists := os.LookupEnv(hcloudLoadBalancersUsesProxyProtocol); exists {
-		cfg.LoadBalancer.ProxyProtocolEnabledSet = true
 	}
 
 	disableIPv6, err := getEnvBool(hcloudLoadBalancersDisableIPv6, false)
@@ -262,7 +257,7 @@ func Read() (HCCMConfiguration, error) {
 		}
 	}
 
-	cfg.LoadBalancer.DisablePublicNetwork, err = getEnvBool(hcloudLoadBalancersDisablePublicNetwork, false)
+	cfg.LoadBalancer.DisablePublicNetwork, err = getEnvBoolPtr(hcloudLoadBalancersDisablePublicNetwork)
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -345,6 +340,22 @@ func getEnvBool(key string, defaultValue bool) (bool, error) {
 	}
 
 	return b, nil
+}
+
+// getEnvBoolPtr returns a pointer to the boolean parsed from the environment variable with the given key.
+// Returns nil if the env var is unset.
+func getEnvBoolPtr(key string) (*bool, error) {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return nil, nil
+	}
+
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %w", key, err)
+	}
+
+	return &b, nil
 }
 
 // getEnvDuration returns the duration parsed from the environment variable with the given key and a potential error
