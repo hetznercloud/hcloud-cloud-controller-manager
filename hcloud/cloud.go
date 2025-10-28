@@ -19,8 +19,10 @@ package hcloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +41,8 @@ import (
 )
 
 const (
-	providerName = "hcloud"
+	providerName     = "hcloud"
+	apiClientTimeout = 15 * time.Second
 )
 
 // providerVersion is set by the build process using -ldflags -X.
@@ -70,6 +73,11 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(cfg.HCloudClient.Token),
 		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
+		hcloud.WithHTTPClient(
+			&http.Client{
+				Timeout: apiClientTimeout,
+			},
+		),
 	}
 
 	// start metrics server if enabled (enabled by default)
@@ -89,7 +97,13 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 
 	var robotClient robot.Client
 	if cfg.Robot.Enabled {
-		c := hrobot.NewBasicAuthClient(cfg.Robot.User, cfg.Robot.Password)
+		c := hrobot.NewBasicAuthClientWithCustomHttpClient(
+			cfg.Robot.User,
+			cfg.Robot.Password,
+			&http.Client{
+				Timeout: apiClientTimeout,
+			},
+		)
 
 		robotClient = robot.NewRateLimitedClient(
 			cfg.Robot.RateLimitWaitTime,
@@ -120,7 +134,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	}
 
 	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
-	_, _, err = client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	_, _, err = client.Location.List(context.Background(), hcloud.LocationListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

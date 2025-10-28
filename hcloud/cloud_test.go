@@ -91,12 +91,8 @@ func TestNewCloud(t *testing.T) {
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(
-			schema.ServerListResponse{
-				Servers: []schema.Server{},
-			},
-		)
+	env.Mux.HandleFunc("/locations", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.LocationListResponse{Locations: []schema.Location{}})
 	})
 
 	_, err := NewCloud(DefaultClusterCIDR)
@@ -113,7 +109,7 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 
 	_, err := NewCloud(DefaultClusterCIDR)
 	assert.EqualError(t, err,
-		`hcloud/newCloud: Get "http://127.0.0.1:4711/v1/servers?": dial tcp 127.0.0.1:4711: connect: connection refused`)
+		`hcloud/newCloud: Get "http://127.0.0.1:4711/v1/locations?": dial tcp 127.0.0.1:4711: connect: connection refused`)
 }
 
 func TestNewCloudInvalidToken(t *testing.T) {
@@ -126,7 +122,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 		"HCLOUD_METRICS_ENABLED", "false",
 	)
 	defer resetEnv()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
+	env.Mux.HandleFunc("/locations", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(
@@ -155,34 +151,8 @@ func TestCloud(t *testing.T) {
 		"ROBOT_PASSWORD", "pass123",
 	)
 	defer resetEnv()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(
-			schema.ServerListResponse{
-				Servers: []schema.Server{
-					{
-						ID:              1,
-						Name:            "test",
-						Status:          "running",
-						Created:         time.Time{},
-						PublicNet:       schema.ServerPublicNet{},
-						PrivateNet:      nil,
-						ServerType:      schema.ServerType{},
-						IncludedTraffic: 0,
-						OutgoingTraffic: nil,
-						IngoingTraffic:  nil,
-						BackupWindow:    nil,
-						RescueEnabled:   false,
-						ISO:             nil,
-						Locked:          false,
-						Datacenter:      schema.Datacenter{},
-						Image:           nil,
-						Protection:      schema.ServerProtection{},
-						Labels:          nil,
-						Volumes:         nil,
-					},
-				},
-			},
-		)
+	env.Mux.HandleFunc("/locations", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.LocationListResponse{Locations: []schema.Location{}})
 	})
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(
