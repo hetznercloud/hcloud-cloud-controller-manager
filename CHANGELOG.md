@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.28.0-rc.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.28.0-rc.1)
+
+### Updated ClusterRole for HCCM
+
+We have introduced a custom `ClusterRole` for the HCCM component, based on the [upstream recommendation from sig-cloud-provider](https://kubernetes.io/docs/concepts/architecture/cloud-controller/#authorization-miscellaneous).
+
+Due to this change, users who deploy HCCM using the provided Kubernetes manifests must manually remove the old ClusterRoleBinding after applying the updated manifests. Users deploying via the Helm chart do not need to perform any migration steps.
+
+```bash
+kubectl delete clusterrolebindings.rbac.authorization.k8s.io system:hcloud-cloud-controller-manager
+```
+
 ## [v1.28.0-rc.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.28.0-rc.0)
 
 ### Updated ClusterRole for HCCM
