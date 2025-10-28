@@ -134,7 +134,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	}
 
 	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
-	_, _, err = client.Server.List(context.Background(), hcloud.ServerListOpts{})
+	_, _, err = client.Location.List(context.Background(), hcloud.LocationListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
