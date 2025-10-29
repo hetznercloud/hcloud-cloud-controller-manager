@@ -116,7 +116,7 @@ spec:
         app.kubernetes.io/name: 'hcloud-cloud-controller-manager'
     spec:
       serviceAccountName: hcloud-cloud-controller-manager
-      dnsPolicy: Default
+      dnsPolicy: ClusterFirst
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
         - key: "node.cloudprovider.kubernetes.io/uninitialized"

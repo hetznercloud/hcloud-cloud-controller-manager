@@ -167,7 +167,7 @@ extraVolumes: []
 
 # Set the dns policy for the deployment.
 # See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
-dnsPolicy: Default
+dnsPolicy: ClusterFirst
 # Set the dns config for the deployment.
 # See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
 dnsConfig: {}
