@@ -25,7 +25,7 @@ build:
 
 test:lint:
   stage: test
-  image: golangci/golangci-lint:v2.5
+  image: golangci/golangci-lint:v2.6
   variables:
     GOLANGCI_LINT_CACHE: $CI_PROJECT_DIR/.cache/golangci-lint
   cache:
