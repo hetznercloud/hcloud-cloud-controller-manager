@@ -428,6 +428,43 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			lb: &hcloud.LoadBalancer{ID: 4},
 		},
 		{
+			name: "create with load balancer type default",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					Location: "nbg1",
+					Type:     "lb21",
+				},
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "lb-default-type",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
+				Location:         &hcloud.Location{Name: "nbg1"},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "lb-default-type-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 7},
+		},
+		{
+			name: "create disables public interface via default",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					Location:             "nbg1",
+					DisablePublicNetwork: hcloud.Ptr(true),
+				},
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "lb-disable-public",
+				LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
+				Location:         &hcloud.Location{Name: "nbg1"},
+				PublicInterface:  hcloud.Ptr(false),
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "lb-disable-public-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 8},
+		},
+		{
 			name: "fail on invalid Load Balancer algorithm type",
 			serviceAnnotations: map[annotation.Name]string{
 				annotation.LBLocation:      "nbg1",
@@ -591,6 +628,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				Algorithm: hcloud.LoadBalancerAlgorithm{
 					Type: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerChangeAlgorithmOpts{Type: hcloud.LoadBalancerAlgorithmTypeLeastConnections}
@@ -617,6 +657,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				Algorithm: hcloud.LoadBalancerAlgorithm{
 					Type: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -635,6 +678,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				Algorithm: hcloud.LoadBalancerAlgorithm{
 					Type: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
@@ -651,6 +697,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				ID: 1,
 				LoadBalancerType: &hcloud.LoadBalancerType{
 					Name: "lb11",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
 				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
@@ -671,6 +720,39 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
+			name: "update type from config default",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					Type: "lb21",
+				},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 11,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					Name: "lb11",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				opts := hcloud.LoadBalancerChangeTypeOpts{
+					LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb21"},
+				}
+
+				action := &hcloud.Action{ID: 5811}
+				tt.fx.LBClient.
+					On("ChangeType", tt.fx.Ctx, tt.initialLB, opts).
+					Return(action, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
 			name: "don't update unchanged type",
 			serviceAnnotations: map[annotation.Name]string{
 				annotation.LBType: "lb21",
@@ -679,6 +761,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				ID: 1,
 				LoadBalancerType: &hcloud.LoadBalancerType{
 					Name: "lb21",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
@@ -790,6 +875,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 						Network: &hcloud.Network{ID: 14, Name: "some-network"},
 					},
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerDetachFromNetworkOpts{
@@ -814,6 +902,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 						Network: &hcloud.Network{ID: 14, Name: "some-network"},
 						IP:      net.ParseIP("10.10.10.3"),
 					},
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
 				},
 			},
 			serviceAnnotations: map[annotation.Name]string{
@@ -856,6 +947,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 						Network: &hcloud.Network{ID: 15, Name: "some-network"},
 					},
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = tt.initialLB.PrivateNet[0].Network.ID
@@ -867,8 +961,13 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
-			name:      "attach Load Balancer to network",
-			initialLB: &hcloud.LoadBalancer{ID: 4},
+			name: "attach Load Balancer to network",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
 				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
@@ -887,8 +986,13 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
-			name:      "attach Load Balancer to network with specific IP",
-			initialLB: &hcloud.LoadBalancer{ID: 4},
+			name: "attach Load Balancer to network with specific IP",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
 			serviceAnnotations: map[annotation.Name]string{
 				annotation.LBPrivateIPv4: "10.10.10.2",
 			},
@@ -910,8 +1014,13 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
-			name:      "re-try attach to network on conflict",
-			initialLB: &hcloud.LoadBalancer{ID: 5},
+			name: "re-try attach to network on conflict",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 5,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
 				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
@@ -939,8 +1048,13 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
-			name:      "re-try attach to network on locked error",
-			initialLB: &hcloud.LoadBalancer{ID: 5},
+			name: "re-try attach to network on locked error",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 5,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
 				tt.fx.NetworkClient.On("GetByID", tt.fx.Ctx, nw.ID).Return(nw, nil, nil)
@@ -976,6 +1090,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 						Network: &hcloud.Network{ID: 16, Name: "some-network"},
 					},
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				tt.fx.LBOps.NetworkID = tt.initialLB.PrivateNet[0].Network.ID
@@ -993,6 +1110,32 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 6,
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				action := &hcloud.Action{ID: rand.Int63()}
+				tt.fx.LBClient.
+					On("DisablePublicInterface", tt.fx.Ctx, tt.initialLB).
+					Return(action, nil, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "disable enabled public network from config default",
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					DisablePublicNetwork: hcloud.Ptr(true),
+				},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 16,
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					Enabled: true,
 				},
@@ -1076,6 +1219,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				Labels: map[string]string{
 					"some-label": "some-value",
 				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				updated := *tt.initialLB
@@ -1112,6 +1258,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				Name: "old-name",
 				Labels: map[string]string{
 					hcops.LabelServiceUID: "11",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
 				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
