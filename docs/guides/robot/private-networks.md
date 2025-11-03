@@ -6,7 +6,7 @@ As a result, the annotation `load-balancer.hetzner.cloud/use-private-ip` can be 
 
 ## Prerequisite
 
-Enable Robot support as outlined in the [Robot setup guide](TODO). As mentioned there, for a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with `kubectl get nodes -o json | jq ".items.[].status.addresses"` if you have configured an InternalIP.
+Enable Robot support as outlined in the [Robot setup guide](./quickstart.md). As mentioned there, for a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with `kubectl get nodes -o json | jq ".items.[].status.addresses"` if you have configured an InternalIP.
 
 ## Configuration
 
