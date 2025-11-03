@@ -20,6 +20,9 @@ The format of the Provider ID changed from `hcloud://bm-$SERVER_NUMBER` to `hrob
 
 If you read from this value, you should amend your parsing for the new format.
 
+If you want the ccm to read and write the old `hcloud://bm-$SERVER_NUMBER` syntax, set this
+environment variable: `ROBOT_PROVIDER_ID_SYSELF_FORMAT=true`.
+
 ### Load Balancer Targets
 
 In previous versions and the Syself Fork, Robot Targets of the Load Balancer are left alone if Robot support is not enabled.

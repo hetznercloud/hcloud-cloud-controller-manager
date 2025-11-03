@@ -7,7 +7,9 @@ In the Hetzner ecosystem, the following provider ID formats are used:
 - **Hetzner Cloud Server**: `hcloud://<server-id>`
 - **Robot Server**: `hrobot://<robot-id>` (default)
 - **Legacy Syself Robot Server**: `hcloud://bm-<robot-id>`
-  - This format was previously used by the Syself Fork and can be enabled via the `ROBOT_PROVIDER_ID_SYSELF_FORMAT` environment variable.
+  - This format was previously used by the Syself Fork (for [Cluster-API Provider
+    Hetzner](https://github.com/syself/cluster-api-provider-hetzner/) and can be enabled via the
+    `ROBOT_PROVIDER_ID_SYSELF_FORMAT` environment variable.
 
 ## Configuration
 
