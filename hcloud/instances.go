@@ -377,8 +377,10 @@ func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfigu
 	var providerID string
 	if cfg.Robot.ProviderIDSyselfFormat {
 		providerID = providerid.FromRobotServerNumberSyself(s.ServerNumber)
+		klog.Infof("Took FromRobotServerNumberSyself ProvideID=%q", providerID) // TODO: Remove that before merging
 	} else {
 		providerID = providerid.FromRobotServerNumber(s.ServerNumber)
+		klog.Infof("Took FromRobotServerNumber (upstream) ProvideID=%q", providerID) // TODO: Remove that before merging
 	}
 
 	return &cloudprovider.InstanceMetadata{
