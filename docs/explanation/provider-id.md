@@ -5,9 +5,16 @@ The provider ID is a unique identifier of a machine assigned to a Kubernetes Nod
 In the Hetzner ecosystem, the following provider ID formats are used:
 
 - **Hetzner Cloud Server**: `hcloud://<server-id>`
-- **Robot Server**: `hrobot://<robot-id>`
+- **Robot Server**: `hrobot://<robot-id>` (default)
 - **Legacy Syself Robot Server**: `hcloud://bm-<robot-id>`
-  - This format is no longer used for new nodes but remains for backward compatibility.
+  - This format was previously used by the Syself Fork and can be enabled via the `ROBOT_PROVIDER_ID_SYSELF_FORMAT` environment variable.
+
+## Configuration
+
+For Robot (bare-metal) servers, you can choose between two ProviderID formats:
+
+- **Default format** (`hrobot://<robot-id>`): This is the current standard format used by default.
+- **Syself format** (`hcloud://bm-<robot-id>`): This format can be enabled by setting the environment variable `ROBOT_PROVIDER_ID_SYSELF_FORMAT=true`.
 
 You can have a look at your provider IDs with the following command:
 

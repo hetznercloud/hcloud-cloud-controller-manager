@@ -18,12 +18,13 @@ const (
 	hcloudNetwork  = "HCLOUD_NETWORK"
 	hcloudDebug    = "HCLOUD_DEBUG"
 
-	robotEnabled            = "ROBOT_ENABLED"
-	robotUser               = "ROBOT_USER"
-	robotPassword           = "ROBOT_PASSWORD"
-	robotCacheTimeout       = "ROBOT_CACHE_TIMEOUT"
-	robotRateLimitWaitTime  = "ROBOT_RATE_LIMIT_WAIT_TIME"
-	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
+	robotEnabled                = "ROBOT_ENABLED"
+	robotUser                   = "ROBOT_USER"
+	robotPassword               = "ROBOT_PASSWORD"
+	robotCacheTimeout           = "ROBOT_CACHE_TIMEOUT"
+	robotRateLimitWaitTime      = "ROBOT_RATE_LIMIT_WAIT_TIME"
+	robotForwardInternalIPs     = "ROBOT_FORWARD_INTERNAL_IPS"
+	robotProviderIDSyselfFormat = "ROBOT_PROVIDER_ID_SYSELF_FORMAT"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 
@@ -56,6 +57,9 @@ type RobotConfiguration struct {
 	RateLimitWaitTime time.Duration
 	// ForwardInternalIPs is enabled by default.
 	ForwardInternalIPs bool
+	// ProviderIDSyselfFormat determines whether to use the Syself 'hcloud://bm-' format
+	// for Robot server ProviderIDs instead of the current 'hrobot://' format.
+	ProviderIDSyselfFormat bool
 }
 
 type MetricsConfiguration struct {
@@ -152,6 +156,10 @@ func Read() (HCCMConfiguration, error) {
 	}
 	// Robot needs to be enabled
 	cfg.Robot.ForwardInternalIPs = cfg.Robot.ForwardInternalIPs && cfg.Robot.Enabled
+	cfg.Robot.ProviderIDSyselfFormat, err = getEnvBool(robotProviderIDSyselfFormat, false)
+	if err != nil {
+		errs = append(errs, err)
+	}
 
 	cfg.Metrics.Enabled, err = getEnvBool(hcloudMetricsEnabled, true)
 	if err != nil {

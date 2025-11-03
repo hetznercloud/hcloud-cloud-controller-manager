@@ -56,6 +56,33 @@ func TestFromRobotServerNumber(t *testing.T) {
 	}
 }
 
+func TestFromRobotServerNumberSyself(t *testing.T) {
+	tests := []struct {
+		name         string
+		serverNumber int
+		want         string
+	}{
+		{
+			name:         "simple id",
+			serverNumber: 4321,
+			want:         "hcloud://bm-4321",
+		},
+		{
+			name:         "large id",
+			serverNumber: 987654,
+			want:         "hcloud://bm-987654",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FromRobotServerNumberSyself(tt.serverNumber); got != tt.want {
+				t.Errorf("FromRobotServerNumberSyself() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestToServerID(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -191,6 +218,24 @@ func FuzzRoundTripRobot(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, serverNumber int) {
 		providerID := FromRobotServerNumber(serverNumber)
+		id, isCloudServer, err := ToServerID(providerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if int(id) != serverNumber {
+			t.Fatalf("expected %d, got %d", serverNumber, id)
+		}
+		if isCloudServer {
+			t.Fatalf("expected %t, got %t", false, isCloudServer)
+		}
+	})
+}
+
+func FuzzRoundTripRobotSyself(f *testing.F) {
+	f.Add(123123123)
+
+	f.Fuzz(func(t *testing.T, serverNumber int) {
+		providerID := FromRobotServerNumberSyself(serverNumber)
 		id, isCloudServer, err := ToServerID(providerID)
 		if err != nil {
 			t.Fatal(err)

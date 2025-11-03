@@ -79,7 +79,6 @@ func (i *instances) lookupServer(
 	if node.Spec.ProviderID != "" {
 		var serverID int64
 		serverID, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
-
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert provider id to server id: %w", err)
 		}
@@ -374,8 +373,16 @@ func (s robotServer) IsShutdown() (bool, error) {
 }
 
 func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+	// Choose the ProviderID format based on configuration
+	var providerID string
+	if cfg.Robot.ProviderIDSyselfFormat {
+		providerID = providerid.FromRobotServerNumberSyself(s.ServerNumber)
+	} else {
+		providerID = providerid.FromRobotServerNumber(s.ServerNumber)
+	}
+
 	return &cloudprovider.InstanceMetadata{
-		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
+		ProviderID:    providerID,
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
 		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recorder),
 		Zone:          getZoneOfRobotServer(s.Server),

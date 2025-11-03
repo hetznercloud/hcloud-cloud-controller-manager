@@ -81,3 +81,10 @@ func FromCloudServerID(serverID int64) string {
 func FromRobotServerNumber(serverNumber int) string {
 	return fmt.Sprintf("%s%d", prefixRobot, serverNumber)
 }
+
+// FromRobotServerNumberSyself generates the Syself ProviderID format (hcloud://bm-) for a Robot Server.
+// This format was used by the Syself Fork and can be enabled via the ROBOT_PROVIDER_ID_SYSELF_FORMAT
+// configuration option for backwards compatibility or specific use cases.
+func FromRobotServerNumberSyself(serverNumber int) string {
+	return fmt.Sprintf("%s%d", prefixRobotLegacy, serverNumber)
+}
