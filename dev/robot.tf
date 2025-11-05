@@ -46,7 +46,7 @@ module "registry_robot" {
   count      = var.robot_enabled ? 1 : 0
   depends_on = [null_resource.reset_robot]
 
-  source = "github.com/hetznercloud/kubernetes-dev-env//k3s_registry?ref=v0.9.3"
+  source = "github.com/hetznercloud/kubernetes-dev-env//k3s_registry?ref=v0.9.4"
 
   server = { id = "0", ipv4_address = local.robot_ipv4 }
 }
