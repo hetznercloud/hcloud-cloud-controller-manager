@@ -21,3 +21,8 @@
 .idea/
 *.tmproj
 .vscode/
+
+# Generated example snapshots
+.snapshots/
+
+.helmignore
