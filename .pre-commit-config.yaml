@@ -26,6 +26,26 @@ repos:
 
   - repo: local
     hooks:
+      - id: helm-snapshots
+        name: update-helm-snapshots
+        description: Update Helm snapshots
+        language: system
+        entry: make -C chart snapshots
+        pass_filenames: false
+        always_run: true
+
+  - repo: local
+    hooks:
+      - id: helm-templates
+        name: update-helm-templates
+        description: Update Helm templates
+        language: system
+        entry: make -C chart templates
+        pass_filenames: false
+        always_run: true
+
+  - repo: local
+    hooks:
       - id: prettier
         name: prettier
         entry: prettier --write --ignore-unknown
