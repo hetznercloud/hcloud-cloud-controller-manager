@@ -30,7 +30,7 @@ repos:
         name: update-helm-snapshots
         description: Update Helm snapshots
         language: system
-        entry: make -C chart check-snapshots-diff
+        entry: make -C chart snapshots
         pass_filenames: false
         always_run: true
 
@@ -40,7 +40,7 @@ repos:
         name: update-helm-templates
         description: Update Helm templates
         language: system
-        entry: make -C chart check-templates-diff
+        entry: make -C chart templates
         pass_filenames: false
         always_run: true
 

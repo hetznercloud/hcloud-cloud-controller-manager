@@ -19,11 +19,8 @@ full-snapshot: .snapshots/full.daemonset.yaml
 
 snapshots: default-snapshot full-snapshot
 
-check-snapshots-diff: snapshots
-	git diff --exit-code -- .snapshots/ || echo "WARNING: git diff found in chart/.snapshots/; run make -C chart snapshots"
-
 # ----- Templates -----
-#
+
 SELECTOR_OVERRIDES = \
 	--set selectorLabels."app\.kubernetes\.io/name"=null \
 	--set selectorLabels."app\.kubernetes\.io/instance"=null \
@@ -43,9 +40,6 @@ networking-template: ../deploy/ccm-networks.yaml
 		> ../deploy/ccm-networks.yaml
 
 templates: default-template networking-template
-
-check-templates-diff: templates
-	git diff --exit-code -- ../deploy/ || echo "WARNING: git diff found in deploy/; run make -C chart templates"
 
 # ----- Lint -----
 
