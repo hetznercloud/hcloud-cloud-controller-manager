@@ -17,10 +17,10 @@ full-snapshot: .snapshots/full.daemonset.yaml
 		| grep -v helm.sh/chart \
 		> .snapshots/full.daemonset.yaml
 
-snapshots-diff: default-snapshot full-snapshot
-	git diff --exit-code -- .snapshots/ || echo "WARNING: git diff found in chart/.snapshots/; run make -C chart snapshots"
+snapshots: default-snapshot full-snapshot
 
-snapshots: snapshots-diff
+check-snapshots-diff: snapshots
+	git diff --exit-code -- .snapshots/ || echo "WARNING: git diff found in chart/.snapshots/; run make -C chart snapshots"
 
 # ----- Templates -----
 #
@@ -42,10 +42,10 @@ networking-template: ../deploy/ccm-networks.yaml
 		--set networking.enabled=true \
 		> ../deploy/ccm-networks.yaml
 
-templates-diff: default-template networking-template
-	git diff --exit-code -- ../deploy/ || echo "WARNING: git diff found in deploy/; run make -C chart templates"
+templates: default-template networking-template
 
-templates: templates-diff
+check-templates-diff: templates
+	git diff --exit-code -- ../deploy/ || echo "WARNING: git diff found in deploy/; run make -C chart templates"
 
 # ----- Lint -----
 
