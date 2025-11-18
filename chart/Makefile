@@ -2,7 +2,7 @@ RELEASE_NAMESPACE=--namespace kube-system
 VALUES = $(wildcard *-values.yaml)
 SNAPSHOTS = $(VALUES:%-values.yaml=.snapshots/%.yaml)
 
-all: lint snapshots templates
+all: lint snapshots deploy-manifests
 
 # ----- Snapshots -----
 
@@ -11,7 +11,7 @@ snapshots-clean:
 	rm -f .snapshots/*
 
 .snapshots/default.yaml:
-	helm template hcloud-hccm . $(RELEASE_NAMESPACE) > .snapshots/default.yaml
+	helm template hcloud-hccm . $(RELEASE_NAMESPACE) > "$@"
 
 .snapshots/%.yaml: %-values.yaml
 	helm template hcloud-hccm . $(RELEASE_NAMESPACE) -f "$<" > "$@"
