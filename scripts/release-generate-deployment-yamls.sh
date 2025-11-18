@@ -14,7 +14,7 @@ fi
 # Update version
 sed -e "s/version: .*/version: $VERSION/" --in-place chart/Chart.yaml
 
-make -C chart templates
+make -C chart deploy-manifests
 
 # Package the chart for publishing
 helm package chart

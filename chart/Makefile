@@ -1,45 +1,50 @@
 RELEASE_NAMESPACE=--namespace kube-system
+VALUES = $(wildcard *-values.yaml)
+SNAPSHOTS = $(VALUES:%-values.yaml=.snapshots/%.yaml)
 
 all: lint snapshots templates
 
 # ----- Snapshots -----
 
-default-snapshot: .snapshots/default.yaml
-	helm template hcloud-hccm . \
-		$(RELEASE_NAMESPACE) | \
-		grep -v helm.sh/chart \
-		> .snapshots/default.yaml
+.PHONY: snapshots-clean
+snapshots-clean:
+	rm -f .snapshots/*
 
-full-snapshot: .snapshots/full.daemonset.yaml
-	helm template hcloud-hccm . \
-		$(RELEASE_NAMESPACE) \
-		-f .snapshots/full.values.daemonset.yaml \
-		| grep -v helm.sh/chart \
-		> .snapshots/full.daemonset.yaml
+.snapshots/default.yaml:
+	helm template hcloud-hccm . $(RELEASE_NAMESPACE) > .snapshots/default.yaml
 
-snapshots: default-snapshot full-snapshot
+.snapshots/%.yaml: %-values.yaml
+	helm template hcloud-hccm . $(RELEASE_NAMESPACE) -f "$<" > "$@"
 
-# ----- Templates -----
+.PHONY: snapshots
+snapshots: snapshots-clean .snapshots/*
+
+# ----- Deploy Manifests -----
 
 SELECTOR_OVERRIDES = \
 	--set selectorLabels."app\.kubernetes\.io/name"=null \
 	--set selectorLabels."app\.kubernetes\.io/instance"=null \
 	--set selectorLabels."app"=hcloud-cloud-controller-manager
 
-default-template: ../deploy/ccm.yaml
+.PHONY: deploy-manifests-clean
+deploy-manifests-clean:
+	rm -f ../deploy/ccm.yaml ../deploy/ccm-networks.yaml
+
+../deploy/ccm.yaml:
 	helm template . \
 		$(RELEASE_NAMESPACE) \
 		$(SELECTOR_OVERRIDES) \
 		> ../deploy/ccm.yaml
 
-networking-template: ../deploy/ccm-networks.yaml
+../deploy/ccm-networks.yaml:
 	helm template . \
 		$(RELEASE_NAMESPACE) \
 		$(SELECTOR_OVERRIDES) \
 		--set networking.enabled=true \
 		> ../deploy/ccm-networks.yaml
 
-templates: default-template networking-template
+.PHONY: deploy-manifests
+deploy-manifests: deploy-manifests-clean ../deploy/*
 
 # ----- Lint -----
 
