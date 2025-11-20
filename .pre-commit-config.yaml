@@ -32,7 +32,7 @@ repos:
         language: system
         entry: make -C chart lint
         pass_filenames: false
-        always_run: true
+        files: ^chart/
 
   - repo: local
     hooks:
@@ -42,7 +42,7 @@ repos:
         language: system
         entry: make -C chart snapshots
         pass_filenames: false
-        always_run: true
+        files: ^chart/
 
   - repo: local
     hooks:
@@ -52,7 +52,7 @@ repos:
         language: system
         entry: make -C chart deploy-manifests
         pass_filenames: false
-        always_run: true
+        files: ^(chart/|deploy/)
 
   - repo: local
     hooks:
