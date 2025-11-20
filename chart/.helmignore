@@ -21,3 +21,9 @@
 .idea/
 *.tmproj
 .vscode/
+
+# Various artifacts in our charts dir
+.snapshots/
+.helmignore
+full.daemonset-values.yaml
+Makefile

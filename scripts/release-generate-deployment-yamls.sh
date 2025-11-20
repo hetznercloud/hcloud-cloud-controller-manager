@@ -2,8 +2,6 @@
 
 set -ueo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-
 : "${TEMPLATES_DIR:=./deploy}"
 
 VERSION="$1"
@@ -16,7 +14,7 @@ fi
 # Update version
 sed -e "s/version: .*/version: $VERSION/" --in-place chart/Chart.yaml
 
-"$SCRIPT_DIR"/update-deployment-yamls.sh
+make -C chart deploy-manifests
 
 # Package the chart for publishing
 helm package chart

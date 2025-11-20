@@ -26,6 +26,36 @@ repos:
 
   - repo: local
     hooks:
+      - id: helm-lint
+        name: helm-lint
+        description: Helm lint
+        language: system
+        entry: make -C chart lint
+        pass_filenames: false
+        files: ^chart/
+
+  - repo: local
+    hooks:
+      - id: helm-snapshots
+        name: update-helm-snapshots
+        description: Update Helm snapshots
+        language: system
+        entry: make -C chart snapshots
+        pass_filenames: false
+        files: ^chart/
+
+  - repo: local
+    hooks:
+      - id: deploy-manifests
+        name: update-deploy-manifests
+        description: Update deploy manifests
+        language: system
+        entry: make -C chart deploy-manifests
+        pass_filenames: false
+        files: ^(chart/|deploy/)
+
+  - repo: local
+    hooks:
       - id: prettier
         name: prettier
         entry: prettier --write --ignore-unknown
