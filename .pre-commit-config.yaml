@@ -26,6 +26,16 @@ repos:
 
   - repo: local
     hooks:
+      - id: helm-lint
+        name: helm-lint
+        description: Helm lint
+        language: system
+        entry: make -C chart lint
+        pass_filenames: false
+        always_run: true
+
+  - repo: local
+    hooks:
       - id: helm-snapshots
         name: update-helm-snapshots
         description: Update Helm snapshots
