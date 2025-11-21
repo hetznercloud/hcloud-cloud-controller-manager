@@ -9,7 +9,7 @@ on:
 jobs:
   helm:
     runs-on: ubuntu-latest
-    name: helm-${{ matrix.helm }}
+    name: Helm Validation ${{ matrix.helm }}
     strategy:
       matrix:
         helm:
@@ -32,7 +32,7 @@ jobs:
       - uses: pre-commit/action@v3.0.1
 
       # Run with pre-commit to get diff check
-      - name: pre-commit
+      - name: helm-validation
         run: |
           pre-commit run helm-lint --all
           pre-commit run helm-snapshots --all
