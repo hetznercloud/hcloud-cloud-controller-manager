@@ -7,8 +7,35 @@ on:
   pull_request:
 
 jobs:
+  helm:
+    runs-on: ubuntu-latest
+    name: helm-${{ matrix.helm }}
+    strategy:
+      matrix:
+        helm:
+          - v3.19.2 # renovate: datasource=github-releases depName=helm/helm versioning=same-major
+          - v4.0.0 # renovate: datasource=github-releases depName=helm/helm versioning=same-major
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+
+      - uses: yokawasa/action-setup-kube-tools@v0.13.1
+        with:
+          setup-tools: |
+            helm
+          helm: ${{ matrix.helm }}
+
+      - run: make -C chart all
+
   pre-commit:
     runs-on: ubuntu-latest
+    env:
+      # Helm lints are executed in a separate action with a version matrix
+      SKIP: "helm-lint,helm-snapshots,deploy-manifests"
     steps:
       - uses: actions/checkout@v6
 
