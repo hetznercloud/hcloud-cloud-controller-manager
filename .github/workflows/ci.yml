@@ -29,7 +29,14 @@ jobs:
             helm
           helm: ${{ matrix.helm }}
 
-      - run: make -C chart all
+      - uses: pre-commit/action@v3.0.1
+
+      # Run with pre-commit to get diff check
+      - name: pre-commit
+        run: |
+          pre-commit run helm-lint --all
+          pre-commit run helm-snapshots --all
+          pre-commit run deploy-manifests --all
 
   pre-commit:
     runs-on: ubuntu-latest
