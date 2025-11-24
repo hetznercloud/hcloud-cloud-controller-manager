@@ -6,7 +6,7 @@ on:
     branches: [main]
 jobs:
   unit:
-    name: Unit
+    name: unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
