@@ -1,5 +1,5 @@
 ---
-name: CI
+name: Lint
 
 on:
   push:
@@ -60,22 +60,3 @@ jobs:
             pre-commit-golangci-lint|
 
       - uses: pre-commit/action@v3.0.1
-
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-
-      - run: go test -v -race -coverprofile=coverage.txt ./...
-
-      - uses: codecov/codecov-action@v5
-        if: >
-          !startsWith(github.head_ref, 'renovate/') &&
-          !startsWith(github.head_ref, 'releaser-pleaser--')
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unit

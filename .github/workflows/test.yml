@@ -1,11 +1,31 @@
-name: e2e tests
+---
+name: Tests
 on:
   pull_request: {}
   push:
     branches: [main]
 jobs:
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - run: go test -v -race -coverprofile=coverage.txt ./...
+
+      - uses: codecov/codecov-action@v5
+        if: >
+          !startsWith(github.head_ref, 'renovate/') &&
+          !startsWith(github.head_ref, 'releaser-pleaser--')
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unit
+
   cloud:
-    name: cloud ${{ matrix.k3s }}
+    name: e2e k8s-${{ matrix.k3s }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -134,6 +154,7 @@ jobs:
           path: debug-logs/
 
   robot:
+    name: e2e robot
     runs-on: ubuntu-latest
 
     permissions:
