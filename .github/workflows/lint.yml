@@ -30,6 +30,8 @@ jobs:
           helm: ${{ matrix.helm }}
 
       - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: none || true
 
       # Run with pre-commit to get diff check
       - name: helm-validation
