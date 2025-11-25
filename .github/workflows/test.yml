@@ -154,6 +154,7 @@ jobs:
           path: debug-logs/
 
   robot:
+    name: e2e robot
     runs-on: ubuntu-latest
 
     permissions:
