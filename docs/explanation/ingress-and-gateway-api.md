@@ -1,6 +1,6 @@
 # Ingress & Gateway API
 
-Ingress and the Gateway API rely on custom resource definitions (CRDs). These CRDs require controllers that observe changes and perform the necessary actions to move the system toward the desired state.
+Ingress and Gateway API resources rely on controllers that watch for changes and take the actions needed to bring the system to the desired state.
 
 A common example is the NGINX Ingress Controller, which watches for Ingress objects and configures an NGINX instance accordingly. To expose traffic to the outside world, the Ingress controller creates a Kubernetes Service of type `LoadBalancer`. At this point, the hcloud-cloud-controller-manager (HCCM) comes into play and provisions the corresponding Hetzner Cloud Load Balancer. This setup is referred to as an "Ingress-managed load balancer" (See: [What is an Ingress?](https://kubernetes.io/docs/concepts/services-networking/ingress/#what-is-ingress)).
 
