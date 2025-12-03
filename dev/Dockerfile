@@ -15,7 +15,7 @@ ARG GO_BUILDFLAGS
 ENV GOCACHE=/cache
 RUN --mount=type=cache,target="/cache" go build -gcflags="$SKAFFOLD_GO_GCFLAGS" $GO_BUILDFLAGS -o hcloud-cloud-controller-manager.bin github.com/hetznercloud/hcloud-cloud-controller-manager
 
-FROM alpine:3.22
+FROM alpine:3.23
 
 RUN apk add --no-cache \
     bash \
