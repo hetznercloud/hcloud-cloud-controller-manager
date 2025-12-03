@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -222,38 +223,23 @@ func Read() (HCCMConfiguration, error) {
 	}
 
 	if algorithmType, ok := os.LookupEnv(hcloudLoadBalancersAlgorithmType); ok {
-		alg, parseErr := parseLoadBalancerAlgorithmType(algorithmType)
-		if parseErr != nil {
-			errs = append(errs, fmt.Errorf("failed to parse %s: %w", hcloudLoadBalancersAlgorithmType, parseErr))
-		} else {
-			cfg.LoadBalancer.AlgorithmType = alg
-		}
+		cfg.LoadBalancer.AlgorithmType = hcloud.LoadBalancerAlgorithmType(algorithmType)
 	}
 
-	if interval, ok := os.LookupEnv(hcloudLoadBalancersHealthCheckInterval); ok {
-		d, parseErr := time.ParseDuration(interval)
-		if parseErr != nil {
-			errs = append(errs, fmt.Errorf("failed to parse %s: %w", hcloudLoadBalancersHealthCheckInterval, parseErr))
-		} else {
-			cfg.LoadBalancer.HealthCheckInterval = d
-		}
+	cfg.LoadBalancer.HealthCheckInterval, err = getEnvDuration(hcloudLoadBalancersHealthCheckInterval)
+	if err != nil {
+		errs = append(errs, err)
 	}
 
-	if timeout, ok := os.LookupEnv(hcloudLoadBalancersHealthCheckTimeout); ok {
-		d, parseErr := time.ParseDuration(timeout)
-		if parseErr != nil {
-			errs = append(errs, fmt.Errorf("failed to parse %s: %w", hcloudLoadBalancersHealthCheckTimeout, parseErr))
-		} else {
-			cfg.LoadBalancer.HealthCheckTimeout = d
-		}
+	cfg.LoadBalancer.HealthCheckTimeout, err = getEnvDuration(hcloudLoadBalancersHealthCheckTimeout)
+	if err != nil {
+		errs = append(errs, err)
 	}
 
-	if retries, ok := os.LookupEnv(hcloudLoadBalancersHealthCheckRetries); ok {
-		v, parseErr := strconv.Atoi(retries)
-		if parseErr != nil {
-			errs = append(errs, fmt.Errorf("failed to parse %s: %w", hcloudLoadBalancersHealthCheckRetries, parseErr))
-		} else {
-			cfg.LoadBalancer.HealthCheckRetries = v
+	if retries := os.Getenv(hcloudLoadBalancersHealthCheckRetries); retries != "" {
+		cfg.LoadBalancer.HealthCheckRetries, err = strconv.Atoi(retries)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to parse %s: %w", hcloudLoadBalancersHealthCheckRetries, err))
 		}
 	}
 
@@ -262,9 +248,7 @@ func Read() (HCCMConfiguration, error) {
 		errs = append(errs, err)
 	}
 
-	if lbType, ok := os.LookupEnv(hcloudLoadBalancersType); ok {
-		cfg.LoadBalancer.Type = lbType
-	}
+	cfg.LoadBalancer.Type = os.Getenv(hcloudLoadBalancersType)
 
 	cfg.Network.NameOrID = os.Getenv(hcloudNetwork)
 	disableAttachedCheck, err := getEnvBool(hcloudNetworkDisableAttachedCheck, false)
@@ -305,6 +289,18 @@ func (c HCCMConfiguration) Validate() (err error) {
 
 	if c.LoadBalancer.Location != "" && c.LoadBalancer.NetworkZone != "" {
 		errs = append(errs, fmt.Errorf("invalid value for %q/%q, only one of them can be set", hcloudLoadBalancersLocation, hcloudLoadBalancersNetworkZone))
+	}
+
+	if c.LoadBalancer.PrivateSubnetIPRange != "" {
+		if _, _, err := net.ParseCIDR(c.LoadBalancer.PrivateSubnetIPRange); err != nil {
+			errs = append(errs, fmt.Errorf("invalid value for %q: must be a valid CIDR: %v", hcloudLoadBalancersPrivateSubnetIPRange, err))
+		}
+	}
+
+	if c.LoadBalancer.AlgorithmType != "" {
+		if _, err := parseLoadBalancerAlgorithmType(string(c.LoadBalancer.AlgorithmType)); err != nil {
+			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudLoadBalancersAlgorithmType, err))
+		}
 	}
 
 	if c.Robot.Enabled {

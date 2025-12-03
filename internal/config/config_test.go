@@ -462,6 +462,28 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_LOCATION\"/\"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE\", only one of them can be set"),
 		},
 		{
+			name: "LB private subnet invalid cidr",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{
+					PrivateSubnetIPRange: "10.0.0.0/33",
+				},
+			},
+			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE\": must be a valid CIDR: invalid CIDR address: 10.0.0.0/33"),
+		},
+		{
+			name: "algorithm type invalid",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{
+					AlgorithmType: "invalid",
+				},
+			},
+			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE\": unsupported value \"invalid\""),
+		},
+		{
 			name: "robot enabled but missing credentials",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},

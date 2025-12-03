@@ -1087,10 +1087,7 @@ func (b *hclbServiceOptsBuilder) extract() {
 			b.proxyProtocol = hcloud.Ptr(pp)
 			return nil
 		} else if errors.Is(err, annotation.ErrNotSet) {
-			// Workaround to keep bug https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/876
-			if b.cfg.ProxyProtocolEnabled != nil {
-				b.proxyProtocol = hcloud.Ptr(*b.cfg.ProxyProtocolEnabled)
-			}
+			b.proxyProtocol = b.cfg.ProxyProtocolEnabled
 			return nil
 		} else {
 			return fmt.Errorf("%s: %w", op, err)
@@ -1262,12 +1259,12 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 	b.do(func() error {
 		hcInterval, err := annotation.LBSvcHealthCheckInterval.DurationFromService(b.Service)
 		if err == nil {
-			b.healthCheckOpts.Interval = hcloud.Ptr(hcInterval)
+			b.healthCheckOpts.Interval = &hcInterval
 			b.addHealthCheck = true
 			return nil
 		} else if errors.Is(err, annotation.ErrNotSet) {
 			if b.cfg.HealthCheckInterval != 0 {
-				b.healthCheckOpts.Interval = hcloud.Ptr(b.cfg.HealthCheckInterval)
+				b.healthCheckOpts.Interval = &b.cfg.HealthCheckInterval
 				b.addHealthCheck = true
 			}
 			return nil
@@ -1279,12 +1276,12 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 	b.do(func() error {
 		t, err := annotation.LBSvcHealthCheckTimeout.DurationFromService(b.Service)
 		if err == nil {
-			b.healthCheckOpts.Timeout = hcloud.Ptr(t)
+			b.healthCheckOpts.Timeout = &t
 			b.addHealthCheck = true
 			return nil
 		} else if errors.Is(err, annotation.ErrNotSet) {
 			if b.cfg.HealthCheckTimeout != 0 {
-				b.healthCheckOpts.Timeout = hcloud.Ptr(b.cfg.HealthCheckTimeout)
+				b.healthCheckOpts.Timeout = &b.cfg.HealthCheckTimeout
 				b.addHealthCheck = true
 			}
 			return nil
@@ -1296,12 +1293,12 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 	b.do(func() error {
 		v, err := annotation.LBSvcHealthCheckRetries.IntFromService(b.Service)
 		if err == nil {
-			b.healthCheckOpts.Retries = hcloud.Ptr(v)
+			b.healthCheckOpts.Retries = &v
 			b.addHealthCheck = true
 			return nil
 		} else if errors.Is(err, annotation.ErrNotSet) {
 			if b.cfg.HealthCheckRetries != 0 {
-				b.healthCheckOpts.Retries = hcloud.Ptr(b.cfg.HealthCheckRetries)
+				b.healthCheckOpts.Retries = &b.cfg.HealthCheckRetries
 				b.addHealthCheck = true
 			}
 			return nil
