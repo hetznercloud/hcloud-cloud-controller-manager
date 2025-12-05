@@ -3,12 +3,15 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
 
@@ -31,12 +34,20 @@ const (
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudNetworkRoutesEnabled        = "HCLOUD_NETWORK_ROUTES_ENABLED"
 
+	hcloudLoadBalancersAlgorithmType         = "HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE"
+	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
+	hcloudLoadBalancersDisablePrivateIngress = "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS"
+	hcloudLoadBalancersDisablePublicNetwork  = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
 	hcloudLoadBalancersEnabled               = "HCLOUD_LOAD_BALANCERS_ENABLED"
+	hcloudLoadBalancersHealthCheckInterval   = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL"
+	hcloudLoadBalancersHealthCheckRetries    = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
+	hcloudLoadBalancersHealthCheckTimeout    = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
 	hcloudLoadBalancersLocation              = "HCLOUD_LOAD_BALANCERS_LOCATION"
 	hcloudLoadBalancersNetworkZone           = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
-	hcloudLoadBalancersDisablePrivateIngress = "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS"
+	hcloudLoadBalancersPrivateSubnetIPRange  = "HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE"
+	hcloudLoadBalancersType                  = "HCLOUD_LOAD_BALANCERS_TYPE"
 	hcloudLoadBalancersUsePrivateIP          = "HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP"
-	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
+	hcloudLoadBalancersUsesProxyProtocol     = "HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL"
 
 	hcloudMetricsEnabled = "HCLOUD_METRICS_ENABLED"
 	hcloudMetricsAddress = "HCLOUD_METRICS_ADDRESS"
@@ -76,12 +87,20 @@ type InstanceConfiguration struct {
 }
 
 type LoadBalancerConfiguration struct {
+	AlgorithmType         hcloud.LoadBalancerAlgorithmType
+	DisablePublicNetwork  *bool
 	Enabled               bool
+	HealthCheckInterval   time.Duration
+	HealthCheckRetries    int
+	HealthCheckTimeout    time.Duration
+	IPv6Enabled           bool
 	Location              string
 	NetworkZone           string
 	PrivateIngressEnabled bool
 	PrivateIPEnabled      bool
-	IPv6Enabled           bool
+	PrivateSubnetIPRange  string
+	ProxyProtocolEnabled  *bool
+	Type                  string
 }
 
 type NetworkConfiguration struct {
@@ -188,11 +207,48 @@ func Read() (HCCMConfiguration, error) {
 		errs = append(errs, err)
 	}
 
+	cfg.LoadBalancer.ProxyProtocolEnabled, err = getEnvBoolPtr(hcloudLoadBalancersUsesProxyProtocol)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
 	disableIPv6, err := getEnvBool(hcloudLoadBalancersDisableIPv6, false)
 	if err != nil {
 		errs = append(errs, err)
 	}
 	cfg.LoadBalancer.IPv6Enabled = !disableIPv6 // Invert the logic, as the env var is prefixed with DISABLE_.
+
+	if subnetRange, ok := os.LookupEnv(hcloudLoadBalancersPrivateSubnetIPRange); ok {
+		cfg.LoadBalancer.PrivateSubnetIPRange = subnetRange
+	}
+
+	if algorithmType, ok := os.LookupEnv(hcloudLoadBalancersAlgorithmType); ok {
+		cfg.LoadBalancer.AlgorithmType = hcloud.LoadBalancerAlgorithmType(algorithmType)
+	}
+
+	cfg.LoadBalancer.HealthCheckInterval, err = getEnvDuration(hcloudLoadBalancersHealthCheckInterval)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	cfg.LoadBalancer.HealthCheckTimeout, err = getEnvDuration(hcloudLoadBalancersHealthCheckTimeout)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	if retries := os.Getenv(hcloudLoadBalancersHealthCheckRetries); retries != "" {
+		cfg.LoadBalancer.HealthCheckRetries, err = strconv.Atoi(retries)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to parse %s: %w", hcloudLoadBalancersHealthCheckRetries, err))
+		}
+	}
+
+	cfg.LoadBalancer.DisablePublicNetwork, err = getEnvBoolPtr(hcloudLoadBalancersDisablePublicNetwork)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	cfg.LoadBalancer.Type = os.Getenv(hcloudLoadBalancersType)
 
 	cfg.Network.NameOrID = os.Getenv(hcloudNetwork)
 	disableAttachedCheck, err := getEnvBool(hcloudNetworkDisableAttachedCheck, false)
@@ -235,6 +291,18 @@ func (c HCCMConfiguration) Validate() (err error) {
 		errs = append(errs, fmt.Errorf("invalid value for %q/%q, only one of them can be set", hcloudLoadBalancersLocation, hcloudLoadBalancersNetworkZone))
 	}
 
+	if c.LoadBalancer.PrivateSubnetIPRange != "" {
+		if _, _, err := net.ParseCIDR(c.LoadBalancer.PrivateSubnetIPRange); err != nil {
+			errs = append(errs, fmt.Errorf("invalid value for %q: must be a valid CIDR: %w", hcloudLoadBalancersPrivateSubnetIPRange, err))
+		}
+	}
+
+	if c.LoadBalancer.AlgorithmType != "" {
+		if _, err := parseLoadBalancerAlgorithmType(string(c.LoadBalancer.AlgorithmType)); err != nil {
+			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudLoadBalancersAlgorithmType, err))
+		}
+	}
+
 	if c.Robot.Enabled {
 		if c.Robot.User == "" {
 			errs = append(errs, fmt.Errorf("environment variable %q is required if Robot support is enabled", robotUser))
@@ -270,6 +338,22 @@ func getEnvBool(key string, defaultValue bool) (bool, error) {
 	return b, nil
 }
 
+// getEnvBoolPtr returns a pointer to the boolean parsed from the environment variable with the given key.
+// Returns nil if the env var is unset.
+func getEnvBoolPtr(key string) (*bool, error) {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return nil, nil
+	}
+
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %w", key, err)
+	}
+
+	return &b, nil
+}
+
 // getEnvDuration returns the duration parsed from the environment variable with the given key and a potential error
 // parsing the var. Returns false if the env var is unset.
 func getEnvDuration(key string) (time.Duration, error) {
@@ -284,4 +368,13 @@ func getEnvDuration(key string) (time.Duration, error) {
 	}
 
 	return b, nil
+}
+
+func parseLoadBalancerAlgorithmType(value string) (hcloud.LoadBalancerAlgorithmType, error) {
+	v := strings.ToLower(strings.TrimSpace(value))
+	alg := hcloud.LoadBalancerAlgorithmType(v)
+	if alg == hcloud.LoadBalancerAlgorithmTypeRoundRobin || alg == hcloud.LoadBalancerAlgorithmTypeLeastConnections {
+		return alg, nil
+	}
+	return "", fmt.Errorf("unsupported value %q", value)
 }
