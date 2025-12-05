@@ -293,7 +293,7 @@ func (c HCCMConfiguration) Validate() (err error) {
 
 	if c.LoadBalancer.PrivateSubnetIPRange != "" {
 		if _, _, err := net.ParseCIDR(c.LoadBalancer.PrivateSubnetIPRange); err != nil {
-			errs = append(errs, fmt.Errorf("invalid value for %q: must be a valid CIDR: %v", hcloudLoadBalancersPrivateSubnetIPRange, err))
+			errs = append(errs, fmt.Errorf("invalid value for %q: must be a valid CIDR: %w", hcloudLoadBalancersPrivateSubnetIPRange, err))
 		}
 	}
 
