@@ -88,6 +88,9 @@ linters:
           - godot
         path: internal/annotation/load_balancer.go
       - linters:
+          - godot
+        path: internal/config/load_balancer_envs.go
+      - linters:
           - errcheck
           - gosec
         path: (_test\.go|testing\.go|testsupport|e2etests)
