@@ -115,11 +115,16 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 	return t, nil
 }
 
-func (t *Table) String() string {
+func (t *Table) String(hasReadOnlyColumn bool) string {
 	tableStr := strings.Builder{}
 
-	tableStr.WriteString("| Annotation | Type | Default | Read-only | Description |\n")
-	tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
+	if hasReadOnlyColumn {
+		tableStr.WriteString("| Annotation | Type | Default | Read-only | Description |\n")
+		tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
+	} else {
+		tableStr.WriteString("| Annotation | Type | Default | Description |\n")
+		tableStr.WriteString("| --- | --- | --- | --- |\n")
+	}
 
 	annotations := slices.Sorted(maps.Keys(t.table))
 
@@ -142,16 +147,28 @@ func (t *Table) String() string {
 			readOnlyVal = "Yes"
 		}
 
-		tableStr.WriteString(
-			fmt.Sprintf(
-				"| `%s` | `%s` | `%s` | `%s` | %s |\n",
-				annotation,
-				typeVal,
-				defaultVal,
-				readOnlyVal,
-				t.table[annotation].Description,
-			),
-		)
+		if hasReadOnlyColumn {
+			tableStr.WriteString(
+				fmt.Sprintf(
+					"| `%s` | `%s` | `%s` | `%s` | %s |\n",
+					annotation,
+					typeVal,
+					defaultVal,
+					readOnlyVal,
+					t.table[annotation].Description,
+				),
+			)
+		} else {
+			tableStr.WriteString(
+				fmt.Sprintf(
+					"| `%s` | `%s` | `%s` | %s |\n",
+					annotation,
+					typeVal,
+					defaultVal,
+					t.table[annotation].Description,
+				),
+			)
+		}
 	}
 
 	return tableStr.String()
@@ -211,7 +228,7 @@ func getValueFromLine(line, key string) string {
 	return ""
 }
 
-func run(templatePath string, annotationsPath string, outputPath string) error {
+func run(templatePath string, annotationsPath string, outputPath string, hasReadOnlyColumn bool) error {
 	// Read template file
 	tmplStr, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -236,7 +253,7 @@ func run(templatePath string, annotationsPath string, outputPath string) error {
 		return fmt.Errorf("error parsing template: %w", err)
 	}
 
-	tmplData := Template{AnnotationsTable: table.String()}
+	tmplData := Template{AnnotationsTable: table.String(hasReadOnlyColumn)}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, tmplData); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
@@ -265,7 +282,17 @@ func main() {
 	lbAnnotationsPath := "../internal/annotation/load_balancer.go"
 	lbOutputPath := "../docs/reference/load_balancer_annotations.md"
 
-	if err := run(lbTemplatePath, lbAnnotationsPath, lbOutputPath); err != nil {
+	// Generate Load Balancer env documentation
+	lbEnvTemplatePath := "./load_balancer_envs.md.tmpl"
+	lbEnvPath := "../internal/config/load_balancer_envs.go"
+	lbEnvOutputPath := "../docs/reference/load_balancer_envs.md"
+
+	if err := run(lbTemplatePath, lbAnnotationsPath, lbOutputPath, true); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := run(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, false); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
