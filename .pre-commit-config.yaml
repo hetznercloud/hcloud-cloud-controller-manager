@@ -64,7 +64,7 @@ repos:
         require_serial: false
         additional_dependencies: [prettier@3.7.4]
         files: \.(md|ya?ml)$
-        exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*|docs/reference/load_balancer_annotations\.md)$
+        exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*|docs/reference/load_balancer_.*\.md|)$
 
   - repo: local
     hooks:
