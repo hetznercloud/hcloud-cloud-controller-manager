@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 func TestRead(t *testing.T) {
@@ -123,6 +124,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
 				"HCLOUD_ENDPOINT", "https://api.example.com",
 				"HCLOUD_DEBUG", "true",
+				"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE", "10.1.0.0/24",
+				"HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL", "true",
+				"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE", "least_connections",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL", "30s",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT", "5s",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES", "5",
+				"HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK", "true",
+				"HCLOUD_LOAD_BALANCERS_TYPE", "lb21",
 			},
 			want: HCCMConfiguration{
 				HCloudClient: HCloudClientConfiguration{
@@ -140,6 +149,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					Enabled:               true,
 					PrivateIngressEnabled: true,
 					IPv6Enabled:           true,
+					PrivateSubnetIPRange:  "10.1.0.0/24",
+					ProxyProtocolEnabled:  hcloud.Ptr(true),
+					AlgorithmType:         hcloud.LoadBalancerAlgorithmTypeLeastConnections,
+					HealthCheckInterval:   30 * time.Second,
+					HealthCheckTimeout:    5 * time.Second,
+					HealthCheckRetries:    5,
+					DisablePublicNetwork:  hcloud.Ptr(true),
+					Type:                  "lb21",
 				},
 			},
 			wantErr: nil,
@@ -443,6 +460,28 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 				},
 			},
 			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_LOCATION\"/\"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE\", only one of them can be set"),
+		},
+		{
+			name: "LB private subnet invalid cidr",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{
+					PrivateSubnetIPRange: "10.0.0.0/33",
+				},
+			},
+			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE\": must be a valid CIDR: invalid CIDR address: 10.0.0.0/33"),
+		},
+		{
+			name: "algorithm type invalid",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				LoadBalancer: LoadBalancerConfiguration{
+					AlgorithmType: "invalid",
+				},
+			},
+			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE\": unsupported value \"invalid\""),
 		},
 		{
 			name: "robot enabled but missing credentials",
