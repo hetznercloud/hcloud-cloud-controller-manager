@@ -55,7 +55,7 @@ const (
 	hcloudLoadBalancersDisablePublicNetwork = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
 
 	// hcloudLoadBalancersHealthCheckInterval configures the default time interval in seconds
-	// health checks are performed.
+	// in which health checks are performed.
 	//
 	// Type: int
 	// Default: 10
@@ -68,26 +68,26 @@ const (
 	// Default: 3
 	hcloudLoadBalancersHealthCheckRetries = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
 
-	// hcloudLoadBalancersHealthCheckTimeout configures the defult time after an attempt is
+	// hcloudLoadBalancersHealthCheckTimeout configures the defult time in seconds after an attempt is
 	// considered a timeout.
 	//
 	// Type: int
 	// Default: 15
 	hcloudLoadBalancersHealthCheckTimeout = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
 
-	// hcloudLoadBalancersPrivateSubnetIPRange configures the IP range in CIDR block notation of
+	// hcloudLoadBalancersPrivateSubnetIPRange configures the default IP range in CIDR block notation of
 	// the subnet to attach to.
 	//
 	// Type: string
 	hcloudLoadBalancersPrivateSubnetIPRange = "HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE"
 
-	// hcloudLoadBalancersType configures the Load Balancer type this Load Balancer should be created with.
+	// hcloudLoadBalancersType configures the default Load Balancer type this Load Balancer should be created with.
 	//
 	// Type: string
 	// Default: lb11
 	hcloudLoadBalancersType = "HCLOUD_LOAD_BALANCERS_TYPE"
 
-	// hcloudLoadBalancersUsesProxyProtocol enables the proxyprotocol for a Load Balancer service.
+	// hcloudLoadBalancersUsesProxyProtocol enables the proxyprotocol for a Load Balancer service by default.
 	//
 	// Type: bool
 	// Default: false
