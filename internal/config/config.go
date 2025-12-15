@@ -34,15 +34,6 @@ const (
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudNetworkRoutesEnabled        = "HCLOUD_NETWORK_ROUTES_ENABLED"
 
-	hcloudLoadBalancersAlgorithmType        = "HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE"
-	hcloudLoadBalancersDisablePublicNetwork = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
-	hcloudLoadBalancersHealthCheckInterval  = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL"
-	hcloudLoadBalancersHealthCheckRetries   = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
-	hcloudLoadBalancersHealthCheckTimeout   = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
-	hcloudLoadBalancersPrivateSubnetIPRange = "HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE"
-	hcloudLoadBalancersType                 = "HCLOUD_LOAD_BALANCERS_TYPE"
-	hcloudLoadBalancersUsesProxyProtocol    = "HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL"
-
 	hcloudMetricsEnabled = "HCLOUD_METRICS_ENABLED"
 	hcloudMetricsAddress = "HCLOUD_METRICS_ADDRESS"
 )

@@ -41,4 +41,51 @@ const (
 	// Type: bool
 	// Default: false
 	hcloudLoadBalancersDisableIPv6 = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
+
+	// hcloudLoadBalancersAlgorithmType configures the Load Balancer algorithm.
+	//
+	// Type: round_robin | least_connections
+	// Default: round_robin
+	hcloudLoadBalancersAlgorithmType = "HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE"
+
+	// hcloudLoadBalancersDisablePublicNetwork disables the public interface of the Load Balancer.
+	//
+	// Type: bool
+	// Default: false
+	hcloudLoadBalancersDisablePublicNetwork = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
+
+	// hcloudLoadBalancersHealthCheckInterval configures the time interval in seconds health checks are performed.
+	//
+	// Type: duration
+	hcloudLoadBalancersHealthCheckInterval = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL"
+
+	// hcloudLoadBalancersHealthCheckRetries configures the amount of unsuccessful retries
+	// needed until a target is considered unhealthy.
+	//
+	// Type: int
+	hcloudLoadBalancersHealthCheckRetries = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
+
+	// hcloudLoadBalancersHealthCheckTimeout configures the time in seconds after an attempt is
+	// considered a timeout.
+	//
+	// Type: duration
+	hcloudLoadBalancersHealthCheckTimeout = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
+
+	// hcloudLoadBalancersPrivateSubnetIPRange configures the IP range in CIDR block notation of
+	// the subnet to attach to.
+	//
+	// Type: string
+	hcloudLoadBalancersPrivateSubnetIPRange = "HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE"
+
+	// hcloudLoadBalancersType configures the Load Balancer type this Load Balancer should be created with.
+	//
+	// Type: string
+	// Default: lb11
+	hcloudLoadBalancersType = "HCLOUD_LOAD_BALANCERS_TYPE"
+
+	// hcloudLoadBalancersUsesProxyProtocol enables the proxyprotocol for a Load Balancer service.
+	//
+	// Type: bool
+	// Default: false
+	hcloudLoadBalancersUsesProxyProtocol = "HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL"
 )
