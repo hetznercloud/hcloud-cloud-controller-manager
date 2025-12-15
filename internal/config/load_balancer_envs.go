@@ -42,33 +42,37 @@ const (
 	// Default: false
 	hcloudLoadBalancersDisableIPv6 = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 
-	// hcloudLoadBalancersAlgorithmType configures the Load Balancer algorithm.
+	// hcloudLoadBalancersAlgorithmType configures the defult Load Balancer algorithm.
 	//
 	// Type: round_robin | least_connections
 	// Default: round_robin
 	hcloudLoadBalancersAlgorithmType = "HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE"
 
-	// hcloudLoadBalancersDisablePublicNetwork disables the public interface of the Load Balancer.
+	// hcloudLoadBalancersDisablePublicNetwork disables the public interface of the Load Balancer by default.
 	//
 	// Type: bool
 	// Default: false
 	hcloudLoadBalancersDisablePublicNetwork = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
 
-	// hcloudLoadBalancersHealthCheckInterval configures the time interval in seconds health checks are performed.
+	// hcloudLoadBalancersHealthCheckInterval configures the default time interval in seconds
+	// health checks are performed.
 	//
-	// Type: duration
+	// Type: int
+	// Default: 10
 	hcloudLoadBalancersHealthCheckInterval = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL"
 
-	// hcloudLoadBalancersHealthCheckRetries configures the amount of unsuccessful retries
+	// hcloudLoadBalancersHealthCheckRetries configures the default amount of unsuccessful retries
 	// needed until a target is considered unhealthy.
 	//
 	// Type: int
+	// Default: 3
 	hcloudLoadBalancersHealthCheckRetries = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
 
-	// hcloudLoadBalancersHealthCheckTimeout configures the time in seconds after an attempt is
+	// hcloudLoadBalancersHealthCheckTimeout configures the defult time after an attempt is
 	// considered a timeout.
 	//
-	// Type: duration
+	// Type: int
+	// Default: 15
 	hcloudLoadBalancersHealthCheckTimeout = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
 
 	// hcloudLoadBalancersPrivateSubnetIPRange configures the IP range in CIDR block notation of
