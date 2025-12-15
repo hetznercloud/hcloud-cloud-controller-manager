@@ -4,7 +4,7 @@ This page contains all environment variables, which can be specified to configur
 
 Some environment variables define global defaults. These defaults can be overridden by setting the corresponding annotation. If you remove such an annotation while a global default is configured, the global default will be applied again.
 
-- Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
+Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
 
 | Annotation | Type | Default | Description |
 | --- | --- | --- | --- |
