@@ -42,7 +42,7 @@ const (
 	// Default: false
 	hcloudLoadBalancersDisableIPv6 = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
 
-	// hcloudLoadBalancersAlgorithmType configures the defult Load Balancer algorithm.
+	// hcloudLoadBalancersAlgorithmType configures the default Load Balancer algorithm.
 	//
 	// Type: round_robin | least_connections
 	// Default: round_robin
@@ -68,7 +68,7 @@ const (
 	// Default: 3
 	hcloudLoadBalancersHealthCheckRetries = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
 
-	// hcloudLoadBalancersHealthCheckTimeout configures the defult time in seconds after an attempt is
+	// hcloudLoadBalancersHealthCheckTimeout configures the default time in seconds after an attempt is
 	// considered a timeout.
 	//
 	// Type: int
