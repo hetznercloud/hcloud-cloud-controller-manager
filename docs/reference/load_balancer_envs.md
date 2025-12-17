@@ -16,8 +16,8 @@ Enums are depicted in the `Type` column and possible options are separated via t
 | `HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL` | `int` | `10` | Configures the default time interval in seconds in which health checks are performed. |
 | `HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES` | `int` | `3` | Configures the default amount of unsuccessful retries needed until a target is considered unhealthy. |
 | `HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT` | `int` | `15` | Configures the default time in seconds after an attempt is considered a timeout. |
-| `HCLOUD_LOAD_BALANCERS_LOCATION` | `string` | `-` | Specifies the default location where the Load Balancer will be created in. Mutually exclusive with hcloudLoadBalancersNetworkZone. |
-| `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE` | `string` | `-` | Specifies the default network zone where the Load Balancer will be created in. Mutually exclusive with hcloudLoadBalancersLocation. |
+| `HCLOUD_LOAD_BALANCERS_LOCATION` | `string` | `-` | Specifies the default location where the Load Balancer will be created in. Mutually exclusive with `HCLOUD_LOAD_BALANCERS_LOCATION`. |
+| `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE` | `string` | `-` | Specifies the default network zone where the Load Balancer will be created in. Mutually exclusive with `HCLOUD_LOAD_BALANCERS_NETWORK_ZONE`. |
 | `HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE` | `string` | `-` | Configures the default IP range in CIDR block notation of the subnet to attach to. |
 | `HCLOUD_LOAD_BALANCERS_TYPE` | `string` | `lb11` | Configures the default Load Balancer type this Load Balancer should be created with. |
 | `HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL` | `bool` | `false` | Enables the proxyprotocol for a Load Balancer service by default. |

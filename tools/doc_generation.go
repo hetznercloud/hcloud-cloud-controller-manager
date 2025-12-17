@@ -105,8 +105,8 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 		for _, entryInner := range t.entries {
 			comment = strings.ReplaceAll(
 				comment,
-				fmt.Sprintf("%s ", entryInner.constName),
-				fmt.Sprintf("`%s` ", constValue),
+				fmt.Sprintf("[%s]", entryInner.constName),
+				fmt.Sprintf("`%s`", constValue),
 			)
 		}
 		entry.Description = comment

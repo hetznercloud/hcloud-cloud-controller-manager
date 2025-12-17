@@ -10,7 +10,7 @@ const (
 	// hcloudLoadBalancersLocation specifies the default location where the Load Balancer will be
 	// created in.
 	//
-	// Mutually exclusive with hcloudLoadBalancersNetworkZone.
+	// Mutually exclusive with [hcloudLoadBalancersNetworkZone].
 	//
 	// Type: string
 	hcloudLoadBalancersLocation = "HCLOUD_LOAD_BALANCERS_LOCATION"
@@ -18,7 +18,7 @@ const (
 	// hcloudLoadBalancersNetworkZone specifies the default network zone where the Load Balancer will be
 	// created in.
 	//
-	// Mutually exclusive with hcloudLoadBalancersLocation.
+	// Mutually exclusive with [hcloudLoadBalancersLocation].
 	//
 	// Type: string
 	hcloudLoadBalancersNetworkZone = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
