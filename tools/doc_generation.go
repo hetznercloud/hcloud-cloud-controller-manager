@@ -6,9 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"maps"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -25,6 +23,7 @@ type ConstantDocTable struct {
 type DocEntry struct {
 	rawCommentLines []string
 	constName       string
+	pos             int
 
 	Description string
 	Type        string
@@ -39,10 +38,11 @@ func NewDocTable() *ConstantDocTable {
 	}
 }
 
-func (t *ConstantDocTable) AddEntry(constValue, constName string) {
+func (t *ConstantDocTable) AddEntry(constValue, constName string, pos int) {
 	t.entries[constValue] = &DocEntry{
 		rawCommentLines: make([]string, 0),
 		constName:       constName,
+		pos:             pos,
 	}
 }
 
@@ -126,7 +126,10 @@ func (t *ConstantDocTable) String(hasReadOnlyColumn bool) string {
 		tableStr.WriteString("| --- | --- | --- | --- |\n")
 	}
 
-	constValues := slices.Sorted(maps.Keys(t.entries))
+	constValues := make([]string, len(t.entries))
+	for constValue, entry := range t.entries {
+		constValues[entry.pos] = constValue
+	}
 
 	for _, constValue := range constValues {
 		// Skip internal const values
@@ -171,7 +174,7 @@ func (t *ConstantDocTable) visitFunc() func(n ast.Node) bool {
 			return true
 		}
 
-		for _, spec := range genDecl.Specs {
+		for pos, spec := range genDecl.Specs {
 			valueSpec, ok := spec.(*ast.ValueSpec)
 			if !ok {
 				continue
@@ -195,7 +198,7 @@ func (t *ConstantDocTable) visitFunc() func(n ast.Node) bool {
 			constName := valueSpec.Names[0].Name
 			value := strings.ReplaceAll(literal.Value, "\"", "")
 
-			t.AddEntry(value, constName)
+			t.AddEntry(value, constName, pos)
 
 			for _, comment := range valueSpec.Doc.List {
 				t.AppendComment(value, comment.Text)
