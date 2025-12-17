@@ -111,7 +111,7 @@ const (
 	// location it is necessary to delete and re-create it. Note, that this
 	// will lead to the load balancer getting new public IPs assigned.
 	//
-	// Mutually exclusive with LBNetworkZone.
+	// Mutually exclusive with [LBNetworkZone].
 	//
 	// Type: string
 	LBLocation Name = "load-balancer.hetzner.cloud/location"
@@ -125,7 +125,7 @@ const (
 	// that this will lead to the load balancer getting new public IPs
 	// assigned.
 	//
-	// Mutually exclusive with LBLocation.
+	// Mutually exclusive with [LBLocation].
 	//
 	// Type: string
 	LBNetworkZone Name = "load-balancer.hetzner.cloud/network-zone"
@@ -175,7 +175,7 @@ const (
 
 	// LBSvcHTTPManagedCertificateName contains the name of the managed
 	// certificate to create by the Cloud Controller manager. Ignored if
-	// LBSvcHTTPCertificateType is missing or set to "uploaded".
+	// [LBSvcHTTPCertificateType] is missing or set to "uploaded".
 	//
 	// Type: string
 	LBSvcHTTPManagedCertificateName Name = "load-balancer.hetzner.cloud/http-managed-certificate-name"

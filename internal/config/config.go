@@ -34,21 +34,6 @@ const (
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
 	hcloudNetworkRoutesEnabled        = "HCLOUD_NETWORK_ROUTES_ENABLED"
 
-	hcloudLoadBalancersAlgorithmType         = "HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE"
-	hcloudLoadBalancersDisableIPv6           = "HCLOUD_LOAD_BALANCERS_DISABLE_IPV6"
-	hcloudLoadBalancersDisablePrivateIngress = "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS"
-	hcloudLoadBalancersDisablePublicNetwork  = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
-	hcloudLoadBalancersEnabled               = "HCLOUD_LOAD_BALANCERS_ENABLED"
-	hcloudLoadBalancersHealthCheckInterval   = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL"
-	hcloudLoadBalancersHealthCheckRetries    = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
-	hcloudLoadBalancersHealthCheckTimeout    = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
-	hcloudLoadBalancersLocation              = "HCLOUD_LOAD_BALANCERS_LOCATION"
-	hcloudLoadBalancersNetworkZone           = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
-	hcloudLoadBalancersPrivateSubnetIPRange  = "HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE"
-	hcloudLoadBalancersType                  = "HCLOUD_LOAD_BALANCERS_TYPE"
-	hcloudLoadBalancersUsePrivateIP          = "HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP"
-	hcloudLoadBalancersUsesProxyProtocol     = "HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL"
-
 	hcloudMetricsEnabled = "HCLOUD_METRICS_ENABLED"
 	hcloudMetricsAddress = "HCLOUD_METRICS_ADDRESS"
 )
