@@ -1,12 +1,12 @@
 # Load Balancer Environment Variables
 
-This page contains all environment variables, which can be specified to configure the Load Balancer controller of HCCM.
+This page contains all environment variables, which can be specified to configure the Load Balancer controller of hcloud-cloud-controller-manager.
 
 Some environment variables define global defaults. These defaults can be overridden by setting the corresponding annotation. If you remove such an annotation while a global default is configured, the global default will be applied again.
 
 Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
 
-| Environment Variable | Type | Default | Description |
+| Name | Type | Default | Description |
 | --- | --- | --- | --- |
 | `HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE` | `round_robin \| least_connections` | `round_robin` | Configures the default Load Balancer algorithm. |
 | `HCLOUD_LOAD_BALANCERS_DISABLE_IPV6` | `bool` | `false` | Disables the use of IPv6 for the Load Balancer by default. |

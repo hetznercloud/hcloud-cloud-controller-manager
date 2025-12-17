@@ -5,7 +5,7 @@ This page contains all annotations, which can be specified at a Service of type 
 - Read-only annotations are set by the Cloud Controller Manager.
 - Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
 
-| Annotation | Type | Default | Read-only | Description |
+| Name | Type | Default | Read-only | Description |
 | --- | --- | --- | --- | --- |
 | `load-balancer.hetzner.cloud/algorithm-type` | `round_robin \| least_connections` | `round_robin` | `No` | Specifies the algorithm type of the Load Balancer. |
 | `load-balancer.hetzner.cloud/certificate-type` | `uploaded \| managed` | `uploaded` | `No` | Defines the type of certificate the Load Balancer should use. |

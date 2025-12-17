@@ -115,14 +115,14 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 	return t, nil
 }
 
-func (t *ConstantDocTable) String(tableHeaderName string, hasReadOnlyColumn bool) string {
+func (t *ConstantDocTable) String(hasReadOnlyColumn bool) string {
 	tableStr := strings.Builder{}
 
 	if hasReadOnlyColumn {
-		tableStr.WriteString(fmt.Sprintf("| %s | Type | Default | Read-only | Description |\n", tableHeaderName))
+		tableStr.WriteString("| Name | Type | Default | Read-only | Description |\n")
 		tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
 	} else {
-		tableStr.WriteString(fmt.Sprintf("| %s | Type | Default | Description |\n", tableHeaderName))
+		tableStr.WriteString("| Name | Type | Default | Description |\n")
 		tableStr.WriteString("| --- | --- | --- | --- |\n")
 	}
 
@@ -214,7 +214,7 @@ func parseMetadataValue(line, key string) string {
 	return ""
 }
 
-func generateDocs(templatePath string, constFilePath string, outputPath string, tableHeaderName string, hasReadOnlyColumn bool) error {
+func generateDocs(templatePath string, constFilePath string, outputPath string, hasReadOnlyColumn bool) error {
 	// Read template file
 	templateContent, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -239,7 +239,7 @@ func generateDocs(templatePath string, constFilePath string, outputPath string, 
 		return fmt.Errorf("error parsing template: %w", err)
 	}
 
-	tmplData := TemplateData{ConstTable: docTable.String(tableHeaderName, hasReadOnlyColumn)}
+	tmplData := TemplateData{ConstTable: docTable.String(hasReadOnlyColumn)}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, tmplData); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
@@ -273,12 +273,12 @@ func main() {
 	lbEnvPath := "../internal/config/load_balancer_envs.go"
 	lbEnvOutputPath := "../docs/reference/load_balancer_envs.md"
 
-	if err := generateDocs(lbTemplatePath, lbAnnotationsPath, lbOutputPath, "Annotation", true); err != nil {
+	if err := generateDocs(lbTemplatePath, lbAnnotationsPath, lbOutputPath, true); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := generateDocs(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, "Environment Variable", false); err != nil {
+	if err := generateDocs(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, false); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
