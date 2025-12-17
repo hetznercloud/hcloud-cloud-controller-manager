@@ -6,7 +6,7 @@ Some environment variables define global defaults. These defaults can be overrid
 
 Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
 
-| Annotation | Type | Default | Description |
+| Environment Variable | Type | Default | Description |
 | --- | --- | --- | --- |
 | `HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE` | `round_robin \| least_connections` | `round_robin` | Configures the default Load Balancer algorithm. |
 | `HCLOUD_LOAD_BALANCERS_DISABLE_IPV6` | `bool` | `false` | Disables the use of IPv6 for the Load Balancer by default. |

@@ -15,7 +15,7 @@ import (
 )
 
 type Template struct {
-	AnnotationsTable string
+	ConstTable string
 }
 
 type Table struct {
@@ -39,27 +39,27 @@ func NewTable() *Table {
 	}
 }
 
-func (t *Table) AddEntry(annotation, constName string) {
-	t.table[annotation] = &TableEntry{
+func (t *Table) AddEntry(constValue, constName string) {
+	t.table[constValue] = &TableEntry{
 		commentLines: make([]string, 0),
 		constName:    constName,
 	}
 }
 
-func (t *Table) AppendComment(annotation, value string) {
+func (t *Table) AppendComment(constValue, value string) {
 	// trim comment artifacts
 	comment := strings.Trim(value, "/ \n")
 	if comment == "" {
 		return
 	}
 
-	t.table[annotation].commentLines = append(t.table[annotation].commentLines, comment)
+	t.table[constValue].commentLines = append(t.table[constValue].commentLines, comment)
 }
 
 func (t *Table) FromAST(node ast.Node) (*Table, error) {
 	ast.Inspect(node, t.visitFunc())
 
-	for annotation, entry := range t.table {
+	for constValue, entry := range t.table {
 		commentBuilder := strings.Builder{}
 
 		for i, line := range entry.commentLines {
@@ -98,7 +98,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 		}
 
 		if entry.Type == "" {
-			return nil, fmt.Errorf("missing Type for annotation %s", annotation)
+			return nil, fmt.Errorf("missing Type for %s", constValue)
 		}
 
 		comment := strings.Trim(commentBuilder.String(), " ")
@@ -106,7 +106,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 			comment = strings.ReplaceAll(
 				comment,
 				fmt.Sprintf("%s ", entryInner.constName),
-				fmt.Sprintf("`%s` ", annotation),
+				fmt.Sprintf("`%s` ", constValue),
 			)
 		}
 		entry.Description = comment
@@ -115,60 +115,46 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 	return t, nil
 }
 
-func (t *Table) String(hasReadOnlyColumn bool) string {
+func (t *Table) String(tableHeaderName string, hasReadOnlyColumn bool) string {
 	tableStr := strings.Builder{}
 
 	if hasReadOnlyColumn {
-		tableStr.WriteString("| Annotation | Type | Default | Read-only | Description |\n")
+		tableStr.WriteString(fmt.Sprintf("| %s | Type | Default | Read-only | Description |\n", tableHeaderName))
 		tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
 	} else {
-		tableStr.WriteString("| Annotation | Type | Default | Description |\n")
+		tableStr.WriteString(fmt.Sprintf("| %s | Type | Default | Description |\n", tableHeaderName))
 		tableStr.WriteString("| --- | --- | --- | --- |\n")
 	}
 
-	annotations := slices.Sorted(maps.Keys(t.table))
+	constValues := slices.Sorted(maps.Keys(t.table))
 
-	for _, annotation := range annotations {
-		// Skip internal annotations
-		if t.table[annotation].Internal {
+	for _, constValue := range constValues {
+		// Skip internal const values
+		if t.table[constValue].Internal {
 			continue
 		}
 
 		// Escape pipe characters in Type to avoid breaking the table
-		typeVal := strings.ReplaceAll(t.table[annotation].Type, "|", "\\|")
+		typeVal := strings.ReplaceAll(t.table[constValue].Type, "|", "\\|")
 
 		defaultVal := "-"
-		if t.table[annotation].Default != "" {
-			defaultVal = t.table[annotation].Default
+		if t.table[constValue].Default != "" {
+			defaultVal = t.table[constValue].Default
 		}
 
-		readOnlyVal := "No"
-		if t.table[annotation].ReadOnly {
-			readOnlyVal = "Yes"
-		}
+		tableStr.WriteString(fmt.Sprintf("| `%s` ", constValue))
+		tableStr.WriteString(fmt.Sprintf("| `%s` ", typeVal))
+		tableStr.WriteString(fmt.Sprintf("| `%s` ", defaultVal))
 
 		if hasReadOnlyColumn {
-			tableStr.WriteString(
-				fmt.Sprintf(
-					"| `%s` | `%s` | `%s` | `%s` | %s |\n",
-					annotation,
-					typeVal,
-					defaultVal,
-					readOnlyVal,
-					t.table[annotation].Description,
-				),
-			)
-		} else {
-			tableStr.WriteString(
-				fmt.Sprintf(
-					"| `%s` | `%s` | `%s` | %s |\n",
-					annotation,
-					typeVal,
-					defaultVal,
-					t.table[annotation].Description,
-				),
-			)
+			readOnlyVal := "No"
+			if t.table[constValue].ReadOnly {
+				readOnlyVal = "Yes"
+			}
+			tableStr.WriteString(fmt.Sprintf("| `%s` ", readOnlyVal))
 		}
+
+		tableStr.WriteString(fmt.Sprintf("| %s |\n", t.table[constValue].Description))
 	}
 
 	return tableStr.String()
@@ -207,12 +193,12 @@ func (t *Table) visitFunc() func(n ast.Node) bool {
 			}
 
 			constName := valueSpec.Names[0].Name
-			annotation := strings.ReplaceAll(literal.Value, "\"", "")
+			value := strings.ReplaceAll(literal.Value, "\"", "")
 
-			t.AddEntry(annotation, constName)
+			t.AddEntry(value, constName)
 
 			for _, comment := range valueSpec.Doc.List {
-				t.AppendComment(annotation, comment.Text)
+				t.AppendComment(value, comment.Text)
 			}
 		}
 
@@ -228,7 +214,7 @@ func getValueFromLine(line, key string) string {
 	return ""
 }
 
-func run(templatePath string, annotationsPath string, outputPath string, hasReadOnlyColumn bool) error {
+func run(templatePath string, constFilePath string, outputPath string, tableHeaderName string, hasReadOnlyColumn bool) error {
 	// Read template file
 	tmplStr, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -236,7 +222,7 @@ func run(templatePath string, annotationsPath string, outputPath string, hasRead
 	}
 
 	// Parse AST
-	node, err := parser.ParseFile(&token.FileSet{}, annotationsPath, nil, parser.ParseComments)
+	node, err := parser.ParseFile(&token.FileSet{}, constFilePath, nil, parser.ParseComments)
 	if err != nil {
 		return fmt.Errorf("error parsing file: %w", err)
 	}
@@ -248,12 +234,12 @@ func run(templatePath string, annotationsPath string, outputPath string, hasRead
 	}
 
 	// Create Markdown file from template
-	tmpl, err := template.New("annotations").Parse(string(tmplStr))
+	tmpl, err := template.New("consts").Parse(string(tmplStr))
 	if err != nil {
 		return fmt.Errorf("error parsing template: %w", err)
 	}
 
-	tmplData := Template{AnnotationsTable: table.String(hasReadOnlyColumn)}
+	tmplData := Template{ConstTable: table.String(tableHeaderName, hasReadOnlyColumn)}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, tmplData); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
@@ -287,12 +273,12 @@ func main() {
 	lbEnvPath := "../internal/config/load_balancer_envs.go"
 	lbEnvOutputPath := "../docs/reference/load_balancer_envs.md"
 
-	if err := run(lbTemplatePath, lbAnnotationsPath, lbOutputPath, true); err != nil {
+	if err := run(lbTemplatePath, lbAnnotationsPath, lbOutputPath, "Annotation", true); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := run(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, false); err != nil {
+	if err := run(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, "Environment Variable", false); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
