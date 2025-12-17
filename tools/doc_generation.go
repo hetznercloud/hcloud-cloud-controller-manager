@@ -102,11 +102,11 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 		}
 
 		comment := strings.Trim(commentBuilder.String(), " ")
-		for _, entryInner := range t.entries {
+		for constValueInner, entryInner := range t.entries {
 			comment = strings.ReplaceAll(
 				comment,
 				fmt.Sprintf("[%s]", entryInner.constName),
-				fmt.Sprintf("`%s`", constValue),
+				fmt.Sprintf("`%s`", constValueInner),
 			)
 		}
 		entry.Description = comment
