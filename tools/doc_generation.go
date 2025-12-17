@@ -14,17 +14,17 @@ import (
 	"text/template"
 )
 
-type Template struct {
+type TemplateData struct {
 	ConstTable string
 }
 
-type Table struct {
-	table map[string]*TableEntry
+type ConstantDocTable struct {
+	entries map[string]*DocEntry
 }
 
-type TableEntry struct {
-	commentLines []string
-	constName    string
+type DocEntry struct {
+	rawCommentLines []string
+	constName       string
 
 	Description string
 	Type        string
@@ -33,54 +33,54 @@ type TableEntry struct {
 	Internal    bool
 }
 
-func NewTable() *Table {
-	return &Table{
-		table: make(map[string]*TableEntry),
+func NewDocTable() *ConstantDocTable {
+	return &ConstantDocTable{
+		entries: make(map[string]*DocEntry),
 	}
 }
 
-func (t *Table) AddEntry(constValue, constName string) {
-	t.table[constValue] = &TableEntry{
-		commentLines: make([]string, 0),
-		constName:    constName,
+func (t *ConstantDocTable) AddEntry(constValue, constName string) {
+	t.entries[constValue] = &DocEntry{
+		rawCommentLines: make([]string, 0),
+		constName:       constName,
 	}
 }
 
-func (t *Table) AppendComment(constValue, value string) {
+func (t *ConstantDocTable) AppendComment(constValue, value string) {
 	// trim comment artifacts
 	comment := strings.Trim(value, "/ \n")
 	if comment == "" {
 		return
 	}
 
-	t.table[constValue].commentLines = append(t.table[constValue].commentLines, comment)
+	t.entries[constValue].rawCommentLines = append(t.entries[constValue].rawCommentLines, comment)
 }
 
-func (t *Table) FromAST(node ast.Node) (*Table, error) {
+func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 	ast.Inspect(node, t.visitFunc())
 
-	for constValue, entry := range t.table {
+	for constValue, entry := range t.entries {
 		commentBuilder := strings.Builder{}
 
-		for i, line := range entry.commentLines {
-			if val := getValueFromLine(line, "Type: "); val != "" {
+		for i, line := range entry.rawCommentLines {
+			if val := parseMetadataValue(line, "Type: "); val != "" {
 				entry.Type = val
 				continue
 			}
 
-			if val := getValueFromLine(line, "Default: "); val != "" {
+			if val := parseMetadataValue(line, "Default: "); val != "" {
 				entry.Default = val
 				continue
 			}
 
-			if val := getValueFromLine(line, "Read-only: "); val != "" {
+			if val := parseMetadataValue(line, "Read-only: "); val != "" {
 				if readOnly, err := strconv.ParseBool(val); err == nil {
 					entry.ReadOnly = readOnly
 				}
 				continue
 			}
 
-			if val := getValueFromLine(line, "Internal: "); val != "" {
+			if val := parseMetadataValue(line, "Internal: "); val != "" {
 				if internal, err := strconv.ParseBool(val); err == nil {
 					entry.Internal = internal
 				}
@@ -102,7 +102,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 		}
 
 		comment := strings.Trim(commentBuilder.String(), " ")
-		for _, entryInner := range t.table {
+		for _, entryInner := range t.entries {
 			comment = strings.ReplaceAll(
 				comment,
 				fmt.Sprintf("%s ", entryInner.constName),
@@ -115,7 +115,7 @@ func (t *Table) FromAST(node ast.Node) (*Table, error) {
 	return t, nil
 }
 
-func (t *Table) String(tableHeaderName string, hasReadOnlyColumn bool) string {
+func (t *ConstantDocTable) String(tableHeaderName string, hasReadOnlyColumn bool) string {
 	tableStr := strings.Builder{}
 
 	if hasReadOnlyColumn {
@@ -126,20 +126,20 @@ func (t *Table) String(tableHeaderName string, hasReadOnlyColumn bool) string {
 		tableStr.WriteString("| --- | --- | --- | --- |\n")
 	}
 
-	constValues := slices.Sorted(maps.Keys(t.table))
+	constValues := slices.Sorted(maps.Keys(t.entries))
 
 	for _, constValue := range constValues {
 		// Skip internal const values
-		if t.table[constValue].Internal {
+		if t.entries[constValue].Internal {
 			continue
 		}
 
 		// Escape pipe characters in Type to avoid breaking the table
-		typeVal := strings.ReplaceAll(t.table[constValue].Type, "|", "\\|")
+		typeVal := strings.ReplaceAll(t.entries[constValue].Type, "|", "\\|")
 
 		defaultVal := "-"
-		if t.table[constValue].Default != "" {
-			defaultVal = t.table[constValue].Default
+		if t.entries[constValue].Default != "" {
+			defaultVal = t.entries[constValue].Default
 		}
 
 		tableStr.WriteString(fmt.Sprintf("| `%s` ", constValue))
@@ -148,19 +148,19 @@ func (t *Table) String(tableHeaderName string, hasReadOnlyColumn bool) string {
 
 		if hasReadOnlyColumn {
 			readOnlyVal := "No"
-			if t.table[constValue].ReadOnly {
+			if t.entries[constValue].ReadOnly {
 				readOnlyVal = "Yes"
 			}
 			tableStr.WriteString(fmt.Sprintf("| `%s` ", readOnlyVal))
 		}
 
-		tableStr.WriteString(fmt.Sprintf("| %s |\n", t.table[constValue].Description))
+		tableStr.WriteString(fmt.Sprintf("| %s |\n", t.entries[constValue].Description))
 	}
 
 	return tableStr.String()
 }
 
-func (t *Table) visitFunc() func(n ast.Node) bool {
+func (t *ConstantDocTable) visitFunc() func(n ast.Node) bool {
 	return func(n ast.Node) bool {
 		genDecl, ok := n.(*ast.GenDecl)
 		if !ok {
@@ -206,7 +206,7 @@ func (t *Table) visitFunc() func(n ast.Node) bool {
 	}
 }
 
-func getValueFromLine(line, key string) string {
+func parseMetadataValue(line, key string) string {
 	parts := strings.Split(line, key)
 	if len(parts) > 1 {
 		return strings.Trim(parts[1], " \n.")
@@ -214,32 +214,32 @@ func getValueFromLine(line, key string) string {
 	return ""
 }
 
-func run(templatePath string, constFilePath string, outputPath string, tableHeaderName string, hasReadOnlyColumn bool) error {
+func generateDocs(templatePath string, constFilePath string, outputPath string, tableHeaderName string, hasReadOnlyColumn bool) error {
 	// Read template file
-	tmplStr, err := os.ReadFile(templatePath)
+	templateContent, err := os.ReadFile(templatePath)
 	if err != nil {
 		return err
 	}
 
 	// Parse AST
-	node, err := parser.ParseFile(&token.FileSet{}, constFilePath, nil, parser.ParseComments)
+	astNode, err := parser.ParseFile(&token.FileSet{}, constFilePath, nil, parser.ParseComments)
 	if err != nil {
 		return fmt.Errorf("error parsing file: %w", err)
 	}
 
 	// Create table from AST
-	table, err := NewTable().FromAST(node)
+	docTable, err := NewDocTable().FromAST(astNode)
 	if err != nil {
 		return err
 	}
 
 	// Create Markdown file from template
-	tmpl, err := template.New("consts").Parse(string(tmplStr))
+	tmpl, err := template.New("consts").Parse(string(templateContent))
 	if err != nil {
 		return fmt.Errorf("error parsing template: %w", err)
 	}
 
-	tmplData := Template{ConstTable: table.String(tableHeaderName, hasReadOnlyColumn)}
+	tmplData := TemplateData{ConstTable: docTable.String(tableHeaderName, hasReadOnlyColumn)}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, tmplData); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
@@ -273,12 +273,12 @@ func main() {
 	lbEnvPath := "../internal/config/load_balancer_envs.go"
 	lbEnvOutputPath := "../docs/reference/load_balancer_envs.md"
 
-	if err := run(lbTemplatePath, lbAnnotationsPath, lbOutputPath, "Annotation", true); err != nil {
+	if err := generateDocs(lbTemplatePath, lbAnnotationsPath, lbOutputPath, "Annotation", true); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := run(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, "Environment Variable", false); err != nil {
+	if err := generateDocs(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, "Environment Variable", false); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
