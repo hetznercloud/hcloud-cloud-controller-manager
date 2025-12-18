@@ -21,7 +21,7 @@ args:
   # - Node deleted
   # - Node PodCIDRs, or Addresses updated
   # This replaces the fixed route reconcile interval of 30s
-  feature-gates: "CloudControllerManagerWatchBasedRoutesReconciliation=false"
+  feature-gates: "CloudControllerManagerWatchBasedRoutesReconciliation=true"
 
 # Change deployment kind from "Deployment" to "DaemonSet"
 kind: Deployment

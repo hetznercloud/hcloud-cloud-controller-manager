@@ -172,8 +172,8 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 	}
 
 	lbSvcDefinition := lbTest.ServiceDefinition(pod, map[string]string{
-		string(annotation.LBLocation):     "nbg1",
-		string(annotation.LBUsePrivateIP): "true",
+		string(annotation.LBLocation):           "nbg1",
+		string(annotation.LBUsePrivateIP):       "true",
 		string(annotation.PrivateSubnetIPRange): ipRange.String(),
 	})
 
@@ -219,91 +219,6 @@ func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 			}
 		}
 		return false, nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestRouteDeleteCorrectRoutes(t *testing.T) {
-	t.Parallel()
-
-	// This test tests for:
-	// - hccm is keeping routes that are outside of its scope (e.g. 0.0.0.0/0)
-	// - hccm is deleting routes that are inside the cluster cidr, but for which no server exists (10.254.0.0/24)
-	//
-	// Testing for no-op (keep route) is hard, but by combining the test with a deletion test we can be reasonably sure
-	// that it was not tried in the same reconcile loop.
-
-	ctx := context.Background()
-
-	testGateway := net.ParseIP("10.0.0.254")
-	_, defaultDestination, err := net.ParseCIDR("0.0.0.0/0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, outdatedDestination, err := net.ParseCIDR("10.244.254.0/24")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	network, _, err := testCluster.hcloud.Network.Get(ctx, testCluster.NetworkName())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Remove routes from previous tests
-	for _, route := range network.Routes {
-		if route.Gateway.Equal(testGateway) {
-			action, _, err := testCluster.hcloud.Network.DeleteRoute(ctx, network, hcloud.NetworkDeleteRouteOpts{Route: route})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := testCluster.hcloud.Action.WaitFor(ctx, action); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-
-	action, _, err := testCluster.hcloud.Network.AddRoute(ctx, network, hcloud.NetworkAddRouteOpts{Route: hcloud.NetworkRoute{
-		Destination: defaultDestination,
-		Gateway:     testGateway,
-	}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := testCluster.hcloud.Action.WaitFor(ctx, action); err != nil {
-		t.Fatal(err)
-	}
-
-	action, _, err = testCluster.hcloud.Network.AddRoute(ctx, network, hcloud.NetworkAddRouteOpts{Route: hcloud.NetworkRoute{
-		Destination: outdatedDestination,
-		Gateway:     testGateway,
-	}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := testCluster.hcloud.Action.WaitFor(ctx, action); err != nil {
-		t.Fatal(err)
-	}
-
-	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-		network, _, err = testCluster.hcloud.Network.Get(ctx, testCluster.NetworkName())
-		if err != nil {
-			return false, err
-		}
-
-		hasDefaultRoute := false
-		for _, route := range network.Routes {
-			switch route.Destination.String() {
-			case defaultDestination.String():
-				hasDefaultRoute = true
-			case outdatedDestination.String():
-				// Route for outdated destination still exists
-				return false, nil
-			}
-		}
-		return hasDefaultRoute, nil
 	})
 	if err != nil {
 		t.Fatal(err)
