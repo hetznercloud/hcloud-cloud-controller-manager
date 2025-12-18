@@ -1,5 +1,30 @@
 # Changelog
 
+## [v1.29.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.29.0)
+
+### Watch-Based Route Reconciliation
+
+Previously, route reconciliation is performed at a fixed interval of 30s. This leads to unnecessary API requests, as a `GET /v1/networks/{id}` call is triggered every 30s, even when no changes have occurred.
+
+Upstream, we have contributed an event-driven approach, similar to the mechanisms used by other controllers such as the Load Balancer controller. With this new approach, route reconciliation is triggered by node additions, node deletions, or changes to a node’s `PodCIDRs` or `Addresses`. Additionally, to ensure consistency, reconciliation still occurs periodically at a randomized interval between 12 and 24 hours.
+
+#### Enabled by default
+
+This feature is now **enabled by default**.
+
+If you encounter any problems you can disable the feature by setting the following Helm value:
+
+`args.feature-gates=CloudControllerManagerWatchBasedRoutesReconciliation=false`
+
+### Global Load Balancer Defaults
+
+Configure cluster-wide defaults for Load Balancers via the extended `HCLOUD_LOAD_BALANCERS_*` env vars. These values automatically apply during Load Balancer creation and reconciliation whenever annotations are omitted. Learn more about it in the [reference documentation](docs/reference/load_balancer_envs.md)
+
+### Features
+
+- extend environment variables for default load balancer configuration (#1052)
+- enable watch based route reconciliation by default (#1112)
+
 ## [v1.28.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.28.0)
 
 ### Updated ClusterRole for HCCM
