@@ -32,7 +32,6 @@ type LoadBalancerOps interface {
 type loadBalancers struct {
 	lbOps                        LoadBalancerOps
 	ipv6EnabledDefault           bool
-	proxyProtocolEnabledDefault  bool
 	privateIngressEnabledDefault bool
 }
 
@@ -280,7 +279,7 @@ func (l *loadBalancers) getProxyProtocolEnabled(svc *corev1.Service) (bool, erro
 		return enable, nil
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
-		return l.proxyProtocolEnabledDefault, nil
+		return false, nil
 	}
 	return false, err
 }
