@@ -950,6 +950,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 				warnMsg,
 			)
 			klog.Warning(warnMsg)
+			continue
 		}
 
 		b := &hclbServiceOptsBuilder{
