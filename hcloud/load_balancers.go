@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -30,17 +31,14 @@ type LoadBalancerOps interface {
 }
 
 type loadBalancers struct {
-	lbOps                        LoadBalancerOps
-	ipv6EnabledDefault           bool
-	proxyProtocolEnabledDefault  bool
-	privateIngressEnabledDefault bool
+	lbOps LoadBalancerOps
+	cfg   *config.LoadBalancerConfiguration
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, privateIngressEnabledDefault bool, ipv6EnabledDefault bool) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, lbCfg *config.LoadBalancerConfiguration) *loadBalancers {
 	return &loadBalancers{
-		lbOps:                        lbOps,
-		ipv6EnabledDefault:           ipv6EnabledDefault,
-		privateIngressEnabledDefault: privateIngressEnabledDefault,
+		lbOps: lbOps,
+		cfg:   lbCfg,
 	}
 }
 
@@ -269,7 +267,7 @@ func (l *loadBalancers) getPrivateIngressEnabled(svc *corev1.Service) (bool, err
 		return !disable, nil
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
-		return l.privateIngressEnabledDefault, nil
+		return l.cfg.PrivateIngressEnabled, nil
 	}
 	return true, err
 }
@@ -280,7 +278,10 @@ func (l *loadBalancers) getProxyProtocolEnabled(svc *corev1.Service) (bool, erro
 		return enable, nil
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
-		return l.proxyProtocolEnabledDefault, nil
+		if l.cfg.ProxyProtocolEnabled == nil {
+			return false, nil
+		}
+		return *l.cfg.ProxyProtocolEnabled, nil
 	}
 	return false, err
 }
@@ -291,7 +292,7 @@ func (l *loadBalancers) getIPv6Enabled(svc *corev1.Service) (bool, error) {
 		return !disable, nil
 	}
 	if errors.Is(err, annotation.ErrNotSet) {
-		return l.ipv6EnabledDefault, nil
+		return l.cfg.IPv6Enabled, nil
 	}
 	return true, err
 }
