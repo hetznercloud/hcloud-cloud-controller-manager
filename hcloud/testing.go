@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -78,7 +79,12 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, *tt.UsePrivateIngressDefault, *tt.UseIPv6Default)
+	lbConfig := &config.LoadBalancerConfiguration{
+		PrivateIngressEnabled: *tt.UsePrivateIngressDefault,
+		IPv6Enabled:           *tt.UseIPv6Default,
+	}
+
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, lbConfig)
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)
