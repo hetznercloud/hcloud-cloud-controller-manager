@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.29.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.29.1)
+
+### Bug Fixes
+
+- respect proxy protocol default from config for load balancer status (#1131)
+
 ## [v1.29.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.29.0)
 
 ### Watch-Based Route Reconciliation
