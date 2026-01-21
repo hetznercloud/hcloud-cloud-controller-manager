@@ -952,7 +952,9 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 			klog.Warning(warnMsg)
 			continue
 		}
-
+portNo := int(port.Port)
+portExists := hclbListenPorts[portNo]
+delete(hclbListenPorts, portNo)
 		b := &hclbServiceOptsBuilder{
 			Port:    port,
 			Service: svc,
