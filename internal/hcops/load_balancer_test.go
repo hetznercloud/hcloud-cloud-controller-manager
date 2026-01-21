@@ -1609,31 +1609,6 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
-				opts := hcloud.LoadBalancerAddServiceOpts{
-					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Ptr(80),
-					DestinationPort: hcloud.Ptr(8080),
-					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
-						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Ptr(8080),
-					},
-				}
-				action := tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
-
-				opts = hcloud.LoadBalancerAddServiceOpts{
-					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
-					ListenPort:      hcloud.Ptr(443),
-					DestinationPort: hcloud.Ptr(8443),
-					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
-						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-						Port:     hcloud.Ptr(8443),
-					},
-				}
-				action = tt.fx.MockAddService(opts, tt.initialLB, nil)
-				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
-			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				_, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
 				assert.NoError(t, err)
