@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.29.2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.29.2)
+
+### Bug Fixes
+
+- tcp service created for service with unsupported load balancer protocol (#1129)
+
 ## [v1.29.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.29.1)
 
 ### Bug Fixes
