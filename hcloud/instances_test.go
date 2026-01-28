@@ -420,6 +420,55 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 	}
 }
 
+func TestInstances_InstanceMetadataRobotServer_UseLegacyProviderID(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+	env.Mux.HandleFunc("/robot/server/321", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(hrobotmodels.ServerResponse{
+			Server: hrobotmodels.Server{
+				ServerIP:      "233.252.0.123",
+				ServerIPv6Net: "2a01:f48:111:4221::",
+				ServerNumber:  321,
+				Product:       "Robot Server™ 1",
+				Name:          "robot-server1",
+				Dc:            "NBG1-DC1",
+			},
+		})
+	})
+
+	env.Cfg.Robot.UseLegacyProviderID = true
+
+	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
+
+	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "robot-server1",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "hrobot://321"},
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedMetadata := &cloudprovider.InstanceMetadata{
+		ProviderID:   "hcloud://bm-321",
+		InstanceType: "Robot-Server-1",
+		NodeAddresses: []corev1.NodeAddress{
+			{Type: corev1.NodeHostName, Address: "robot-server1"},
+			{Type: corev1.NodeExternalIP, Address: "233.252.0.123"},
+		},
+		Zone:   "nbg1-dc1",
+		Region: "nbg1",
+		AdditionalLabels: map[string]string{
+			"instance.hetzner.cloud/provided-by": "robot",
+		},
+	}
+
+	if !reflect.DeepEqual(metadata, expectedMetadata) {
+		t.Fatalf("Expected metadata %+v but got %+v", *expectedMetadata, *metadata)
+	}
+}
+
 func TestNodeAddresses(t *testing.T) {
 	tests := []struct {
 		name           string
