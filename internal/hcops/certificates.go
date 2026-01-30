@@ -20,7 +20,8 @@ type HCloudCertificateClient interface {
 
 // CertificateOps implements all operations regarding Hetzner Cloud Certificates.
 type CertificateOps struct {
-	CertClient HCloudCertificateClient
+	ActionClient HCloudActionClient
+	CertClient   HCloudCertificateClient
 }
 
 // GetCertificateByNameOrID obtains a certificate from the Hetzner Cloud
@@ -81,12 +82,18 @@ func (co *CertificateOps) CreateManagedCertificate(
 		DomainNames: domains,
 		Labels:      labels,
 	}
-	_, _, err := co.CertClient.CreateCertificate(ctx, opts)
+	result, _, err := co.CertClient.CreateCertificate(ctx, opts)
 	if hcloud.IsError(err, hcloud.ErrorCodeUniquenessError) {
 		return fmt.Errorf("%s: %w", op, ErrAlreadyExists)
 	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
+	err = co.ActionClient.WaitFor(ctx, result.Action)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	return nil
 }
