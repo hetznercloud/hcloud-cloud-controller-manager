@@ -171,7 +171,7 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 		{
 			Name: "certificate creation successful",
 			Mock: func(_ *testing.T, tt *certificateOpsTestCase) {
-				res := hcloud.CertificateCreateResult{Certificate: &hcloud.Certificate{ID: 1}}
+				res := hcloud.CertificateCreateResult{Certificate: &hcloud.Certificate{ID: 1}, Action: &hcloud.Action{ID: 2}}
 				tt.CertClient.
 					On("CreateCertificate", tt.Ctx, hcloud.CertificateCreateOpts{
 						Name:        "test-cert",
@@ -180,6 +180,7 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 						Labels:      map[string]string{"key": "value"},
 					}).
 					Return(res, nil, nil)
+				tt.ActionClient.On("WaitFor", tt.Ctx, &hcloud.Action{ID: 2}).Return(nil)
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
 				err := tt.CertOps.CreateManagedCertificate(
@@ -204,9 +205,10 @@ type certificateOpsTestCase struct {
 	ClientErr   error
 
 	// Set in run before actual test execution
-	Ctx        context.Context
-	CertOps    *hcops.CertificateOps
-	CertClient *mocks.CertificateClient
+	Ctx          context.Context
+	CertOps      *hcops.CertificateOps
+	CertClient   *mocks.CertificateClient
+	ActionClient *mocks.ActionClient
 }
 
 func (tt *certificateOpsTestCase) run(t *testing.T) {
@@ -215,7 +217,9 @@ func (tt *certificateOpsTestCase) run(t *testing.T) {
 	tt.Ctx = context.Background()
 	tt.CertClient = &mocks.CertificateClient{}
 	tt.CertClient.Test(t)
-	tt.CertOps = &hcops.CertificateOps{CertClient: tt.CertClient}
+	tt.ActionClient = &mocks.ActionClient{}
+	tt.ActionClient.Test(t)
+	tt.CertOps = &hcops.CertificateOps{ActionClient: tt.ActionClient, CertClient: tt.CertClient}
 
 	if tt.Mock != nil {
 		tt.Mock(t, tt)

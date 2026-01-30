@@ -46,7 +46,7 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 
 	fx.LBOps = &LoadBalancerOps{
 		LBClient:      fx.LBClient,
-		CertOps:       &CertificateOps{CertClient: fx.CertClient},
+		CertOps:       &CertificateOps{ActionClient: fx.ActionClient, CertClient: fx.CertClient},
 		ActionClient:  fx.ActionClient,
 		NetworkClient: fx.NetworkClient,
 		RobotClient:   fx.RobotClient,

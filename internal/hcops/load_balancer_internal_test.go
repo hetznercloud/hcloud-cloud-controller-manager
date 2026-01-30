@@ -29,7 +29,8 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		mock               func(t *testing.T, tt *testCase)
 
 		// Set during test setup
-		certClient *mocks.CertificateClient
+		certClient   *mocks.CertificateClient
+		actionClient *mocks.ActionClient
 	}
 
 	tests := []testCase{
@@ -429,6 +430,8 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.certClient = &mocks.CertificateClient{}
 			tt.certClient.Test(t)
+			tt.actionClient = &mocks.ActionClient{}
+			tt.actionClient.Test(t)
 
 			if tt.mock != nil {
 				tt.mock(t, &tt)
@@ -442,7 +445,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 				},
-				CertOps: &CertificateOps{CertClient: tt.certClient},
+				CertOps: &CertificateOps{ActionClient: tt.actionClient, CertClient: tt.certClient},
 				cfg:     tt.cfg,
 			}
 			for k, v := range tt.serviceAnnotations {

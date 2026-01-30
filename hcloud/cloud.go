@@ -187,7 +187,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	lbOps := &hcops.LoadBalancerOps{
 		LBClient:      &c.client.LoadBalancer,
 		RobotClient:   c.robotClient,
-		CertOps:       &hcops.CertificateOps{CertClient: &c.client.Certificate},
+		CertOps:       &hcops.CertificateOps{ActionClient: &c.client.Action, CertClient: &c.client.Certificate},
 		ActionClient:  &c.client.Action,
 		NetworkClient: &c.client.Network,
 		NetworkID:     c.networkID,
