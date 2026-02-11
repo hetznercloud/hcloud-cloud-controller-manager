@@ -81,3 +81,8 @@ func FromCloudServerID(serverID int64) string {
 func FromRobotServerNumber(serverNumber int) string {
 	return fmt.Sprintf("%s%d", prefixRobot, serverNumber)
 }
+
+// FromRobotLegacyServerNumber generates the canonical ProviderID for a Robot Server.
+func FromRobotLegacyServerNumber(serverNumber int) string {
+	return fmt.Sprintf("%s%d", prefixRobotLegacy, serverNumber)
+}
