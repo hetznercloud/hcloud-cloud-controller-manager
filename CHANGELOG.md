@@ -1,5 +1,16 @@
 # Changelog
 
+## [v1.30.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.0)
+
+### Features
+
+- support Kubernetes v1.35
+- drop support for Kubernetes v1.31
+
+### Bug Fixes
+
+- **load-balancer**: wait for action of managed certificate (#1144)
+
 ## [v1.29.2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.29.2)
 
 ### Bug Fixes
