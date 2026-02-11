@@ -1,6 +1,6 @@
 # Kubernetes Cloud Controller Manager for Hetzner Cloud
 
-[![e2e tests](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test_e2e.yml/badge.svg)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test_e2e.yml)
+[![Tests](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test.yml)
 [![Codecov](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/graph/badge.svg?token=Q7pbOoyVpj)](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/tree/main)
 
 The Hetzner Cloud [cloud-controller-manager](https://kubernetes.io/docs/concepts/architecture/cloud-controller/) integrates your Kubernetes cluster with the Hetzner Cloud & Robot APIs.
