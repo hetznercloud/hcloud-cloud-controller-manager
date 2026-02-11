@@ -39,10 +39,10 @@ jobs:
       fail-fast: false # Continue tests matrix if a flaky run occurs.
       matrix:
         k3s:
-          - v1.31
           - v1.32
           - v1.33
           - v1.34
+          - v1.35
 
     env:
       K3S_CHANNEL: ${{ matrix.k3s }}
@@ -165,7 +165,7 @@ jobs:
     environment: e2e-robot
 
     env:
-      K3S_CHANNEL: v1.34
+      K3S_CHANNEL: v1.35
       ENV: gha-${{ github.run_id }}-${{ github.run_attempt }}-robot
 
       ROBOT_ENABLED: "true"
