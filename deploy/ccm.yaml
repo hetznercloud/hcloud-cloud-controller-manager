@@ -160,7 +160,7 @@ spec:
                   key: robot-user
                   name: hcloud
                   optional: true
-          image: docker.io/hetznercloud/hcloud-cloud-controller-manager:v1.29.2 # x-releaser-pleaser-version
+          image: docker.io/hetznercloud/hcloud-cloud-controller-manager:v1.30.0 # x-releaser-pleaser-version
           ports:
             - name: metrics
               containerPort: 8233
