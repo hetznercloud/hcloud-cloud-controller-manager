@@ -145,19 +145,19 @@ func (t *ConstantDocTable) String(hasReadOnlyColumn bool) string {
 			defaultVal = t.entries[constValue].Default
 		}
 
-		tableStr.WriteString(fmt.Sprintf("| `%s` ", constValue))
-		tableStr.WriteString(fmt.Sprintf("| `%s` ", typeVal))
-		tableStr.WriteString(fmt.Sprintf("| `%s` ", defaultVal))
+		fmt.Fprintf(&tableStr, "| `%s` ", constValue)
+		fmt.Fprintf(&tableStr, "| `%s` ", typeVal)
+		fmt.Fprintf(&tableStr, "| `%s` ", defaultVal)
 
 		if hasReadOnlyColumn {
 			readOnlyVal := "No"
 			if t.entries[constValue].ReadOnly {
 				readOnlyVal = "Yes"
 			}
-			tableStr.WriteString(fmt.Sprintf("| `%s` ", readOnlyVal))
+			fmt.Fprintf(&tableStr, "| `%s` ", readOnlyVal)
 		}
 
-		tableStr.WriteString(fmt.Sprintf("| %s |\n", t.entries[constValue].Description))
+		fmt.Fprintf(&tableStr, "| %s |\n", t.entries[constValue].Description)
 	}
 
 	return tableStr.String()
