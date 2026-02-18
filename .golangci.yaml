@@ -74,6 +74,11 @@ linters:
           alias: hrobotmodels
       no-unaliased: true
 
+    revive:
+      rules:
+        - name: var-naming
+          arguments: [[], [], [{ skipPackageNameCollisionWithGoStd: true }]]
+
   exclusions:
     generated: lax
     presets:
