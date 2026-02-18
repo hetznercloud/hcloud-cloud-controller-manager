@@ -47,7 +47,7 @@ type HCloudClientConfiguration struct {
 type RobotConfiguration struct {
 	Enabled           bool
 	User              string
-	Password          string
+	Password          string // #nosec G117 -- This config is never json marshaled
 	CacheTimeout      time.Duration
 	RateLimitWaitTime time.Duration
 	// ForwardInternalIPs is enabled by default.
