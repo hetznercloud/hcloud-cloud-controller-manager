@@ -15,7 +15,7 @@ The Node controller adds information about the server to the Node object. The va
     - We use the lowercase variant of the location to match the Cloud Locations
   - `topology.kubernetes.io/zone`
     - Examples: `hel1-dc5` `fsn1-dc16`
-    - We use the lowercase variant of the location to match the Cloud Datacenters
+    - We use the lowercase variant of the location to match the Cloud (virtual) Datacenters
   - `instance.hetzner.cloud/provided-by`
     - Examples: `robot` `cloud`
     - We detect if the node is a Robot server or Cloud VM and set the label accordingly
