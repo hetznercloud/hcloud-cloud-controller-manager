@@ -18,6 +18,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -37,8 +38,8 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 	labels := node.Labels
 	expectedLabels := map[string]string{
 		"node.kubernetes.io/instance-type":   server.ServerType.Name,
-		"topology.kubernetes.io/region":      server.Datacenter.Location.Name,
-		"topology.kubernetes.io/zone":        server.Datacenter.Name,
+		"topology.kubernetes.io/region":      server.Location.Name,
+		"topology.kubernetes.io/zone":        legacydatacenter.NameFromLocation(server.Location.Name),
 		"kubernetes.io/hostname":             server.Name,
 		"kubernetes.io/os":                   "linux",
 		"kubernetes.io/arch":                 "amd64",

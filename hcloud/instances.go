@@ -29,6 +29,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
@@ -348,8 +349,8 @@ func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMC
 		ProviderID:    providerid.FromCloudServerID(s.ID),
 		InstanceType:  s.ServerType.Name,
 		NodeAddresses: hcloudNodeAddresses(networkID, s.Server, cfg),
-		Zone:          s.Datacenter.Name,
-		Region:        s.Datacenter.Location.Name,
+		Zone:          legacydatacenter.NameFromLocation(s.Location.Name),
+		Region:        s.Location.Name,
 		AdditionalLabels: map[string]string{
 			ProvidedBy: "cloud",
 		},
