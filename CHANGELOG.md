@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.30.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.1)
+
+### Datacenter Deprecation
+
+The `server.datacenter` field is deprecated and will be removed from the API response after July 2026: https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters
+
+To avoid a breaking change in HCCM, we decided to statically map from the old location names to the existing datacenter names for the `topology.kubernetes.io/zone` label. For new locations we will return the location name without a `-dcxx` suffix.
+
+Deployments of `hcloud-cloud-controller-manager` that are not updated when the field is removed from the API will **panic** with the following error:
+
+"Observed a panic" panic="runtime error: invalid memory address or nil pointer dereference" panicGoValue="\"invalid memory address or nil pointer dereference\""
+
+We have published an RFC which details how we want to continue utilizing the labels `topology.kubernetes.io/zone` and `topology.kubernetes.io/region`: https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/1146#issuecomment-3919929223
+
+### Bug Fixes
+
+- statically map deprecated datacenter names (#1159)
+
 ## [v1.30.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.0)
 
 ### Features
