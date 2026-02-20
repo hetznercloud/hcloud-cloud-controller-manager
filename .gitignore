@@ -8,3 +8,4 @@ hcloud-cloud-controller-manager
 *.tgz
 hack/.*
 coverage/
+.vscode

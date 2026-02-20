@@ -375,8 +375,14 @@ func (s robotServer) IsShutdown() (bool, error) {
 }
 
 func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+	var providerID string
+	if cfg.Robot.UseLegacyProviderID {
+		providerID = providerid.FromRobotLegacyServerNumber(s.ServerNumber)
+	} else {
+		providerID = providerid.FromRobotServerNumber(s.ServerNumber)
+	}
 	return &cloudprovider.InstanceMetadata{
-		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
+		ProviderID:    providerID,
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
 		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recorder),
 		Zone:          getZoneOfRobotServer(s.Server),
