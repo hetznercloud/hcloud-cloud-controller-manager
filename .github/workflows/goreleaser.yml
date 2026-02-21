@@ -33,7 +33,7 @@ jobs:
       - name: Run GoReleaser for snapshot
         # This does not actually publish anything, but makes sure that the images can be build
         if: "!startsWith(github.ref, 'refs/tags/')"
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --snapshot --clean
@@ -49,7 +49,7 @@ jobs:
 
       - name: Run GoReleaser for tag
         if: "startsWith(github.ref, 'refs/tags/')"
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --clean
