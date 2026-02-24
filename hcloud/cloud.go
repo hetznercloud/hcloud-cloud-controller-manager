@@ -96,7 +96,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	metadataClient := metadata.NewClient()
 
 	var robotClient robot.Client
-	if cfg.Robot.Enabled {
+	if cfg.Robot.Enabled && cfg.Robot.User != "" && cfg.Robot.Password != "" {
 		c := hrobot.NewBasicAuthClientWithCustomHttpClient(
 			cfg.Robot.User,
 			cfg.Robot.Password,

@@ -484,7 +484,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE\": unsupported value \"invalid\""),
 		},
 		{
-			name: "robot enabled but missing credentials",
+			name: "robot enabled without credentials (valid)",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
@@ -493,8 +493,35 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 					Enabled: true,
 				},
 			},
-			wantErr: errors.New(`environment variable "ROBOT_USER" is required if Robot support is enabled
-environment variable "ROBOT_PASSWORD" is required if Robot support is enabled`),
+			wantErr: nil,
+		},
+		{
+			name: "robot enabled with partial credentials (only user)",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+
+				Robot: RobotConfiguration{
+					Enabled:  true,
+					User:     "foo",
+					Password: "",
+				},
+			},
+			wantErr: errors.New(`both "ROBOT_USER" and "ROBOT_PASSWORD" must be provided, or neither`),
+		},
+		{
+			name: "robot enabled with partial credentials (only password)",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+
+				Robot: RobotConfiguration{
+					Enabled:  true,
+					User:     "",
+					Password: "bar",
+				},
+			},
+			wantErr: errors.New(`both "ROBOT_USER" and "ROBOT_PASSWORD" must be provided, or neither`),
 		},
 		{
 			name: "robot & routes activated",
