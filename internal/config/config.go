@@ -289,11 +289,15 @@ func (c HCCMConfiguration) Validate() (err error) {
 	}
 
 	if c.Robot.Enabled {
-		if c.Robot.User == "" {
-			errs = append(errs, fmt.Errorf("environment variable %q is required if Robot support is enabled", robotUser))
+		// Robot credentials are optional. When only using the service
+		// controller with IP-based LB targets, the node's InternalIP from
+		// Kubernetes is sufficient and no Robot API access is needed.
+		if (c.Robot.User == "") != (c.Robot.Password == "") {
+			// Partial credentials are likely a misconfiguration.
+			errs = append(errs, fmt.Errorf("both %q and %q must be provided, or neither", robotUser, robotPassword))
 		}
-		if c.Robot.Password == "" {
-			errs = append(errs, fmt.Errorf("environment variable %q is required if Robot support is enabled", robotPassword))
+		if c.Robot.User == "" && c.Robot.Password == "" {
+			klog.Infof("Robot support enabled without credentials. Some features might not work as expected.")
 		}
 
 		if c.Route.Enabled {
