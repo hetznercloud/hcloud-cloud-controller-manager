@@ -9,6 +9,11 @@ type RobotClient struct {
 	mock.Mock
 }
 
+func (m *RobotClient) ServerGet(id int) (*hrobotmodels.Server, error) {
+	args := m.Called()
+	return getRobotServer(args, 0), args.Error(1)
+}
+
 func (m *RobotClient) ServerGetList() ([]hrobotmodels.Server, error) {
 	args := m.Called()
 	return getRobotServers(args, 0), args.Error(1)
@@ -60,9 +65,6 @@ func (m *RobotClient) ResetGet(id int) (*hrobotmodels.Reset, error) {
 	panic("this method should not be called")
 }
 func (m *RobotClient) ResetSet(id int, input *hrobotmodels.ResetSetInput) (*hrobotmodels.ResetPost, error) {
-	panic("this method should not be called")
-}
-func (m *RobotClient) ServerGet(id int) (*hrobotmodels.Server, error) {
 	panic("this method should not be called")
 }
 func (m *RobotClient) ServerReverse(id int) (*hrobotmodels.Cancellation, error) {

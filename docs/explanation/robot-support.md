@@ -50,8 +50,6 @@ When a new Node joins the cluster, we first need to figure out which Robot (or C
 
 _This means that by default, your **Hostname** needs to be the **name of the server in Robot**_. If this does not match, we can not properly match the two entities. Once we have made this connection, we save the Robot Server Number to the field `spec.providerId` on the Node, and use this identifier for any further processing.
 
-If you absolutely need to use different names in Robot & Hostname, you can also configure the Provider ID yourself. This can be done on the `kubelet` through the flag [`--provider-id`](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/). You need to follow the format `hrobot://$SERVER_NUMBER` when setting this. If this format is not followed exactly we can not process this node.
-
 ## Credentials
 
 If you only plan to use a single Robot server, you can also use an "Admin login" (see the `Admin login` tab on the [server administration page](https://robot.hetzner.com/server)) for this server instead of the account credentials.
