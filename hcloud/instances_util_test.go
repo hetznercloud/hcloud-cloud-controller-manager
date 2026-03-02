@@ -51,13 +51,13 @@ func TestGetRobotServerByID(t *testing.T) {
 
 			server, err := getRobotServerByID(inst, 1, node)
 			require.NoError(t, err)
-			require.NotNil(t, server)
-			assert.Equal(t, "foobar", server.Name)
 
 			if tt.expectedEvent != "" {
+				require.Nil(t, server)
 				event := <-recorder.Events
 				assert.Equal(t, tt.expectedEvent, event)
 			} else {
+				assert.Equal(t, "foobar", server.Name)
 				assert.Empty(t, recorder.Events)
 			}
 		})
