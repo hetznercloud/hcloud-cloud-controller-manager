@@ -111,7 +111,7 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 		return nil, nil
 	}
 
-	// check whether name matches - otherwise this server does not belong to the respective node anymore
+	// check whether name matches
 	if server.Name != node.Name {
 		i.recorder.Eventf(
 			node,
@@ -121,10 +121,8 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 			node.ObjectMeta.Name,
 			server.Name,
 		)
-		return nil, nil
 	}
 
-	// return nil, nil if server could not be found
 	return server, nil
 }
 
