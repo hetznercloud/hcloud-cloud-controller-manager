@@ -82,10 +82,10 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.10.1
+    rev: v2.11.2
     hooks:
       - id: golangci-lint-full
-        language_version: 1.25.7 # renovate: datasource=golang-version depName=go
+        language_version: 1.25.8 # renovate: datasource=golang-version depName=go
 
   - repo: local
     hooks:
