@@ -1588,6 +1588,98 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.True(t, changed)
 			},
 		},
+		{
+			name: "robot enabled without credentials uses node InternalIP for IP targets",
+			k8sNodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
+				{
+					Spec:       corev1.NodeSpec{ProviderID: "hrobot://3"},
+					ObjectMeta: metav1.ObjectMeta{Name: "robot-3"},
+					Status: corev1.NodeStatus{
+						Addresses: []corev1.NodeAddress{
+							{Type: corev1.NodeInternalIP, Address: "10.0.1.10"},
+						},
+					},
+				},
+				{
+					Spec:       corev1.NodeSpec{ProviderID: "hrobot://4"},
+					ObjectMeta: metav1.ObjectMeta{Name: "robot-4"},
+					Status: corev1.NodeStatus{
+						Addresses: []corev1.NodeAddress{
+							{Type: corev1.NodeInternalIP, Address: "10.0.1.11"},
+						},
+					},
+				},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 1,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
+			},
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					IPv6Enabled:      true,
+					PrivateIPEnabled: true,
+				},
+				Robot: config.RobotConfiguration{Enabled: true},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				// Set RobotClient to nil to simulate missing credentials
+				tt.fx.LBOps.RobotClient = nil
+				tt.fx.LBOps.NetworkID = 4711
+
+				opts := hcloud.LoadBalancerAddServerTargetOpts{Server: &hcloud.Server{ID: 1}, UsePrivateIP: hcloud.Ptr(true)}
+				action := tt.fx.MockAddServerTarget(tt.initialLB, opts, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+
+				optsIP := hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("10.0.1.10")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+
+				optsIP = hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("10.0.1.11")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
+		{
+			name: "robot enabled without credentials skips nodes without InternalIP",
+			k8sNodes: []*corev1.Node{
+				{
+					Spec:       corev1.NodeSpec{ProviderID: "hrobot://5"},
+					ObjectMeta: metav1.ObjectMeta{Name: "robot-no-ip"},
+					Status:     corev1.NodeStatus{},
+				},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 1,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
+			},
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{
+					IPv6Enabled:      true,
+					PrivateIPEnabled: true,
+				},
+				Robot: config.RobotConfiguration{Enabled: true},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				// Set RobotClient to nil to simulate missing credentials
+				tt.fx.LBOps.RobotClient = nil
+				tt.fx.LBOps.NetworkID = 4711
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+			},
+		},
 	}
 
 	for _, tt := range tests {
