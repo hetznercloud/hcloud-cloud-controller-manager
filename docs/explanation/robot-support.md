@@ -54,20 +54,8 @@ If you absolutely need to use different names in Robot & Hostname, you can also 
 
 ## Credentials
 
-Robot API credentials (`ROBOT_USER` / `ROBOT_PASSWORD`) are **optional**. They control which features are available:
-
-### With Credentials
-
-All features described above are available: the Node Controller sets labels and addresses from the Robot API, the Node Lifecycle Controller manages shutdown detection and node deletion, and the Service Controller adds Robot servers as Load Balancer targets.
+Robot API credentials (`ROBOT_USER` / `ROBOT_PASSWORD`) are required for full functionality. All features described above — Node Controller labels and addresses, Node Lifecycle Controller shutdown detection, and Service Controller Load Balancer targets — depend on Robot API access.
 
 If you only plan to use a single Robot server, you can also use an "Admin login" (see the `Admin login` tab on the [server administration page](https://robot.hetzner.com/server)) for this server instead of the account credentials.
 
-### Without Credentials
-
-When `robot.enabled` is set to `true` but no `ROBOT_USER` / `ROBOT_PASSWORD` are provided, the HCCM operates in a limited mode:
-
-- **Service Controller (Load Balancers)**: Fully functional. Robot servers with `hrobot://` provider IDs are added as IP targets using their `InternalIP` from the Kubernetes Node object. This is ideal for setups where Robot servers are connected via a vSwitch and only the Load Balancer integration is needed.
-- **Node Controller**: Must be disabled (`--controllers=*,-cloud-node,-cloud-node-lifecycle`), as it requires the Robot API to fetch server metadata.
-- **Node Lifecycle Controller**: Must be disabled (same flag as above).
-
-This mode is useful when you manage nodes externally (e.g., via Talos or another provisioning tool) and only need the CCM for Load Balancer target management. It avoids exposing account-wide Robot API credentials to the cluster.
+> **Running without credentials:** If you manage nodes externally (e.g., via Talos) and only need the Load Balancer IP target integration, you can omit Robot API credentials. The HCCM will derive targets from the Kubernetes Node's `InternalIP` instead. This requires `use-private-ip` and disabling the node controllers. See the [LB-only without credentials guide](../guides/robot/lb-only-without-credentials.md) for setup instructions.

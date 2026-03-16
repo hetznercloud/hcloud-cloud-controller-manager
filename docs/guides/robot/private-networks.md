@@ -6,9 +6,9 @@ As a result, the annotation `load-balancer.hetzner.cloud/use-private-ip` can be 
 
 ## Prerequisite
 
-Enable Robot support as outlined in the [Robot setup guide](./quickstart.md). For a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with `kubectl get nodes -o json | jq ".items.[].status.addresses"` if you have configured an InternalIP.
+Enable Robot support as outlined in the [Robot setup guide](./quickstart.md). As mentioned there, for a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with `kubectl get nodes -o json | jq ".items.[].status.addresses"` if you have configured an InternalIP.
 
-Robot API credentials (`ROBOT_USER` / `ROBOT_PASSWORD`) are optional for this use case. When credentials are not provided, the HCCM derives IP targets directly from the Kubernetes Node's `InternalIP` instead of querying the Robot API. This requires disabling the node controllers: `--controllers=*,-cloud-node,-cloud-node-lifecycle`. See the [Robot Support explanation](../../explanation/robot-support.md#without-credentials) for details.
+> If you don't need Robot API credentials for this setup, see the [LB-only without credentials guide](./lb-only-without-credentials.md).
 
 ## Configuration
 
