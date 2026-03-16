@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -34,7 +33,7 @@ func TestPodIsPresent(t *testing.T) {
 	t.Parallel()
 
 	t.Run("hcloud-cloud-controller-manager pod is present in kube-system", func(t *testing.T) {
-		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").List(context.Background(), metav1.ListOptions{})
+		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").List(t.Context(), metav1.ListOptions{})
 		assert.NoError(t, err)
 
 		found := false
@@ -51,7 +50,7 @@ func TestPodIsPresent(t *testing.T) {
 
 	t.Run("pod with app=hcloud-cloud-controller-manager is present in kube-system", func(t *testing.T) {
 		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").
-			List(context.Background(), metav1.ListOptions{
+			List(t.Context(), metav1.ListOptions{
 				LabelSelector: "app.kubernetes.io/name=hcloud-cloud-controller-manager",
 			})
 		assert.NoError(t, err)
