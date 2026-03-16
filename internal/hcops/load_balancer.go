@@ -680,44 +680,76 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	// List all robot servers to check whether the ip targets of the load balancer
 	// correspond to a dedicated server
 
-	if l.Cfg.Robot.Enabled {
+	useRobotAPI := l.Cfg.Robot.Enabled && l.RobotClient != nil
+	useRobotInternalIPs := l.Cfg.Robot.Enabled && l.RobotClient == nil && privateIPEnabled
+
+	// Use Robot API to either fetch ExternalIP or use InternalIP from Node objects
+	if useRobotAPI {
 		dedicatedServers, err := l.RobotClient.ServerGetList()
 		if err != nil {
 			return changed, fmt.Errorf("%s: failed to get list of dedicated servers: %w", op, err)
 		}
 
 		for _, s := range dedicatedServers {
-			if privateIPEnabled {
-				node, ok := k8sNodes[int64(s.ServerNumber)]
-				if !ok {
-					continue
-				}
+			// Set ExternalIP as Load Balancer target
+			robotIPsToIDs[s.ServerIP] = s.ServerNumber
+			robotIDToIPv4[s.ServerNumber] = s.ServerIP
 
-				internalIP := getNodeInternalIP(node)
-				if internalIP != "" {
-					robotIPsToIDs[internalIP] = s.ServerNumber
-					robotIDToIPv4[s.ServerNumber] = internalIP
-					continue
-				}
+			// If user does not want private IPs we can skip this part
+			if !privateIPEnabled {
+				continue
+			}
 
-				klog.Warningf(
+			node, ok := k8sNodes[int64(s.ServerNumber)]
+			if !ok {
+				continue
+			}
+
+			// Check if InternalIP is set at Node object
+			internalIP := getNodeInternalIP(node)
+			if internalIP == "" {
+				warnMsg := fmt.Sprintf(
 					"%s: load balancer %s has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
 					op,
 					svc.Name,
 					node.Name,
 				)
-				l.Recorder.Eventf(
-					svc,
-					corev1.EventTypeWarning,
-					"InternalIPNotConfigured",
-					"%s: load balancer has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
-					op,
-					node.Name,
-				)
+				klog.Warning(warnMsg)
+				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", warnMsg)
+				continue
 			}
 
-			robotIPsToIDs[s.ServerIP] = s.ServerNumber
-			robotIDToIPv4[s.ServerNumber] = s.ServerIP
+			// Overwrite ExternalIP with InternalIP
+			robotIPsToIDs[internalIP] = s.ServerNumber
+			robotIDToIPv4[s.ServerNumber] = internalIP
+		}
+	}
+
+	// Use InternalIPs for Robot servers without querying the API
+	if useRobotInternalIPs {
+		// No Robot client: derive IP mapping directly from Kubernetes Node
+		// objects. This works when the node's InternalIP is the correct
+		// target (e.g. vSwitch private IP).
+		for id := range k8sNodeIDsRobot {
+			node, ok := k8sNodes[int64(id)]
+			if !ok {
+				continue
+			}
+
+			internalIP := getNodeInternalIP(node)
+			if internalIP == "" {
+				warnMsg := fmt.Sprintf(
+					"no InternalIP found for Robot node %s (id=%d), cannot add as LB target without Robot credentials; skipping",
+					node.Name,
+					id,
+				)
+				klog.Warning(warnMsg)
+				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", warnMsg)
+				continue
+			}
+
+			robotIPsToIDs[internalIP] = id
+			robotIDToIPv4[id] = internalIP
 		}
 	}
 
