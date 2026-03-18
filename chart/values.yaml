@@ -124,6 +124,12 @@ selectorLabels:
   app.kubernetes.io/name: '{{ include "hcloud-cloud-controller-manager.name" $ }}'
   app.kubernetes.io/instance: "{{ $.Release.Name }}"
 
+# strategy:
+#   type: RollingUpdate
+#   rollingUpdate:
+#     maxSurge: 1
+#     maxUnavailable: 1
+
 additionalTolerations: []
 
 # nodeSelector:
