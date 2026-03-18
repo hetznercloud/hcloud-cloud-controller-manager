@@ -58,4 +58,4 @@ Robot API credentials (`ROBOT_USER` / `ROBOT_PASSWORD`) are required for full fu
 
 If you only plan to use a single Robot server, you can also use an "Admin login" (see the `Admin login` tab on the [server administration page](https://robot.hetzner.com/server)) for this server instead of the account credentials.
 
-> **Running without credentials:** If you manage nodes externally (e.g., via Talos) and only need the Load Balancer IP target integration, you can omit Robot API credentials. The HCCM will derive targets from the Kubernetes Node's `InternalIP` instead. This requires `use-private-ip` and disabling the node controllers. See the [LB-only without credentials guide](../guides/robot/lb-only-without-credentials.md) for setup instructions.
+> **Running without credentials:** If you manage nodes externally (e.g., via Talos) and only need the Load Balancer controller, you can omit Robot API credentials. The HCCM will derive targets from the Kubernetes Node's `InternalIP` instead. This requires `use-private-ip` and disabling the node controllers. See the [LB-only without credentials guide](../guides/robot/lb-only-without-credentials.md) for setup instructions.
