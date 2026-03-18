@@ -5,6 +5,10 @@ metadata:
   name: {{ include "hcloud-cloud-controller-manager.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 2
   selector:
