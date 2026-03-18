@@ -111,7 +111,9 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 		return nil, nil
 	}
 
-	// check whether name matches - otherwise this server does not belong to the respective node anymore
+	// CAPH reuses Robot servers for multiple clusters and therefore the Robot ID does not change, but only
+	// the name in the Robot API is updated. As the node no longer exists in the cluster with the old name,
+	// we need to return nil here.
 	if server.Name != node.Name {
 		i.recorder.Eventf(
 			node,
@@ -124,7 +126,6 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 		return nil, nil
 	}
 
-	// return nil, nil if server could not be found
 	return server, nil
 }
 
