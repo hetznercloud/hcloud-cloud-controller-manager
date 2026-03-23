@@ -66,7 +66,7 @@ jobs:
           tofu_version: v1.11.5 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@v0.13.1
+      - uses: yokawasa/action-setup-kube-tools@v0.13.3
         with:
           setup-tools: |
             helm
@@ -184,7 +184,7 @@ jobs:
           tofu_version: v1.11.5 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@v0.13.1
+      - uses: yokawasa/action-setup-kube-tools@v0.13.3
         with:
           setup-tools: |
             helm
