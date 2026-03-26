@@ -16,7 +16,7 @@ jobs:
 
       - run: go test -v -race -coverprofile=coverage.txt ./...
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
           !startsWith(github.head_ref, 'releaser-pleaser--')
@@ -106,7 +106,7 @@ jobs:
           bash scripts/get-coverage-from-k8s.sh
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
           !startsWith(github.head_ref, 'releaser-pleaser--')
@@ -229,7 +229,7 @@ jobs:
           bash scripts/get-coverage-from-k8s.sh
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
           !startsWith(github.head_ref, 'releaser-pleaser--')
