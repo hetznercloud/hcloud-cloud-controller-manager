@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	hrobot "github.com/syself/hrobot-go"
@@ -16,12 +18,16 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
 
-func TestHCloudClientReloadsTokenFromFile(t *testing.T) {
+func TestHCloudClientReloadsTokenFromMountedSecret(t *testing.T) {
 	defer unsetEnv(t, "HCLOUD_TOKEN")()
 
-	var authorizations []string
+	var mu sync.Mutex
+	lastAuthorization := ""
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorizations = append(authorizations, r.Header.Get("Authorization"))
+		mu.Lock()
+		lastAuthorization = r.Header.Get("Authorization")
+		mu.Unlock()
 		assert.NoError(t, json.NewEncoder(w).Encode(schema.LocationListResponse{Locations: []schema.Location{}}))
 	}))
 	defer server.Close()
@@ -32,35 +38,57 @@ func TestHCloudClientReloadsTokenFromFile(t *testing.T) {
 	resetEnv := testsupport.Setenv(t, "HCLOUD_TOKEN_FILE", tokenFile)
 	defer resetEnv()
 
+	credentials, err := newRuntimeCredentials()
+	assert.NoError(t, err)
+	defer func() {
+		assert.NoError(t, credentials.close())
+	}()
+
 	client := hcloud.NewClient(
 		hcloud.WithEndpoint(server.URL),
-		hcloud.WithHTTPClient(newHCloudHTTPClient(0)),
+		hcloud.WithHTTPClient(newHCloudHTTPClient(0, credentials)),
 		hcloud.WithPollOpts(hcloud.PollOpts{BackoffFunc: hcloud.ConstantBackoff(0)}),
 		hcloud.WithRetryOpts(hcloud.RetryOpts{BackoffFunc: hcloud.ConstantBackoff(0)}),
 	)
 
-	_, _, err := client.Location.List(t.Context(), hcloud.LocationListOpts{})
-	assert.NoError(t, err)
-
-	assert.NoError(t, os.WriteFile(tokenFile, []byte("token-2"), 0o600))
-
 	_, _, err = client.Location.List(t.Context(), hcloud.LocationListOpts{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, []string{"Bearer token-1", "Bearer token-2"}, authorizations)
+	mu.Lock()
+	assert.Equal(t, "Bearer token-1", lastAuthorization)
+	mu.Unlock()
+
+	replaceFile(t, tokenFile, "token-2")
+
+	assert.Eventually(t, func() bool {
+		_, _, err = client.Location.List(t.Context(), hcloud.LocationListOpts{})
+		if err != nil {
+			return false
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		return lastAuthorization == "Bearer token-2"
+	}, 3*time.Second, 50*time.Millisecond)
 }
 
-func TestRobotClientReloadsCredentialsFromFile(t *testing.T) {
+func TestRobotClientReloadsCredentialsFromMountedSecret(t *testing.T) {
 	defer unsetEnv(t, "ROBOT_USER")()
 	defer unsetEnv(t, "ROBOT_PASSWORD")()
 
-	var users []string
-	var passwords []string
+	var mu sync.Mutex
+	lastUser := ""
+	lastPassword := ""
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, password, ok := r.BasicAuth()
 		assert.True(t, ok)
-		users = append(users, user)
-		passwords = append(passwords, password)
+
+		mu.Lock()
+		lastUser = user
+		lastPassword = password
+		mu.Unlock()
+
 		assert.NoError(t, json.NewEncoder(w).Encode([]map[string]any{
 			{
 				"server": map[string]any{
@@ -85,20 +113,44 @@ func TestRobotClientReloadsCredentialsFromFile(t *testing.T) {
 	)
 	defer resetEnv()
 
-	client := hrobot.NewBasicAuthClientWithCustomHttpClient("stale-user", "stale-password", newRobotHTTPClient(0))
-	client.SetBaseURL(server.URL)
-
-	_, err := client.ServerGetList()
+	credentials, err := newRuntimeCredentials()
 	assert.NoError(t, err)
+	defer func() {
+		assert.NoError(t, credentials.close())
+	}()
 
-	assert.NoError(t, os.WriteFile(userFile, []byte("robot-user-2"), 0o600))
-	assert.NoError(t, os.WriteFile(passwordFile, []byte("robot-password-2"), 0o600))
+	client := hrobot.NewBasicAuthClientWithCustomHttpClient("stale-user", "stale-password", newRobotHTTPClient(0, credentials))
+	client.SetBaseURL(server.URL)
 
 	_, err = client.ServerGetList()
 	assert.NoError(t, err)
 
-	assert.Equal(t, []string{"robot-user-1", "robot-user-2"}, users)
-	assert.Equal(t, []string{"robot-password-1", "robot-password-2"}, passwords)
+	mu.Lock()
+	assert.Equal(t, "robot-user-1", lastUser)
+	assert.Equal(t, "robot-password-1", lastPassword)
+	mu.Unlock()
+
+	replaceFile(t, userFile, "robot-user-2")
+	replaceFile(t, passwordFile, "robot-password-2")
+
+	assert.Eventually(t, func() bool {
+		_, err = client.ServerGetList()
+		if err != nil {
+			return false
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		return lastUser == "robot-user-2" && lastPassword == "robot-password-2"
+	}, 3*time.Second, 50*time.Millisecond)
+}
+
+func replaceFile(t *testing.T, path, content string) {
+	t.Helper()
+
+	tmpPath := path + ".tmp"
+	assert.NoError(t, os.WriteFile(tmpPath, []byte(content), 0o600))
+	assert.NoError(t, os.Rename(tmpPath, path))
 }
 
 func unsetEnv(t *testing.T, key string) func() {

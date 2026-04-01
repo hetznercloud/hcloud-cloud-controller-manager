@@ -3,9 +3,26 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
+
+type RuntimeCredentialFiles struct {
+	HCloudToken   string
+	RobotUser     string
+	RobotPassword string
+}
+
+func (f RuntimeCredentialFiles) HasAny() bool {
+	return f.HCloudToken != "" || f.RobotUser != "" || f.RobotPassword != ""
+}
+
+func (f RuntimeCredentialFiles) Directories() []string {
+	return uniqueDirectories(f.HCloudToken, f.RobotUser, f.RobotPassword)
+}
 
 // LookupHCloudToken reads the current HCLOUD_TOKEN / HCLOUD_TOKEN_FILE value.
 func LookupHCloudToken() (string, error) {
@@ -24,4 +41,48 @@ func LookupRobotCredentials() (string, string, error) {
 		return "", "", fmt.Errorf("both %q and %q must be provided, or neither", robotUser, robotPassword)
 	}
 	return user, password, nil
+}
+
+// LookupRuntimeCredentialFiles returns the file-backed credential sources that
+// can be watched for hot reloads. Plain environment variables take precedence
+// over file-backed sources and are therefore not watched.
+func LookupRuntimeCredentialFiles() RuntimeCredentialFiles {
+	return RuntimeCredentialFiles{
+		HCloudToken:   lookupCredentialFile(hcloudToken),
+		RobotUser:     lookupCredentialFile(robotUser),
+		RobotPassword: lookupCredentialFile(robotPassword),
+	}
+}
+
+// ReadCredentialFile reads a mounted credential file and trims surrounding
+// whitespace to match envutil.LookupEnvWithFile semantics.
+func ReadCredentialFile(path string) (string, error) {
+	valueBytes, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(valueBytes)), nil
+}
+
+func lookupCredentialFile(key string) string {
+	if _, ok := os.LookupEnv(key); ok {
+		return ""
+	}
+	return os.Getenv(key + "_FILE")
+}
+
+func uniqueDirectories(paths ...string) []string {
+	dirs := map[string]struct{}{}
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		dirs[filepath.Dir(path)] = struct{}{}
+	}
+
+	result := make([]string, 0, len(dirs))
+	for dir := range dirs {
+		result = append(result, dir)
+	}
+	return result
 }
