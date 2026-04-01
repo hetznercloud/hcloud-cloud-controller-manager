@@ -19,7 +19,6 @@ package hcloud
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -71,13 +70,8 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	}
 
 	opts := []hcloud.ClientOption{
-		hcloud.WithToken(cfg.HCloudClient.Token),
 		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
-		hcloud.WithHTTPClient(
-			&http.Client{
-				Timeout: apiClientTimeout,
-			},
-		),
+		hcloud.WithHTTPClient(newHCloudHTTPClient(apiClientTimeout)),
 	}
 
 	// start metrics server if enabled (enabled by default)
@@ -100,9 +94,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 		c := hrobot.NewBasicAuthClientWithCustomHttpClient(
 			cfg.Robot.User,
 			cfg.Robot.Password,
-			&http.Client{
-				Timeout: apiClientTimeout,
-			},
+			newRobotHTTPClient(apiClientTimeout),
 		)
 
 		robotClient = robot.NewRateLimitedClient(
