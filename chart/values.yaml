@@ -45,6 +45,10 @@ env:
   # This is currently possible for HCLOUD_TOKEN, ROBOT_USER, and ROBOT_PASSWORD.
   # Use the env var appended with _FILE (e.g. HCLOUD_TOKEN_FILE) and set the value to the file path that should be read
   # The file must be provided externally (e.g. via secret injection).
+  # Hot reloading only works with file-backed secrets. It does not work when
+  # credentials are provided via regular environment variables or
+  # valueFrom.secretKeyRef, because Kubernetes does not update the process
+  # environment of a running container.
   # Example:
   # HCLOUD_TOKEN_FILE:
   #   value: "/etc/hetzner/token"
