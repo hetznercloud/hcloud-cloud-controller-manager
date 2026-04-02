@@ -8,7 +8,6 @@ In this mode, the HCCM derives Load Balancer targets from the Kubernetes Node's 
 
 - Nodes must be initialized with a provider ID
 - Robot servers must be connected to a vSwitch with an `InternalIP` configured on each Node.
-- The node controllers must be disabled, as they will fail without Robot API access.
 
 ## Setup
 
@@ -36,10 +35,16 @@ helm install hcloud/hcloud-cloud-controller-manager \
     --set args='{--controllers=*\,-cloud-node\,-cloud-node-lifecycle}'
 ```
 
-3. Verify that your Robot Nodes have an `InternalIP`:
+3. Verify that your Robot Nodes have a `ProviderID`:
 
 ```bash
-kubectl get nodes -o json | jq ".items.[].status.addresses"
+kubectl get nodes -o json | jq -r '.items[] | "\(.metadata.name)\t\(.spec.providerID // "N/A")"'
 ```
 
-4. Annotate your Services with `load-balancer.hetzner.cloud/use-private-ip: "true"` to use the `InternalIP` as the Load Balancer target. See the [Private Networks guide](./private-networks.md) for more details.
+4. Verify that your Robot Nodes have an `InternalIP`:
+
+```bash
+kubectl get nodes -o json | jq -r '.items[] | "\(.metadata.name)\t\(.status.addresses // [])"'
+```
+
+5. Annotate your Services with `load-balancer.hetzner.cloud/use-private-ip: "true"` to use the `InternalIP` as the Load Balancer target. See the [Private Networks guide](./private-networks.md) for more details.
