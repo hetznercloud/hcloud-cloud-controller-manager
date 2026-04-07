@@ -35,16 +35,10 @@ helm install hcloud/hcloud-cloud-controller-manager \
     --set args='{--controllers=*\,-cloud-node\,-cloud-node-lifecycle}'
 ```
 
-3. Verify that your Robot Nodes have a `ProviderID`:
+3. Verify that your Robot Nodes have a `ProviderID` and an `InternalIP`:
 
 ```bash
-kubectl get nodes -o json | jq -r '.items[] | "\(.metadata.name)\t\(.spec.providerID // "N/A")"'
+kubectl get nodes -o 'custom-columns=NAME:.metadata.name,PROVIDER-ID:.spec.providerID,INTERNAL-IP:.status.addresses[?(@.type=="InternalIP")].address'
 ```
 
-4. Verify that your Robot Nodes have an `InternalIP`:
-
-```bash
-kubectl get nodes -o json | jq -r '.items[] | "\(.metadata.name)\t\(.status.addresses // [])"'
-```
-
-5. Annotate your Services with `load-balancer.hetzner.cloud/use-private-ip: "true"` to use the `InternalIP` as the Load Balancer target. See the [Private Networks guide](./private-networks.md) for more details.
+4. Annotate your Services with `load-balancer.hetzner.cloud/use-private-ip: "true"` to use the `InternalIP` as the Load Balancer target. See the [Private Networks guide](./private-networks.md) for more details.
