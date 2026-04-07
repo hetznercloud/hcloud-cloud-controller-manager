@@ -128,6 +128,14 @@ selectorLabels:
   app.kubernetes.io/name: '{{ include "hcloud-cloud-controller-manager.name" $ }}'
   app.kubernetes.io/instance: "{{ $.Release.Name }}"
 
+# Deployment strategy for the hccm Pod.
+# See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+strategy: {}
+#   type: RollingUpdate
+#   rollingUpdate:
+#     maxSurge: 1
+#     maxUnavailable: 1
+
 additionalTolerations: []
 
 # nodeSelector:
