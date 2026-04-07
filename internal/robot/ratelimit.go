@@ -44,6 +44,16 @@ func (c *rateLimitClient) ServerGetList() ([]hrobotmodels.Server, error) {
 	return servers, err
 }
 
+func (c *rateLimitClient) ServerGetListForceRefresh(nodeName string) ([]hrobotmodels.Server, error) {
+	if c.isExceeded() {
+		return nil, c.getRateLimitError()
+	}
+
+	servers, err := c.robotClient.ServerGetListForceRefresh(nodeName)
+	c.handleError(err)
+	return servers, err
+}
+
 func (c *rateLimitClient) ResetGet(id int) (*hrobotmodels.Reset, error) {
 	if c.isExceeded() {
 		return nil, c.getRateLimitError()

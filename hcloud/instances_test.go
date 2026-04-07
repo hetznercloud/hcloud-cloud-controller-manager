@@ -24,6 +24,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	hrobotmodels "github.com/syself/hrobot-go/models"
@@ -32,6 +33,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
@@ -186,6 +188,66 @@ func TestInstances_InstanceExists(t *testing.T) {
 				t.Fatalf("Expected server to exist %v but got %v", test.expected, exists)
 			}
 		})
+	}
+}
+
+func TestInstances_InstanceExistsRobotServerCreatedAfterCacheFill(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+
+	servers := []hrobotmodels.Server{
+		{
+			ServerIP:      "233.252.0.123",
+			ServerIPv6Net: "2a01:f48:111:4221::",
+			ServerNumber:  321,
+			Name:          "robot-server1",
+		},
+	}
+
+	env.Mux.HandleFunc("/robot/server", func(w http.ResponseWriter, _ *http.Request) {
+		responses := make([]hrobotmodels.ServerResponse, 0, len(servers))
+		for _, server := range servers {
+			responses = append(responses, hrobotmodels.ServerResponse{Server: server})
+		}
+		json.NewEncoder(w).Encode(responses)
+	})
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerListResponse{Servers: []schema.Server{}})
+	})
+
+	instances := newInstances(
+		env.Client,
+		robot.NewCachedClient(time.Hour, env.RobotClient),
+		env.Recorder,
+		0,
+		env.Cfg,
+	)
+
+	exists, err := instances.InstanceExists(context.TODO(), &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "robot-server1"},
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error warming cache: %v", err)
+	}
+	if !exists {
+		t.Fatal("Expected robot-server1 to exist")
+	}
+
+	servers = append(servers, hrobotmodels.Server{
+		ServerIP:      "233.252.0.124",
+		ServerIPv6Net: "2a01:f48:111:4222::",
+		ServerNumber:  322,
+		Name:          "robot-server2",
+	})
+
+	exists, err = instances.InstanceExists(context.TODO(), &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "robot-server2"},
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error after creating robot-server2: %v", err)
+	}
+	if !exists {
+		t.Fatal("Expected robot-server2 to exist after it was created")
 	}
 }
 

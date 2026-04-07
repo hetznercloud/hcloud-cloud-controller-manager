@@ -19,6 +19,10 @@ func (m *RobotClient) ServerGetList() ([]hrobotmodels.Server, error) {
 	return getRobotServers(args, 0), args.Error(1)
 }
 
+func (m *RobotClient) ServerGetListForceRefresh(_ string) ([]hrobotmodels.Server, error) {
+	return m.ServerGetList()
+}
+
 func (m *RobotClient) BootLinuxDelete(id int) (*hrobotmodels.Linux, error) {
 	panic("this method should not be called")
 }
