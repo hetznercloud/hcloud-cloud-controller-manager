@@ -195,14 +195,15 @@ func TestInstances_InstanceExistsRobotServerCreatedAfterCacheFill(t *testing.T) 
 	env := newTestEnv()
 	defer env.Teardown()
 
-	servers := []hrobotmodels.Server{
-		{
+	servers := make([]hrobotmodels.Server, 0, 2)
+	servers = append(servers,
+		hrobotmodels.Server{
 			ServerIP:      "233.252.0.123",
 			ServerIPv6Net: "2a01:f48:111:4221::",
 			ServerNumber:  321,
 			Name:          "robot-server1",
 		},
-	}
+	)
 
 	env.Mux.HandleFunc("/robot/server", func(w http.ResponseWriter, _ *http.Request) {
 		responses := make([]hrobotmodels.ServerResponse, 0, len(servers))
