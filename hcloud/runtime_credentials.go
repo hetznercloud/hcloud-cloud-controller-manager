@@ -1,6 +1,7 @@
 package hcloud
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -60,8 +61,11 @@ func newRuntimeCredentials() (*runtimeCredentials, error) {
 
 	for _, dir := range files.Directories() {
 		if err := watcher.Add(dir); err != nil {
-			watcher.Close()
-			return nil, fmt.Errorf("watch credentials directory %q: %w", dir, err)
+			addErr := fmt.Errorf("watch credentials directory %q: %w", dir, err)
+			if closeErr := watcher.Close(); closeErr != nil {
+				return nil, errors.Join(addErr, fmt.Errorf("close credentials watcher: %w", closeErr))
+			}
+			return nil, addErr
 		}
 	}
 
@@ -76,7 +80,7 @@ func (c *runtimeCredentials) loadInitial() error {
 		return err
 	}
 	if token != "" && !httpguts.ValidHeaderFieldValue(token) {
-		return fmt.Errorf(invalidAuthorizationTokenError)
+		return errors.New(invalidAuthorizationTokenError)
 	}
 
 	user, password, err := config.LookupRobotCredentials()
@@ -152,7 +156,7 @@ func (c *runtimeCredentials) reload() {
 		case err != nil:
 			klog.ErrorS(err, "reloading HCLOUD_TOKEN from mounted secret")
 		case token != "" && !httpguts.ValidHeaderFieldValue(token):
-			klog.ErrorS(fmt.Errorf(invalidAuthorizationTokenError), "reloading HCLOUD_TOKEN from mounted secret")
+			klog.ErrorS(errors.New(invalidAuthorizationTokenError), "reloading HCLOUD_TOKEN from mounted secret")
 		default:
 			c.mu.Lock()
 			c.hcloudToken = token

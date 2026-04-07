@@ -267,21 +267,23 @@ func TestCredentialReloadersClearAuthorizationHeadersWhenCredentialsAreEmpty(t *
 		}, nil
 	})
 
-	req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://example.com", nil)
 	assert.NoError(t, err)
 	req.Header.Set("Authorization", "stale")
 
-	_, err = newHCloudCredentialReloader(&runtimeCredentials{}, next).RoundTrip(req)
+	resp, err := newHCloudCredentialReloader(&runtimeCredentials{}, next).RoundTrip(req)
 	assert.NoError(t, err)
-	assert.Equal(t, "", <-captured)
+	assert.NoError(t, resp.Body.Close())
+	assert.Empty(t, <-captured)
 
-	req, err = http.NewRequest(http.MethodGet, "https://example.com", nil)
+	req, err = http.NewRequestWithContext(t.Context(), http.MethodGet, "https://example.com", nil)
 	assert.NoError(t, err)
 	req.Header.Set("Authorization", "stale")
 
-	_, err = newRobotCredentialReloader(&runtimeCredentials{}, next).RoundTrip(req)
+	resp, err = newRobotCredentialReloader(&runtimeCredentials{}, next).RoundTrip(req)
 	assert.NoError(t, err)
-	assert.Equal(t, "", <-captured)
+	assert.NoError(t, resp.Body.Close())
+	assert.Empty(t, <-captured)
 }
 
 func TestTransportOrDefault(t *testing.T) {
@@ -296,11 +298,12 @@ func TestTransportOrDefault(t *testing.T) {
 
 	assert.Same(t, http.DefaultTransport, transportOrDefault(nil))
 
-	req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://example.com", nil)
 	assert.NoError(t, err)
 
 	resp, err := transportOrDefault(custom).RoundTrip(req)
 	assert.NoError(t, err)
+	assert.NoError(t, resp.Body.Close())
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 }
 
