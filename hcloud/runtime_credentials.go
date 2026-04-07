@@ -49,7 +49,7 @@ func newRuntimeCredentials() (*runtimeCredentials, error) {
 	credentials.robotUserPath = files.RobotUser
 	credentials.robotPassPath = files.RobotPassword
 
-	if !files.HasAny() {
+	if !files.HasAnyFilePaths() {
 		return credentials, nil
 	}
 
@@ -115,6 +115,7 @@ func (c *runtimeCredentials) watch() {
 		select {
 		case event, ok := <-c.watcher.Events:
 			if !ok {
+				// !ok means the watcher closed the events channel.
 				return
 			}
 			if !shouldReload(event) {
@@ -129,6 +130,7 @@ func (c *runtimeCredentials) watch() {
 			debounceTimer.Reset(credentialsReloadDebounce)
 		case err, ok := <-c.watcher.Errors:
 			if !ok {
+				// !ok means the watcher closed the errors channel.
 				return
 			}
 			klog.ErrorS(err, "watching mounted credential files")

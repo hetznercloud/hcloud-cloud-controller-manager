@@ -12,7 +12,7 @@ import (
 
 func TestRuntimeCredentialFilesHelpers(t *testing.T) {
 	files := RuntimeCredentialFiles{}
-	assert.False(t, files.HasAny())
+	assert.False(t, files.HasAnyFilePaths())
 	assert.Empty(t, files.Directories())
 
 	files = RuntimeCredentialFiles{
@@ -21,7 +21,7 @@ func TestRuntimeCredentialFilesHelpers(t *testing.T) {
 		RobotPassword: "/tmp/two/password",
 	}
 
-	assert.True(t, files.HasAny())
+	assert.True(t, files.HasAnyFilePaths())
 	assert.ElementsMatch(t, []string{"/tmp/one", "/tmp/two"}, files.Directories())
 }
 

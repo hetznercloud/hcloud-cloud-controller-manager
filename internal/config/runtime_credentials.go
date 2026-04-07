@@ -10,16 +10,22 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
 
+// RuntimeCredentialFiles contains file-backed credential sources that can be
+// watched for runtime reloads.
 type RuntimeCredentialFiles struct {
 	HCloudToken   string
 	RobotUser     string
 	RobotPassword string
 }
 
-func (f RuntimeCredentialFiles) HasAny() bool {
+// HasAnyFilePaths reports whether any runtime credential file path is
+// configured.
+func (f RuntimeCredentialFiles) HasAnyFilePaths() bool {
 	return f.HCloudToken != "" || f.RobotUser != "" || f.RobotPassword != ""
 }
 
+// Directories returns the unique parent directories of the configured
+// credential files.
 func (f RuntimeCredentialFiles) Directories() []string {
 	return uniqueDirectories(f.HCloudToken, f.RobotUser, f.RobotPassword)
 }
