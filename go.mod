@@ -2,7 +2,7 @@ module github.com/hetznercloud/hcloud-cloud-controller-manager
 
 go 1.25.0
 
-toolchain go1.26.1
+toolchain go1.26.2
 
 require (
 	github.com/hetznercloud/hcloud-go/v2 v2.37.0
