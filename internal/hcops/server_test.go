@@ -137,8 +137,8 @@ func TestAllServersCache_CacheRefresh(t *testing.T) {
 			}
 			// Set the maximum cache age to a ridiculously low time to
 			// speed the test up.
-			tt.Cache.MaxAge = time.Nanosecond
-			time.Sleep(2 * tt.Cache.MaxAge)
+			tt.Cache.TTL = time.Nanosecond
+			time.Sleep(2 * tt.Cache.TTL)
 		},
 		Assert: func(t *testing.T, tt *allServersCacheTestCase) {
 			// All must be called only twice. Once during set-up and once
@@ -393,7 +393,7 @@ type allServersCacheTestCase struct {
 func (tt *allServersCacheTestCase) run(t *testing.T) {
 	tt.ServerClient = mocks.NewServerClient(t)
 	tt.Cache = &hcops.AllServersCache{
-		LoadFunc:                tt.ServerClient.All,
+		FetchFunc:               tt.ServerClient.All,
 		CacheMissRefreshLimiter: rate.NewLimiter(rate.Every(1*time.Minute), 1),
 	}
 

@@ -17,7 +17,6 @@ limitations under the License.
 package hcloud
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -26,9 +25,6 @@ import (
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type MockEventRecorder struct{}
@@ -49,29 +45,6 @@ func (er *MockEventRecorder) AnnotatedEventf(
 	_, _, _ string,
 	_ ...interface{},
 ) {
-}
-
-func getCloudServerByName(ctx context.Context, c *hcloud.Client, name string) (*hcloud.Server, error) {
-	const op = "hcloud/getCloudServerByName"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, _, err := c.Server.GetByName(ctx, name)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return server, nil
-}
-
-func getCloudServerByID(ctx context.Context, c *hcloud.Client, id int64) (*hcloud.Server, error) {
-	const op = "hcloud/getCloudServerByID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	server, _, err := c.Server.GetByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return server, nil
 }
 
 func getRobotServerByName(c hrobot.RobotClient, node *corev1.Node) (server *hrobotmodels.Server, err error) {

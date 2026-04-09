@@ -91,7 +91,7 @@ func TestInstances_InstanceExists(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
+	instances := newInstances(env.Client, env.RobotClient, env.ServerCache, env.Recorder, 0, env.Cfg)
 
 	tests := []struct {
 		name     string
@@ -104,7 +104,8 @@ func TestInstances_InstanceExists(t *testing.T) {
 				Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
 			},
 			expected: true,
-		}, {
+		},
+		{
 			name: "existing robot server by id",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -123,25 +124,29 @@ func TestInstances_InstanceExists(t *testing.T) {
 				Spec: corev1.NodeSpec{ProviderID: "hcloud://bm-321"},
 			},
 			expected: true,
-		}, {
+		},
+		{
 			name: "missing server by id",
 			node: &corev1.Node{
 				Spec: corev1.NodeSpec{ProviderID: "hcloud://2"},
 			},
 			expected: false,
-		}, {
+		},
+		{
 			name: "missing robot server by id",
 			node: &corev1.Node{
 				Spec: corev1.NodeSpec{ProviderID: "hrobot://322"},
 			},
 			expected: false,
-		}, {
+		},
+		{
 			name: "missing robot server by (legacy) id",
 			node: &corev1.Node{
 				Spec: corev1.NodeSpec{ProviderID: "hcloud://bm-322"},
 			},
 			expected: false,
-		}, {
+		},
+		{
 			name: "existing server by name",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -149,7 +154,8 @@ func TestInstances_InstanceExists(t *testing.T) {
 				},
 			},
 			expected: true,
-		}, {
+		},
+		{
 			name: "existing robot server by name",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -157,7 +163,8 @@ func TestInstances_InstanceExists(t *testing.T) {
 				},
 			},
 			expected: true,
-		}, {
+		},
+		{
 			name: "missing server by name",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -165,7 +172,8 @@ func TestInstances_InstanceExists(t *testing.T) {
 				},
 			},
 			expected: false,
-		}, {
+		},
+		{
 			name: "missing robot server by name",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -211,7 +219,7 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
+	instances := newInstances(env.Client, env.RobotClient, env.ServerCache, env.Recorder, 0, env.Cfg)
 	env.Mux.HandleFunc("/robot/server/3", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(hrobotmodels.ServerResponse{
 			Server: hrobotmodels.Server{
@@ -274,13 +282,15 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 				Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
 			},
 			expected: false,
-		}, {
+		},
+		{
 			name: "[cloud] shutdown",
 			node: &corev1.Node{
 				Spec: corev1.NodeSpec{ProviderID: "hcloud://2"},
 			},
 			expected: true,
-		}, {
+		},
+		{
 			name: "[robot] running",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -289,7 +299,8 @@ func TestInstances_InstanceShutdown(t *testing.T) {
 				Spec: corev1.NodeSpec{ProviderID: "hrobot://3"},
 			},
 			expected: false,
-		}, {
+		},
+		{
 			name: "[robot] shutdown",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -346,7 +357,7 @@ func TestInstances_InstanceMetadata(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
+	instances := newInstances(env.Client, env.RobotClient, env.ServerCache, env.Recorder, 0, env.Cfg)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		Spec: corev1.NodeSpec{ProviderID: "hcloud://1"},
@@ -390,7 +401,7 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 		})
 	})
 
-	instances := newInstances(env.Client, env.RobotClient, env.Recorder, 0, env.Cfg)
+	instances := newInstances(env.Client, env.RobotClient, env.ServerCache, env.Recorder, 0, env.Cfg)
 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{

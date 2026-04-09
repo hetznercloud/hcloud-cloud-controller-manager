@@ -18,22 +18,20 @@ import (
 // to servers using select hcloud.Server attributes.
 //
 // To simplify things the AllServersCache reloads all servers on every cache
-// miss, or whenever the data is older than MaxAge.
+// miss, or whenever the data is older than TTL.
 type AllServersCache struct {
-	LoadFunc    func(context.Context) ([]*hcloud.Server, error)
-	LoadTimeout time.Duration
-	MaxAge      time.Duration
-	// Set to limit the amount of refreshes due to cache misses
-	CacheMissRefreshLimiter *rate.Limiter
+	TTL       time.Duration
+	FetchFunc func(context.Context) ([]*hcloud.Server, error)
 
-	// If set, only IPs in this network will be considered for [ByPrivateIP]
-	Network *hcloud.Network
+	Network                 *hcloud.Network // If set, only IPs in this network will be considered for [ByPrivateIP]
+	CacheMissRefreshLimiter *rate.Limiter   // Set to limit the amount of refreshes due to cache misses
 
-	lastRefresh time.Time
-	byPrivIP    map[string]*hcloud.Server
-	byName      map[string]*hcloud.Server
+	byID     map[int64]*hcloud.Server
+	byName   map[string]*hcloud.Server
+	byPrivIP map[string]*hcloud.Server
 
-	mu sync.Mutex
+	expiresAt time.Time
+	mu        sync.Mutex
 }
 
 // ByPrivateIP obtains a server from the cache using the IP of one of its
@@ -77,6 +75,26 @@ func (c *AllServersCache) ByName(ctx context.Context, name string) (*hcloud.Serv
 	return srv, nil
 }
 
+// ByID obtains a server from the cache using the servers id.
+//
+// Note that a pointer to the object stored in the cache is returned. Modifying
+// this object affects the cache and all other code parts holding a reference.
+// Furthermore, modifying the returned server is not concurrency safe.
+func (c *AllServersCache) ByID(ctx context.Context, id int64) (*hcloud.Server, error) {
+	srv, err := c.getFromCache(ctx, func() (*hcloud.Server, bool) {
+		srv, ok := c.byID[id]
+		return srv, ok
+	})
+	if srv == nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error fetching server %d from cache: %w", id, err)
+	}
+
+	return srv, nil
+}
+
 // getFromCache wraps the cache maps with expiry time and "get-on-unavailable" functionality.
 func (c *AllServersCache) getFromCache(ctx context.Context, retrieveFromCacheMaps func() (*hcloud.Server, bool)) (*hcloud.Server, error) {
 	const op = "hcops/AllServersCache.getCache"
@@ -88,7 +106,7 @@ func (c *AllServersCache) getFromCache(ctx context.Context, retrieveFromCacheMap
 	cacheRefreshed := false
 
 	// Refresh the cache if its expired
-	if c.isExpired() {
+	if time.Now().After(c.expiresAt) {
 		if err := c.refreshCache(ctx); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -121,30 +139,22 @@ func (c *AllServersCache) refreshCache(ctx context.Context) error {
 	const op = "hcops/AllServersCache.refreshCache"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	to := c.LoadTimeout
-	if to == 0 {
-		to = 20 * time.Second
-	}
-	ctx, cancel := context.WithTimeout(ctx, to)
-	defer cancel()
-
-	servers, err := c.LoadFunc(ctx)
+	servers, err := c.FetchFunc(ctx)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Re-initialize all maps. This effectively clears the current cache.
-	c.byPrivIP = make(map[string]*hcloud.Server)
-	c.byName = make(map[string]*hcloud.Server)
+	c.byID = make(map[int64]*hcloud.Server, len(servers))
+	c.byName = make(map[string]*hcloud.Server, len(servers))
+	c.byPrivIP = make(map[string]*hcloud.Server, len(servers))
 
 	for _, server := range servers {
 		// Index servers by the IPs of their private networks
 		for _, n := range server.PrivateNet {
-			if c.Network != nil {
-				if n.Network.ID != c.Network.ID {
-					// Only consider private IPs in the right network
-					continue
-				}
+			if c.Network != nil && c.Network.ID != n.Network.ID {
+				// Only consider private IPs in the right network
+				continue
 			}
 			if n.IP == nil {
 				continue
@@ -155,11 +165,11 @@ func (c *AllServersCache) refreshCache(ctx context.Context) error {
 			c.byPrivIP[n.IP.String()] = server
 		}
 
-		// Index servers by their names.
+		c.byID[server.ID] = server
 		c.byName[server.Name] = server
 	}
 
-	c.lastRefresh = time.Now()
+	c.expiresAt = time.Now().Add(c.TTL)
 
 	return nil
 }
@@ -168,15 +178,5 @@ func (c *AllServersCache) refreshCache(ctx context.Context) error {
 func (c *AllServersCache) InvalidateCache() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	c.lastRefresh = time.Time{}
-}
-
-// Caller must hold the mutex.
-func (c *AllServersCache) isExpired() bool {
-	maxAge := c.MaxAge
-	if maxAge == 0 {
-		maxAge = 10 * time.Minute
-	}
-	return time.Now().After(c.lastRefresh.Add(maxAge))
+	c.expiresAt = time.Unix(0, 0)
 }

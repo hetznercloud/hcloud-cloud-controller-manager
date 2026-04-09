@@ -20,9 +20,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-var (
-	serversCacheMissRefreshRate = rate.Every(30 * time.Second)
-)
+var serversCacheMissRefreshRate = rate.Every(30 * time.Second)
 
 type routes struct {
 	client      *hcloud.Client
@@ -55,7 +53,8 @@ func newRoutes(client *hcloud.Client, networkID int64, clusterCIDR string, recor
 		serverCache: &hcops.AllServersCache{
 			// client.Server.All will load ALL the servers in the project, even those
 			// that are not part of the Kubernetes cluster.
-			LoadFunc:                client.Server.All,
+			FetchFunc:               client.Server.All,
+			TTL:                     10 * time.Minute,
 			Network:                 networkObj,
 			CacheMissRefreshLimiter: rate.NewLimiter(serversCacheMissRefreshRate, 1),
 		},
