@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
@@ -65,4 +66,37 @@ func TestRateLimitGetRateLimitError(t *testing.T) {
 	err = client.getRateLimitError()
 	assert.Error(t, err)
 	assert.True(t, strings.HasPrefix(err.Error(), "rate limit exceeded, next try at "))
+}
+
+func TestRateLimitServerGetListForceRefresh(t *testing.T) {
+	mock := mocks.RobotClient{}
+	mock.On("ServerGetListForceRefresh", "robot-server1").Return([]hrobotmodels.Server{
+		{ServerNumber: 321, Name: "robot-server1"},
+	}, nil).Once()
+
+	client := NewRateLimitedClient(5*time.Minute, &mock)
+
+	servers, err := client.ServerGetListForceRefresh("robot-server1")
+	require.NoError(t, err)
+	require.Len(t, servers, 1)
+	assert.Equal(t, "robot-server1", servers[0].Name)
+	mock.AssertNumberOfCalls(t, "ServerGetListForceRefresh", 1)
+}
+
+func TestRateLimitServerGetListForceRefreshStopsAfterRateLimit(t *testing.T) {
+	mock := mocks.RobotClient{}
+	mock.On("ServerGetListForceRefresh", "robot-server1").Return(nil, hrobotmodels.Error{
+		Code:    hrobotmodels.ErrorCodeRateLimitExceeded,
+		Message: "Rate limit exceeded",
+	}).Once()
+
+	client := NewRateLimitedClient(5*time.Minute, &mock)
+
+	_, err := client.ServerGetListForceRefresh("robot-server1")
+	require.Error(t, err)
+
+	_, err = client.ServerGetListForceRefresh("robot-server1")
+	require.Error(t, err)
+
+	mock.AssertNumberOfCalls(t, "ServerGetListForceRefresh", 1)
 }

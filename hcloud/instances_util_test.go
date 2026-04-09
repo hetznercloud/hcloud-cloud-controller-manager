@@ -63,3 +63,38 @@ func TestGetRobotServerByID(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRobotServerByNameForceRefreshFindsNewServer(t *testing.T) {
+	robotClientMock := &mocks.RobotClient{}
+	robotClientMock.Test(t)
+	robotClientMock.On("ServerGetList").Return([]hrobotmodels.Server{
+		{ServerNumber: 321, Name: "robot-server1"},
+	}, nil).Once()
+	robotClientMock.On("ServerGetListForceRefresh", "robot-server2").Return([]hrobotmodels.Server{
+		{ServerNumber: 322, Name: "robot-server2"},
+	}, nil).Once()
+
+	server, err := getRobotServerByName(robotClientMock, &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "robot-server2"},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, server)
+	assert.Equal(t, "robot-server2", server.Name)
+}
+
+func TestGetRobotServerByNameReturnsNilAfterForceRefreshMiss(t *testing.T) {
+	robotClientMock := &mocks.RobotClient{}
+	robotClientMock.Test(t)
+	robotClientMock.On("ServerGetList").Return([]hrobotmodels.Server{
+		{ServerNumber: 321, Name: "robot-server1"},
+	}, nil).Once()
+	robotClientMock.On("ServerGetListForceRefresh", "robot-server2").Return([]hrobotmodels.Server{
+		{ServerNumber: 321, Name: "robot-server1"},
+	}, nil).Once()
+
+	server, err := getRobotServerByName(robotClientMock, &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "robot-server2"},
+	})
+	require.NoError(t, err)
+	assert.Nil(t, server)
+}

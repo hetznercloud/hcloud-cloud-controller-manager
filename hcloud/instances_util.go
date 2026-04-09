@@ -88,11 +88,23 @@ func getRobotServerByName(c robot.Client, node *corev1.Node) (server *hrobotmode
 
 	for i, s := range serverList {
 		if s.Name == node.Name {
-			server = &serverList[i]
+			return &serverList[i], nil
 		}
 	}
 
-	return server, nil
+	serverList, err = c.ServerGetListForceRefresh(node.Name)
+	if err != nil {
+		return nil, fmt.Errorf("%s: force refresh after cache miss: %w", op, err)
+	}
+
+	for i, s := range serverList {
+		if s.Name == node.Name {
+			return &serverList[i], nil
+		}
+	}
+
+	// No matching Robot server exists for this node, even after refreshing the cached list.
+	return nil, nil
 }
 
 func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.Server, error) {

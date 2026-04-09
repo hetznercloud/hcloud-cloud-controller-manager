@@ -107,7 +107,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 
 		robotClient = robot.NewRateLimitedClient(
 			cfg.Robot.RateLimitWaitTime,
-			robot.NewCachedClient(cfg.Robot.CacheTimeout, c),
+			robot.NewCachedClient(cfg.Robot.CacheTimeout, robot.NewClient(c)),
 		)
 	}
 
