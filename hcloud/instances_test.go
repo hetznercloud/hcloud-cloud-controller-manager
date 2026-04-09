@@ -191,7 +191,9 @@ func TestInstances_InstanceExists(t *testing.T) {
 	}
 }
 
-// TestInstances_InstanceExistsRobotServerCreatedAfterCacheFill verifies that a forced Robot cache refresh discovers a server that was created after the initial cache fill.
+// TestInstances_InstanceExistsRobotServerCreatedAfterCacheFill verifies
+// that InstanceExists refreshes the Robot cache after a name lookup miss,
+// so a bare-metal server created after the cache was warmed is found.
 func TestInstances_InstanceExistsRobotServerCreatedAfterCacheFill(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
