@@ -10,6 +10,7 @@ import (
 
 type ActionClient struct {
 	mock.Mock
+	hcloud.IActionClient // embedded for compile-time interface satisfaction
 }
 
 func (m *ActionClient) WaitFor(ctx context.Context, actions ...*hcloud.Action) error {

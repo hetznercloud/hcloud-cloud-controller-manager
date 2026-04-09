@@ -22,12 +22,12 @@ import (
 	"regexp"
 	"strings"
 
+	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -74,7 +74,7 @@ func getCloudServerByID(ctx context.Context, c *hcloud.Client, id int64) (*hclou
 	return server, nil
 }
 
-func getRobotServerByName(c robot.Client, node *corev1.Node) (server *hrobotmodels.Server, err error) {
+func getRobotServerByName(c hrobot.RobotClient, node *corev1.Node) (server *hrobotmodels.Server, err error) {
 	const op = "hcloud/getRobotServerByName"
 
 	if c == nil {

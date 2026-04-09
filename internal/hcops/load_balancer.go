@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -16,7 +17,6 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -24,57 +24,12 @@ import (
 // identify a load balancer managed by Hetzner Cloud Cloud Controller Manager.
 const LabelServiceUID = "hcloud-ccm/service-uid"
 
-// HCloudLoadBalancerClient defines the hcloud-go functions required by the
-// Load Balancer operations type.
-type HCloudLoadBalancerClient interface {
-	GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, *hcloud.Response, error)
-	GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, *hcloud.Response, error)
-
-	Create(ctx context.Context, opts hcloud.LoadBalancerCreateOpts) (hcloud.LoadBalancerCreateResult, *hcloud.Response, error)
-	Update(
-		ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerUpdateOpts,
-	) (*hcloud.LoadBalancer, *hcloud.Response, error)
-	Delete(ctx context.Context, lb *hcloud.LoadBalancer) (*hcloud.Response, error)
-
-	AddService(
-		ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServiceOpts,
-	) (*hcloud.Action, *hcloud.Response, error)
-	UpdateService(
-		ctx context.Context, lb *hcloud.LoadBalancer, listenPort int, opts hcloud.LoadBalancerUpdateServiceOpts,
-	) (*hcloud.Action, *hcloud.Response, error)
-	DeleteService(
-		ctx context.Context, lb *hcloud.LoadBalancer, listenPort int,
-	) (*hcloud.Action, *hcloud.Response, error)
-
-	ChangeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeAlgorithmOpts) (*hcloud.Action, *hcloud.Response, error)
-	ChangeType(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerChangeTypeOpts) (*hcloud.Action, *hcloud.Response, error)
-	ChangeDNSPtr(ctx context.Context, lb *hcloud.LoadBalancer, ip string, ptr *string) (*hcloud.Action, *hcloud.Response, error)
-
-	AddServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServerTargetOpts) (*hcloud.Action, *hcloud.Response, error)
-	RemoveServerTarget(ctx context.Context, lb *hcloud.LoadBalancer, server *hcloud.Server) (*hcloud.Action, *hcloud.Response, error)
-
-	AddIPTarget(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddIPTargetOpts) (*hcloud.Action, *hcloud.Response, error)
-	RemoveIPTarget(ctx context.Context, lb *hcloud.LoadBalancer, server net.IP) (*hcloud.Action, *hcloud.Response, error)
-
-	AttachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAttachToNetworkOpts) (*hcloud.Action, *hcloud.Response, error)
-	DetachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerDetachFromNetworkOpts) (*hcloud.Action, *hcloud.Response, error)
-
-	EnablePublicInterface(
-		ctx context.Context, loadBalancer *hcloud.LoadBalancer,
-	) (*hcloud.Action, *hcloud.Response, error)
-	DisablePublicInterface(
-		ctx context.Context, loadBalancer *hcloud.LoadBalancer,
-	) (*hcloud.Action, *hcloud.Response, error)
-
-	AllWithOpts(ctx context.Context, opts hcloud.LoadBalancerListOpts) ([]*hcloud.LoadBalancer, error)
-}
-
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
 type LoadBalancerOps struct {
-	LBClient      HCloudLoadBalancerClient
-	ActionClient  HCloudActionClient
-	NetworkClient HCloudNetworkClient
-	RobotClient   robot.Client
+	LBClient      hcloud.ILoadBalancerClient
+	ActionClient  hcloud.IActionClient
+	NetworkClient hcloud.INetworkClient
+	RobotClient   hrobot.RobotClient
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64

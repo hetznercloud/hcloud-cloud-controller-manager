@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 
+	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -32,7 +33,6 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -43,7 +43,7 @@ const (
 
 type instances struct {
 	client      *hcloud.Client
-	robotClient robot.Client
+	robotClient hrobot.RobotClient
 	recorder    record.EventRecorder
 	networkID   int64
 	cfg         config.HCCMConfiguration
@@ -56,7 +56,7 @@ var (
 
 func newInstances(
 	client *hcloud.Client,
-	robotClient robot.Client,
+	robotClient hrobot.RobotClient,
 	recorder record.EventRecorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
@@ -359,7 +359,7 @@ func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMC
 
 type robotServer struct {
 	*hrobotmodels.Server
-	robotClient robot.Client
+	robotClient hrobot.RobotClient
 	recorder    record.EventRecorder
 }
 

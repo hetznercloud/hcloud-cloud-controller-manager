@@ -4,12 +4,13 @@ import (
 	"sync"
 	"time"
 
+	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 )
 
 type cacheRobotClient struct {
-	robotClient Client
-	timeout     time.Duration
+	hrobot.RobotClient // embed inner client to forward all unoverridden methods
+	timeout            time.Duration
 
 	lastUpdate time.Time
 	// mutex is necessary to synchronize parallel access to the cache
@@ -20,10 +21,10 @@ type cacheRobotClient struct {
 	serversByID map[int]*hrobotmodels.Server
 }
 
-func NewCachedClient(cacheTimeout time.Duration, robotClient Client) Client {
+func NewCachedClient(cacheTimeout time.Duration, robotClient hrobot.RobotClient) hrobot.RobotClient {
 	return &cacheRobotClient{
+		RobotClient: robotClient,
 		timeout:     cacheTimeout,
-		robotClient: robotClient,
 
 		serversByID: make(map[int]*hrobotmodels.Server),
 	}
@@ -64,7 +65,7 @@ func (c *cacheRobotClient) updateCacheIfNecessary() error {
 		return nil
 	}
 
-	servers, err := c.robotClient.ServerGetList()
+	servers, err := c.RobotClient.ServerGetList()
 	if err != nil {
 		return err
 	}
@@ -85,5 +86,5 @@ func (c *cacheRobotClient) updateCacheIfNecessary() error {
 
 // ResetGet does not use the cache, as we need up to date information for its function.
 func (c *cacheRobotClient) ResetGet(id int) (*hrobotmodels.Reset, error) {
-	return c.robotClient.ResetGet(id)
+	return c.RobotClient.ResetGet(id)
 }

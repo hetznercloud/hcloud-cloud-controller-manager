@@ -50,7 +50,7 @@ var providerVersion = "unknown"
 
 type cloud struct {
 	client      *hcloud.Client
-	robotClient robot.Client
+	robotClient hrobot.RobotClient
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
@@ -95,7 +95,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 	client := hcloud.NewClient(opts...)
 	metadataClient := metadata.NewClient()
 
-	var robotClient robot.Client
+	var robotClient hrobot.RobotClient
 	if cfg.Robot.Enabled && cfg.Robot.User != "" && cfg.Robot.Password != "" {
 		c := hrobot.NewBasicAuthClientWithCustomHttpClient(
 			cfg.Robot.User,
