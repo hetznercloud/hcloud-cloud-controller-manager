@@ -37,6 +37,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
@@ -49,9 +50,25 @@ const (
 // providerVersion is set by the build process using -ldflags -X.
 var providerVersion = "unknown"
 
+func newServerCache(mode config.InstanceCacheMode, caller string, client *hcloud.Client, ttl time.Duration) servercache.ServerCache {
+	switch mode {
+	case config.InstanceCacheModeAllServers:
+		return servercache.NewAllServerCache(caller, client, ttl)
+	case config.InstanceCacheModePerServer:
+		return servercache.NewPerServerCache(caller, client, ttl)
+	case config.InstanceCacheModeEval:
+		return servercache.NewEvalCache(caller, client, ttl)
+	case config.InstanceCacheModeOff:
+		return servercache.NewNoCache(client)
+	}
+
+	return nil
+}
+
 type cloud struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
+	serverCache servercache.ServerCache
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
@@ -143,9 +160,15 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	srvCache := newServerCache(cfg.Instance.Cache.Mode, "instances_v2", client, cfg.Instance.Cache.TTL)
+	if srvCache == nil {
+		return nil, fmt.Errorf("%s: invalid cache mode %q", op, cfg.Instance.Cache.Mode)
+	}
+
 	return &cloud{
 		client:      client,
 		robotClient: robotClient,
+		serverCache: srvCache,
 		cfg:         cfg,
 		networkID:   networkID,
 		cidr:        cidr,
@@ -174,7 +197,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.recorder, c.networkID, c.cfg), true
+	return newInstances(c.client, c.robotClient, c.serverCache, c.recorder, c.networkID, c.cfg), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {

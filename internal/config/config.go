@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,8 @@ const (
 	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
+	hcloudInstancesCacheMode     = "HCLOUD_INSTANCES_CACHE_MODE"
+	hcloudInstancesCacheTTL      = "HCLOUD_INSTANCES_CACHE_TTL"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -67,8 +70,25 @@ const (
 	AddressFamilyIPv4      AddressFamily = "ipv4"
 )
 
+type InstanceCacheMode string
+
+const (
+	InstanceCacheModeAllServers InstanceCacheMode = "all-server"
+	InstanceCacheModePerServer  InstanceCacheMode = "per-server"
+	InstanceCacheModeEval       InstanceCacheMode = "eval"
+	InstanceCacheModeOff        InstanceCacheMode = "off"
+)
+
+const InstanceCacheDefaultTTL time.Duration = 10 * time.Second
+
 type InstanceConfiguration struct {
 	AddressFamily AddressFamily
+	Cache         InstanceConfigurationCache
+}
+
+type InstanceConfigurationCache struct {
+	Mode InstanceCacheMode
+	TTL  time.Duration
 }
 
 type LoadBalancerConfiguration struct {
@@ -174,6 +194,26 @@ func Read() (HCCMConfiguration, error) {
 		cfg.Instance.AddressFamily = AddressFamilyIPv4
 	}
 
+	// ---- Instance Cache ----
+
+	cfg.Instance.Cache = InstanceConfigurationCache{
+		Mode: InstanceCacheModeAllServers,
+		TTL:  InstanceCacheDefaultTTL,
+	}
+
+	if mode, ok := os.LookupEnv(hcloudInstancesCacheMode); ok {
+		cfg.Instance.Cache.Mode = InstanceCacheMode(mode)
+	}
+
+	if ttlStr, ok := os.LookupEnv(hcloudInstancesCacheTTL); ok {
+		ttl, err := time.ParseDuration(ttlStr)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudInstancesCacheTTL, err))
+		} else {
+			cfg.Instance.Cache.TTL = ttl
+		}
+	}
+
 	cfg.LoadBalancer.Enabled, err = getEnvBool(hcloudLoadBalancersEnabled, true)
 	if err != nil {
 		errs = append(errs, err)
@@ -270,6 +310,22 @@ func (c HCCMConfiguration) Validate() (err error) {
 
 	if c.Instance.AddressFamily != AddressFamilyDualStack && c.Instance.AddressFamily != AddressFamilyIPv4 && c.Instance.AddressFamily != AddressFamilyIPv6 {
 		errs = append(errs, fmt.Errorf("invalid value for %q, expect one of: %s,%s,%s", hcloudInstancesAddressFamily, AddressFamilyIPv4, AddressFamilyIPv6, AddressFamilyDualStack))
+	}
+
+	if !slices.Contains([]InstanceCacheMode{
+		InstanceCacheModeAllServers,
+		InstanceCacheModePerServer,
+		InstanceCacheModeEval,
+		InstanceCacheModeOff,
+	}, c.Instance.Cache.Mode) {
+		errs = append(errs, fmt.Errorf(
+			"invalid value for %q, expect one of: %s,%s,%s,%s",
+			hcloudInstancesCacheMode,
+			InstanceCacheModeAllServers,
+			InstanceCacheModePerServer,
+			InstanceCacheModeEval,
+			InstanceCacheModeOff,
+		))
 	}
 
 	if c.LoadBalancer.Location != "" && c.LoadBalancer.NetworkZone != "" {
