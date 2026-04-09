@@ -8,20 +8,10 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-// HCloudCertificateClient defines the hcloud-go function related to
-// certificate management.
-type HCloudCertificateClient interface {
-	AllWithOpts(context.Context, hcloud.CertificateListOpts) ([]*hcloud.Certificate, error)
-	Get(ctx context.Context, idOrName string) (*hcloud.Certificate, *hcloud.Response, error)
-	CreateCertificate(
-		ctx context.Context, opts hcloud.CertificateCreateOpts,
-	) (hcloud.CertificateCreateResult, *hcloud.Response, error)
-}
-
 // CertificateOps implements all operations regarding Hetzner Cloud Certificates.
 type CertificateOps struct {
-	ActionClient HCloudActionClient
-	CertClient   HCloudCertificateClient
+	ActionClient hcloud.IActionClient
+	CertClient   hcloud.ICertificateClient
 }
 
 // GetCertificateByNameOrID obtains a certificate from the Hetzner Cloud

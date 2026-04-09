@@ -55,6 +55,14 @@ func getRobotServers(args mock.Arguments, i int) []hrobotmodels.Server {
 	return v.([]hrobotmodels.Server)
 }
 
+func getReset(args mock.Arguments, i int) *hrobotmodels.Reset {
+	v := args.Get(i)
+	if v == nil {
+		return nil
+	}
+	return v.(*hrobotmodels.Reset)
+}
+
 func getNetworkPtr(args mock.Arguments, i int) *hcloud.Network {
 	v := args.Get(i)
 	if v == nil {

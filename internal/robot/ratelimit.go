@@ -5,20 +5,21 @@ import (
 	"strings"
 	"time"
 
+	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 )
 
 type rateLimitClient struct {
-	robotClient Client
+	hrobot.RobotClient // embed inner client to forward all unoverridden methods
 
 	waitTime    time.Duration
 	exceeded    bool
 	lastChecked time.Time
 }
 
-func NewRateLimitedClient(rateLimitWaitTime time.Duration, robotClient Client) Client {
+func NewRateLimitedClient(rateLimitWaitTime time.Duration, robotClient hrobot.RobotClient) hrobot.RobotClient {
 	return &rateLimitClient{
-		robotClient: robotClient,
+		RobotClient: robotClient,
 
 		waitTime: rateLimitWaitTime,
 	}
@@ -29,7 +30,7 @@ func (c *rateLimitClient) ServerGet(id int) (*hrobotmodels.Server, error) {
 		return nil, c.getRateLimitError()
 	}
 
-	server, err := c.robotClient.ServerGet(id)
+	server, err := c.RobotClient.ServerGet(id)
 	c.handleError(err)
 	return server, err
 }
@@ -39,7 +40,7 @@ func (c *rateLimitClient) ServerGetList() ([]hrobotmodels.Server, error) {
 		return nil, c.getRateLimitError()
 	}
 
-	servers, err := c.robotClient.ServerGetList()
+	servers, err := c.RobotClient.ServerGetList()
 	c.handleError(err)
 	return servers, err
 }
@@ -49,7 +50,7 @@ func (c *rateLimitClient) ResetGet(id int) (*hrobotmodels.Reset, error) {
 		return nil, c.getRateLimitError()
 	}
 
-	reset, err := c.robotClient.ResetGet(id)
+	reset, err := c.RobotClient.ResetGet(id)
 	c.handleError(err)
 	return reset, err
 }

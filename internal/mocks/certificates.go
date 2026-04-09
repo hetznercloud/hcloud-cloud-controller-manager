@@ -10,6 +10,7 @@ import (
 
 type CertificateClient struct {
 	mock.Mock
+	hcloud.ICertificateClient // embedded for compile-time interface satisfaction
 }
 
 func (m *CertificateClient) AllWithOpts(

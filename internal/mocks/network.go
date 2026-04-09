@@ -10,6 +10,7 @@ import (
 
 type NetworkClient struct {
 	mock.Mock
+	hcloud.INetworkClient // embedded for compile-time interface satisfaction
 }
 
 func (m *NetworkClient) GetByID(ctx context.Context, id int64) (*hcloud.Network, *hcloud.Response, error) {

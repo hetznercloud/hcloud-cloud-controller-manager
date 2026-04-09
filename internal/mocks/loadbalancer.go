@@ -11,6 +11,7 @@ import (
 
 type LoadBalancerClient struct {
 	mock.Mock
+	hcloud.ILoadBalancerClient // embedded for compile-time interface satisfaction
 }
 
 func (m *LoadBalancerClient) GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, *hcloud.Response, error) {
