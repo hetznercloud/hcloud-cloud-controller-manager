@@ -18,15 +18,16 @@ func TestNewClientNil(t *testing.T) {
 
 func TestAdapterServerGetListForceRefresh(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/robot/server", r.URL.Path)
-		require.NoError(t, json.NewEncoder(w).Encode([]hrobotmodels.ServerResponse{
+		assert.Equal(t, "/robot/server", r.URL.Path)
+		err := json.NewEncoder(w).Encode([]hrobotmodels.ServerResponse{
 			{
 				Server: hrobotmodels.Server{
 					ServerNumber: 321,
 					Name:         "robot-server1",
 				},
 			},
-		}))
+		})
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
