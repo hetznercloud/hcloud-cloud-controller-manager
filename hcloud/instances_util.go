@@ -103,6 +103,7 @@ func getRobotServerByName(c robot.Client, node *corev1.Node) (server *hrobotmode
 		}
 	}
 
+	// No matching Robot server exists for this node, even after refreshing the cached list.
 	return nil, nil
 }
 

@@ -44,6 +44,7 @@ func (c *rateLimitClient) ServerGetList() ([]hrobotmodels.Server, error) {
 	return servers, err
 }
 
+// ServerGetListForceRefresh applies the same rate-limit guard to forced refreshes before delegating to the wrapped client.
 func (c *rateLimitClient) ServerGetListForceRefresh(nodeName string) ([]hrobotmodels.Server, error) {
 	if c.isExceeded() {
 		return nil, c.getRateLimitError()

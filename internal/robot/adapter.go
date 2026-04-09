@@ -5,6 +5,7 @@ import (
 	hrobotmodels "github.com/syself/hrobot-go/models"
 )
 
+// adapter wraps hrobot.RobotClient so it satisfies this package's Client interface.
 type adapter struct {
 	hrobot.RobotClient
 }

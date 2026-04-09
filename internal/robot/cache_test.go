@@ -10,6 +10,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 )
 
+// TestCacheClientServerGetListForceRefreshSkipsRepeatedNameWithinTimeout verifies that repeated forced refreshes for the same node name reuse the cached result until the timeout expires.
 func TestCacheClientServerGetListForceRefreshSkipsRepeatedNameWithinTimeout(t *testing.T) {
 	now := time.Date(2026, time.April, 7, 13, 0, 0, 0, time.UTC)
 	mockClient := &mocks.RobotClient{}
@@ -36,6 +37,7 @@ func TestCacheClientServerGetListForceRefreshSkipsRepeatedNameWithinTimeout(t *t
 	mockClient.AssertNumberOfCalls(t, "ServerGetList", 1)
 }
 
+// TestCacheClientServerGetListForceRefreshExpiresPerName verifies that a node name can trigger another forced refresh after its timeout window has expired.
 func TestCacheClientServerGetListForceRefreshExpiresPerName(t *testing.T) {
 	now := time.Date(2026, time.April, 7, 13, 0, 0, 0, time.UTC)
 	mockClient := &mocks.RobotClient{}

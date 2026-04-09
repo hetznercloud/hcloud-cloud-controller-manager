@@ -20,6 +20,7 @@ type cacheRobotClient struct {
 	servers     []hrobotmodels.Server
 	serversByID map[int]*hrobotmodels.Server
 
+	// forcedRefreshServerNames tracks which node names already triggered a forced refresh within the current cache timeout window.
 	forcedRefreshServerNames map[string]time.Time
 }
 
@@ -62,6 +63,7 @@ func (c *cacheRobotClient) ServerGetList() ([]hrobotmodels.Server, error) {
 	return c.servers, nil
 }
 
+// ServerGetListForceRefresh refreshes the server list immediately, unless the same node already forced a refresh within the current cache timeout window.
 func (c *cacheRobotClient) ServerGetListForceRefresh(nodeName string) ([]hrobotmodels.Server, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -114,6 +116,7 @@ func (c *cacheRobotClient) refreshCache() error {
 	return nil
 }
 
+// nodeHasAlreadyForcedRefresh reports whether this node already triggered a forced refresh within the current cache timeout window and drops expired entries.
 func (c *cacheRobotClient) nodeHasAlreadyForcedRefresh(nodeName string) bool {
 	forcedAt, found := c.forcedRefreshServerNames[nodeName]
 	if !found {
@@ -128,6 +131,7 @@ func (c *cacheRobotClient) nodeHasAlreadyForcedRefresh(nodeName string) bool {
 	return true
 }
 
+// currentTime centralizes access to the clock so tests can inject a deterministic time source via c.now.
 func (c *cacheRobotClient) currentTime() time.Time {
 	if c.now == nil {
 		return time.Now()
