@@ -11,6 +11,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
@@ -29,6 +30,8 @@ const (
 	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
+	hcloudInstancesCacheMode     = "HCLOUD_INSTANCES_CACHE_MODE"
+	hcloudInstancesCacheTTL      = "HCLOUD_INSTANCES_CACHE_TTL"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -67,8 +70,16 @@ const (
 	AddressFamilyIPv4      AddressFamily = "ipv4"
 )
 
+const InstanceCacheDefaultTTL time.Duration = 10 * time.Second
+
 type InstanceConfiguration struct {
 	AddressFamily AddressFamily
+	Cache         InstanceConfigurationCache
+}
+
+type InstanceConfigurationCache struct {
+	Mode servercache.Mode
+	TTL  time.Duration
 }
 
 type LoadBalancerConfiguration struct {
@@ -172,6 +183,26 @@ func Read() (HCCMConfiguration, error) {
 	cfg.Instance.AddressFamily = AddressFamily(os.Getenv(hcloudInstancesAddressFamily))
 	if cfg.Instance.AddressFamily == "" {
 		cfg.Instance.AddressFamily = AddressFamilyIPv4
+	}
+
+	// ---- Instance Cache ----
+
+	cfg.Instance.Cache = InstanceConfigurationCache{
+		Mode: servercache.ModeAllServers,
+		TTL:  InstanceCacheDefaultTTL,
+	}
+
+	if mode, ok := os.LookupEnv(hcloudInstancesCacheMode); ok {
+		cfg.Instance.Cache.Mode = servercache.Mode(mode)
+	}
+
+	if ttlStr, ok := os.LookupEnv(hcloudInstancesCacheTTL); ok {
+		ttl, err := time.ParseDuration(ttlStr)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudInstancesCacheTTL, err))
+		} else {
+			cfg.Instance.Cache.TTL = ttl
+		}
 	}
 
 	cfg.LoadBalancer.Enabled, err = getEnvBool(hcloudLoadBalancersEnabled, true)

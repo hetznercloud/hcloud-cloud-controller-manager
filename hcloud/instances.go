@@ -33,6 +33,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -44,6 +45,7 @@ const (
 type instances struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
+	serverCache servercache.ServerCache
 	recorder    record.EventRecorder
 	networkID   int64
 	cfg         config.HCCMConfiguration
@@ -57,6 +59,7 @@ var (
 func newInstances(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
+	serverCache servercache.ServerCache,
 	recorder record.EventRecorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
@@ -64,6 +67,7 @@ func newInstances(
 	return &instances{
 		client,
 		robotClient,
+		serverCache,
 		recorder,
 		networkID,
 		cfg,
@@ -80,13 +84,12 @@ func (i *instances) lookupServer(
 	if node.Spec.ProviderID != "" {
 		var serverID int64
 		serverID, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
-
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert provider id to server id: %w", err)
 		}
 
 		if isCloudServer {
-			server, err := getCloudServerByID(ctx, i.client, serverID)
+			server, err := i.serverCache.ByID(ctx, serverID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get hcloud server \"%d\": %w", serverID, err)
 			}
@@ -115,7 +118,7 @@ func (i *instances) lookupServer(
 
 	// If the node has no provider ID we try to find the server by name from
 	// both sources. In case we find two servers, we return an error.
-	cloudServer, err := getCloudServerByName(ctx, i.client, node.Name)
+	cloudServer, err := i.serverCache.ByName(ctx, node.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get hcloud server %q: %w", node.Name, err)
 	}
@@ -153,6 +156,7 @@ func (i *instances) lookupServer(
 func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceExists"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	klog.V(4).InfoS("InstanceExists called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
@@ -165,6 +169,7 @@ func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool
 func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceShutdown"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	klog.V(4).InfoS("InstanceShutdown called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
@@ -188,6 +193,7 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bo
 func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
 	const op = "hcloud/instancesv2.InstanceMetadata"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	klog.V(4).InfoS("InstanceMetadata called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {

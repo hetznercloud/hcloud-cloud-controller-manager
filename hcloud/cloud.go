@@ -37,6 +37,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
@@ -50,13 +51,14 @@ const (
 var providerVersion = "unknown"
 
 type cloud struct {
-	client      *hcloud.Client
-	robotClient hrobot.RobotClient
-	cfg         config.HCCMConfiguration
-	recorder    record.EventRecorder
-	networkID   int64
-	cidr        string
-	nodeLister  corelisters.NodeLister
+	client        *hcloud.Client
+	robotClient   hrobot.RobotClient
+	instanceCache servercache.ServerCache
+	cfg           config.HCCMConfiguration
+	recorder      record.EventRecorder
+	networkID     int64
+	cidr          string
+	nodeLister    corelisters.NodeLister
 }
 
 func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Interface, error) {
@@ -144,13 +146,19 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	instanceCache, err := servercache.New(client, "instances_v2", cfg.Instance.Cache.Mode, cfg.Instance.Cache.TTL)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return &cloud{
-		client:      client,
-		robotClient: robotClient,
-		cfg:         cfg,
-		networkID:   networkID,
-		cidr:        cidr,
-		nodeLister:  nodeLister,
+		client:        client,
+		robotClient:   robotClient,
+		instanceCache: instanceCache,
+		cfg:           cfg,
+		networkID:     networkID,
+		cidr:          cidr,
+		nodeLister:    nodeLister,
 	}, nil
 }
 
@@ -175,7 +183,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.recorder, c.networkID, c.cfg), true
+	return newInstances(c.client, c.robotClient, c.instanceCache, c.recorder, c.networkID, c.cfg), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
