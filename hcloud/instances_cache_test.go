@@ -28,9 +28,7 @@ func newCacheTestClient(t *testing.T, requests []mockutil.Request) *hcloud.Clien
 
 var notFoundResponse = schema.ErrorResponse{Error: schema.Error{Code: string(hcloud.ErrorCodeNotFound), Message: "not found"}}
 
-// ++++++++++++++
-// PerServerCache
-// ++++++++++++++
+// ----- PerServerCache -----
 
 func TestPerServerCache_ByID_HitAfterMiss(t *testing.T) {
 	// Exactly one GET /servers/1 is expected; the second ByID must be served from cache.
@@ -201,9 +199,7 @@ func TestPerServerCache_ClearAtMaxSizeWithNoExpired(t *testing.T) {
 	assert.Len(t, cache.byName, 1)
 }
 
-// ++++++++++++++
-// AllServerCache
-// ++++++++++++++
+// ----- AllServerCache -----
 
 // allServersListOK is the canonical response to `Server.All()` used by the
 // AllServerCache tests. [hcloud.ServerClient.All] paginates with per_page=50.

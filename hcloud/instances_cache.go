@@ -16,9 +16,7 @@ type ServerCache interface {
 	ByName(context.Context, string) (*hcloud.Server, error)
 }
 
-const (
-	DefaultServerCacheMaxSize = 64
-)
+// ----- PerServerCache -----
 
 var _ ServerCache = (*PerServerCache)(nil)
 
@@ -39,13 +37,17 @@ type perServerCacheEntry struct {
 	expiredAt time.Time
 }
 
+const (
+	DefaultPerServerCacheMaxSize = 64
+)
+
 func NewPerServerCache(client *hcloud.Client, ttl time.Duration) *PerServerCache {
 	return &PerServerCache{
 		ttl:     ttl,
 		client:  client,
-		maxSize: DefaultServerCacheMaxSize,
-		byID:    make(map[int64]*perServerCacheEntry, DefaultServerCacheMaxSize),
-		byName:  make(map[string]*perServerCacheEntry, DefaultServerCacheMaxSize),
+		maxSize: DefaultPerServerCacheMaxSize,
+		byID:    make(map[int64]*perServerCacheEntry, DefaultPerServerCacheMaxSize),
+		byName:  make(map[string]*perServerCacheEntry, DefaultPerServerCacheMaxSize),
 	}
 }
 
@@ -126,6 +128,8 @@ func (c *PerServerCache) evictExpired() {
 		}
 	}
 }
+
+// ----- AllServerCache -----
 
 var _ ServerCache = (*AllServerCache)(nil)
 
