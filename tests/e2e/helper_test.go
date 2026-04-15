@@ -324,9 +324,10 @@ func (l *lbTestHelper) TearDown() {
 	}
 }
 
-// WaitForHTTPAvailable tries to connect to the given IP via HTTP.
-// It uses exponential backoff starting at 1s and capping at 30s,
-// waiting up to 6 minutes for a successful HTTP 200 response.
+// WaitForHTTPAvailable tries to connect to the given IP via HTTP or HTTPS
+// (controlled by useHTTPS). It uses exponential backoff starting at 1s and
+// capping at 30s, waiting up to 6 minutes for a successful HTTP 200 response.
+// Each individual request has a 5s timeout.
 func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) error {
 	l.t.Helper()
 
@@ -343,10 +344,14 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 		proto = "https"
 	}
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 4*time.Minute)
+	ctx, cancel := context.WithTimeout(l.t.Context(), 6*time.Minute)
 	defer cancel()
 
-	backoffFunc := hcloud.ExponentialBackoff(2.0, time.Second)
+	backoffFunc := hcloud.ExponentialBackoffWithOpts(hcloud.ExponentialBackoffOpts{
+		Base:       time.Second,
+		Multiplier: 2,
+		Cap:        30 * time.Second,
+	})
 	retries := 0
 	for {
 		resp, err := client.Get(fmt.Sprintf("%s://%s", proto, ingressIP))
