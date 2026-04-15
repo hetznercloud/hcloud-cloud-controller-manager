@@ -121,7 +121,7 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 	lbSvc, err = lbTest.CreateService(lbSvc)
 	require.NoError(t, err)
 
-	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
 	require.NoError(t, err)
 }
 
