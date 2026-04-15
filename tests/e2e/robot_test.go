@@ -3,10 +3,10 @@
 package e2e
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -20,24 +20,23 @@ func TestRobotClientIsAvailable(t *testing.T) {
 
 func TestNodeSetCorrectNodeLabelsAndIPAddressesRobot(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	// Get a random Robot server from all Nodes in the cluster
-	nodes, err := testCluster.k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+	nodes, err := testCluster.k8sClient.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{
 		LabelSelector: "instance.hetzner.cloud/is-root-server=true",
 	})
-	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, len(nodes.Items), 1)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(nodes.Items), 1)
 	node := nodes.Items[0]
 
 	// Parse the server number from the ProviderID
 	id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, isCloudServer)
 
 	// Get the server from the Robot API to cross-check Labels
 	server, err := testCluster.hrobot.ServerGet(int(id))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	labels := node.Labels
 	expectedLabels := map[string]string{
@@ -75,8 +74,12 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 		t:       t,
 		podName: "loadbalancer-robot-only",
 	}
+	t.Cleanup(func() {
+		lbTest.TearDown()
+	})
 
-	pod := lbTest.DeployTestPod()
+	pod, err := lbTest.DeployTestPod()
+	require.NoError(t, err)
 
 	lbSvc := lbTest.ServiceDefinition(pod, map[string]string{
 		string(annotation.LBLocation): "nbg1",
@@ -84,10 +87,9 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 		string(annotation.LBNodeSelector): "instance.hetzner.cloud/is-root-server=true",
 	})
 
-	lbSvc, err := lbTest.CreateService(lbSvc)
-	if assert.NoError(t, err, "deploying test svc") {
-		WaitForHTTPAvailable(t, lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
-	}
+	lbSvc, err = lbTest.CreateService(lbSvc)
+	require.NoError(t, err)
 
-	lbTest.TearDown()
+	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
+	require.NoError(t, err)
 }
