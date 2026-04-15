@@ -32,7 +32,6 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 	server, _, err := testCluster.hcloud.Server.Get(t.Context(), testCluster.ControlNodeName())
 	require.NoError(t, err)
 
-	labels := node.Labels
 	expectedLabels := map[string]string{
 		"node.kubernetes.io/instance-type":   server.ServerType.Name,
 		"topology.kubernetes.io/region":      server.Location.Name,
@@ -43,26 +42,15 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 		"instance.hetzner.cloud/provided-by": "cloud",
 	}
 	for expectedLabel, expectedValue := range expectedLabels {
-		if labelValue, ok := labels[expectedLabel]; !ok || labelValue != expectedValue {
-			t.Errorf("node have a not expected label %s, ok: %v, given value %s, expected value %s", expectedLabel, ok, labelValue, expectedValue)
-		}
+		assert.Equal(t, expectedValue, node.Labels[expectedLabel], "unexpected value for label %s", expectedLabel)
 	}
 
 	for _, address := range node.Status.Addresses {
-		if address.Type == corev1.NodeExternalIP {
-			expectedIP := server.PublicNet.IPv4.IP.String()
-			if expectedIP != address.Address {
-				t.Errorf("Got %s as NodeExternalIP but expected %s", address.Address, expectedIP)
-			}
-		}
-	}
-
-	for _, address := range node.Status.Addresses {
-		if address.Type == corev1.NodeInternalIP {
-			expectedIP := server.PrivateNet[0].IP.String()
-			if expectedIP != address.Address {
-				t.Errorf("Got %s as NodeInternalIP but expected %s", address.Address, expectedIP)
-			}
+		switch address.Type {
+		case corev1.NodeExternalIP:
+			assert.Equal(t, server.PublicNet.IPv4.IP.String(), address.Address, "unexpected NodeExternalIP")
+		case corev1.NodeInternalIP:
+			assert.Equal(t, server.PrivateNet[0].IP.String(), address.Address, "unexpected NodeInternalIP")
 		}
 	}
 }
@@ -206,6 +194,10 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 	t.Parallel()
 
+	var (
+		nodeInternalIP string
+		routeGateway   string
+	)
 	err := wait.PollUntilContextTimeout(t.Context(), 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 		node, err := testCluster.k8sClient.CoreV1().Nodes().Get(ctx, testCluster.ControlNodeName(), metav1.GetOptions{})
 		if err != nil {
@@ -217,16 +209,20 @@ func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 			return false, err
 		}
 		for _, route := range network.Routes {
-			if route.Destination.String() == node.Spec.PodCIDR {
-				for _, a := range node.Status.Addresses {
-					if a.Type == corev1.NodeInternalIP {
-						assert.Equal(t, a.Address, route.Gateway.String())
-					}
-				}
-				return true, nil
+			if route.Destination.String() != node.Spec.PodCIDR {
+				continue
 			}
+			routeGateway = route.Gateway.String()
+			for _, a := range node.Status.Addresses {
+				if a.Type == corev1.NodeInternalIP {
+					nodeInternalIP = a.Address
+					break
+				}
+			}
+			return true, nil
 		}
 		return false, nil
 	})
-	assert.NoError(t, err, "error waiting for pod IPs being accessible")
+	require.NoError(t, err, "error waiting for pod IPs being accessible")
+	assert.Equal(t, nodeInternalIP, routeGateway, "route gateway should match node internal IP")
 }

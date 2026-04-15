@@ -35,6 +35,14 @@ func init() {
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
+// pollBackoff is the standard exponential backoff used while polling for
+// k8s/hcloud state in this suite: 1s base, doubling, capped at 30s.
+var pollBackoff = hcloud.ExponentialBackoffWithOpts(hcloud.ExponentialBackoffOpts{
+	Base:       time.Second,
+	Multiplier: 2,
+	Cap:        30 * time.Second,
+})
+
 type TestCluster struct {
 	hcloud    *hcloud.Client
 	hrobot    hrobot.RobotClient
@@ -285,11 +293,6 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	ctx, cancel := context.WithTimeout(l.t.Context(), 4*time.Minute)
 	defer cancel()
 
-	backoffFunc := hcloud.ExponentialBackoffWithOpts(hcloud.ExponentialBackoffOpts{
-		Base:       time.Second,
-		Multiplier: 2,
-		Cap:        30 * time.Second,
-	})
 	retries := 0
 	for {
 		svc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
@@ -304,7 +307,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timed out waiting for load balancer service to receive ingress IPs")
-		case <-time.After(backoffFunc(retries)):
+		case <-time.After(pollBackoff(retries)):
 			retries++
 		}
 	}
@@ -355,11 +358,6 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 	ctx, cancel := context.WithTimeout(l.t.Context(), 6*time.Minute)
 	defer cancel()
 
-	backoffFunc := hcloud.ExponentialBackoffWithOpts(hcloud.ExponentialBackoffOpts{
-		Base:       time.Second,
-		Multiplier: 2,
-		Cap:        30 * time.Second,
-	})
 	retries := 0
 	for {
 		resp, err := client.Get(fmt.Sprintf("%s://%s", proto, ingressIP))
@@ -380,7 +378,7 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("timed out after 6m waiting for %s to be available", ingressIP)
-		case <-time.After(backoffFunc(retries)):
+		case <-time.After(pollBackoff(retries)):
 			retries++
 		}
 	}
