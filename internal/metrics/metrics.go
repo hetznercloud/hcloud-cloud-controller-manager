@@ -38,10 +38,15 @@ var (
 		Name: "cloud_controller_manager_operations_total",
 		Help: "The total number of operation was called",
 	}, []string{"op"})
+
+	CacheRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "cloud_controller_manager_cache_requests_total",
+		Help: "Total cache requests partitioned by cache name and result.",
+	}, []string{"cache", "result"})
 )
 
 func init() {
-	GetRegistry().MustRegister(OperationCalled)
+	GetRegistry().MustRegister(OperationCalled, CacheRequests)
 }
 
 func GetRegistry() prometheus.Registerer {

@@ -30,7 +30,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
@@ -45,7 +44,7 @@ const (
 type instances struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
-	serverCache *hcops.AllServersCache
+	serverCache ServerCache
 	recorder    record.EventRecorder
 	networkID   int64
 	cfg         config.HCCMConfiguration
@@ -59,7 +58,7 @@ var (
 func newInstances(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
-	serverCache *hcops.AllServersCache,
+	serverCache ServerCache,
 	recorder record.EventRecorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
@@ -156,6 +155,7 @@ func (i *instances) lookupServer(
 func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceExists"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	klog.V(4).InfoS("InstanceExists called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
@@ -168,6 +168,7 @@ func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool
 func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bool, error) {
 	const op = "hcloud/instancesv2.InstanceShutdown"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	klog.V(4).InfoS("InstanceShutdown called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {
@@ -191,6 +192,7 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bo
 func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
 	const op = "hcloud/instancesv2.InstanceMetadata"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	klog.V(4).InfoS("InstanceMetadata called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
 	server, err := i.lookupServer(ctx, node)
 	if err != nil {

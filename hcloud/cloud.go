@@ -25,7 +25,6 @@ import (
 	"time"
 
 	hrobot "github.com/syself/hrobot-go"
-	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -52,7 +51,7 @@ var providerVersion = "unknown"
 type cloud struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
-	ServerCache *hcops.AllServersCache
+	serverCache ServerCache
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
@@ -143,18 +142,21 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	var srvCache ServerCache
+	switch cfg.Instance.Cache.Mode {
+	case config.InstanceCacheModeAllServers:
+		srvCache = NewAllServerCache(client, cfg.Instance.Cache.TTL)
+	case config.InstanceCacheModePerServer:
+		srvCache = NewPerServerCache(client, cfg.Instance.Cache.TTL)
+	}
+
 	return &cloud{
 		client:      client,
 		robotClient: robotClient,
-		ServerCache: &hcops.AllServersCache{
-			Network:                 &hcloud.Network{ID: networkID},
-			TTL:                     10 * time.Second,
-			FetchFunc:               client.Server.All,
-			CacheMissRefreshLimiter: rate.NewLimiter(serversCacheMissRefreshRate, 1),
-		},
-		cfg:       cfg,
-		networkID: networkID,
-		cidr:      cidr,
+		serverCache: srvCache,
+		cfg:         cfg,
+		networkID:   networkID,
+		cidr:        cidr,
 	}, nil
 }
 
@@ -179,7 +181,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.ServerCache, c.recorder, c.networkID, c.cfg), true
+	return newInstances(c.client, c.robotClient, c.serverCache, c.recorder, c.networkID, c.cfg), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
