@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -312,6 +313,12 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 func (l *lbTestHelper) TearDown() {
 	l.t.Helper()
 
+	// No namespace was created yet (e.g. DeployTestPod never ran because a
+	// prior step failed); nothing to clean up.
+	if l.namespace == "" {
+		return
+	}
+
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		err := testCluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
@@ -319,9 +326,7 @@ func (l *lbTestHelper) TearDown() {
 		}
 		return k8serrors.IsNotFound(err), nil
 	})
-	if err != nil {
-		l.t.Fatal(err)
-	}
+	require.NoError(l.t, err)
 }
 
 // WaitForHTTPAvailable tries to connect to the given IP via HTTP or HTTPS

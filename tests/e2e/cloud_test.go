@@ -27,7 +27,7 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 	t.Parallel()
 
 	node, err := testCluster.k8sClient.CoreV1().Nodes().Get(t.Context(), testCluster.ControlNodeName(), metav1.GetOptions{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	server, _, err := testCluster.hcloud.Server.Get(t.Context(), testCluster.ControlNodeName())
 	if err != nil {

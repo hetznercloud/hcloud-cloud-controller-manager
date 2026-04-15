@@ -25,18 +25,18 @@ func TestNodeSetCorrectNodeLabelsAndIPAddressesRobot(t *testing.T) {
 	nodes, err := testCluster.k8sClient.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{
 		LabelSelector: "instance.hetzner.cloud/is-root-server=true",
 	})
-	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, len(nodes.Items), 1)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(nodes.Items), 1)
 	node := nodes.Items[0]
 
 	// Parse the server number from the ProviderID
 	id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, isCloudServer)
 
 	// Get the server from the Robot API to cross-check Labels
 	server, err := testCluster.hrobot.ServerGet(int(id))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	labels := node.Labels
 	expectedLabels := map[string]string{

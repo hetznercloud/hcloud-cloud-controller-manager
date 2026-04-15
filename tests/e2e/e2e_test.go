@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,7 +35,7 @@ func TestPodIsPresent(t *testing.T) {
 
 	t.Run("hcloud-cloud-controller-manager pod is present in kube-system", func(t *testing.T) {
 		pods, err := testCluster.k8sClient.CoreV1().Pods("kube-system").List(t.Context(), metav1.ListOptions{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		found := false
 		for _, pod := range pods.Items {
@@ -43,9 +44,7 @@ func TestPodIsPresent(t *testing.T) {
 				break
 			}
 		}
-		if !found {
-			t.Error("kube-system does not contain a pod named hcloud-cloud-controller-manager")
-		}
+		assert.True(t, found, "kube-system does not contain a pod named hcloud-cloud-controller-manager")
 	})
 
 	t.Run("pod with app=hcloud-cloud-controller-manager is present in kube-system", func(t *testing.T) {
@@ -53,10 +52,8 @@ func TestPodIsPresent(t *testing.T) {
 			List(t.Context(), metav1.ListOptions{
 				LabelSelector: "app.kubernetes.io/name=hcloud-cloud-controller-manager",
 			})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
-		if len(pods.Items) == 0 {
-			t.Fatal("kube-system does not contain a pod with label app=hcloud-cloud-controller-manager")
-		}
+		require.NotEmpty(t, pods.Items, "kube-system does not contain a pod with label app=hcloud-cloud-controller-manager")
 	})
 }
