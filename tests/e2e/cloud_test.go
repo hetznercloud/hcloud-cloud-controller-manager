@@ -30,9 +30,7 @@ func TestNodeSetCorrectNodeLabelsAndIPAddresses(t *testing.T) {
 	require.NoError(t, err)
 
 	server, _, err := testCluster.hcloud.Server.Get(t.Context(), testCluster.ControlNodeName())
-	if err != nil {
-		return
-	}
+	require.NoError(t, err)
 
 	labels := node.Labels
 	expectedLabels := map[string]string{
@@ -230,7 +228,5 @@ func TestRouteNetworksPodIPsAreAccessible(t *testing.T) {
 		}
 		return false, nil
 	})
-	if err != nil {
-		t.Errorf("error waiting for pod IPs being accessible: %v", err)
-	}
+	assert.NoError(t, err, "error waiting for pod IPs being accessible")
 }

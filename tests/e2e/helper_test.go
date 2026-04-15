@@ -137,12 +137,12 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) (*hcl
 		Certificate: p.Cert,
 		PrivateKey:  p.Key,
 	}
-	cert, _, err := tc.hcloud.Certificate.Create(context.Background(), opts)
+	cert, _, err := tc.hcloud.Certificate.Create(t.Context(), opts)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	if cert == nil {
-		return nil, fmt.Errorf("no certificate created")
+		return nil, errors.New("no certificate created")
 	}
 
 	tc.certificates.Add(cert.ID)
@@ -178,7 +178,7 @@ type lbTestHelper struct {
 func (l *lbTestHelper) DeployTestPod() (*corev1.Pod, error) {
 	l.t.Helper()
 
-	ctx := context.Background()
+	ctx := l.t.Context()
 
 	if l.namespace == "" {
 		l.namespace = "hccm-test-" + strconv.Itoa(rand.Int())
@@ -285,7 +285,11 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	ctx, cancel := context.WithTimeout(l.t.Context(), 4*time.Minute)
 	defer cancel()
 
-	backoffFunc := hcloud.ExponentialBackoff(2.0, time.Second)
+	backoffFunc := hcloud.ExponentialBackoffWithOpts(hcloud.ExponentialBackoffOpts{
+		Base:       time.Second,
+		Multiplier: 2,
+		Cap:        30 * time.Second,
+	})
 	retries := 0
 	for {
 		svc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Get(ctx, lbSvc.Name, metav1.GetOptions{})
@@ -293,10 +297,8 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 			return nil, fmt.Errorf("error fetching load balancer service: %w", err)
 		}
 
-		ingressIPs := svc.Status.LoadBalancer.Ingress
-		if len(ingressIPs) > 0 {
-			lbSvc = svc
-			return lbSvc, nil
+		if len(svc.Status.LoadBalancer.Ingress) > 0 {
+			return svc, nil
 		}
 
 		select {
@@ -304,7 +306,6 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 			return nil, fmt.Errorf("timed out waiting for load balancer service to receive ingress IPs")
 		case <-time.After(backoffFunc(retries)):
 			retries++
-			continue
 		}
 	}
 }
@@ -319,6 +320,8 @@ func (l *lbTestHelper) TearDown() {
 		return
 	}
 
+	// Use context.Background() rather than t.Context(): cleanup must run to
+	// completion even when the test has already been cancelled or failed.
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		err := testCluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
@@ -379,7 +382,6 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 			return fmt.Errorf("timed out after 6m waiting for %s to be available", ingressIP)
 		case <-time.After(backoffFunc(retries)):
 			retries++
-			continue
 		}
 	}
 }
