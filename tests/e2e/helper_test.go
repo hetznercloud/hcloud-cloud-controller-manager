@@ -138,7 +138,7 @@ func (tc *TestCluster) CreateTLSCertificate(t *testing.T, baseName string) (*hcl
 	}
 	cert, _, err := tc.hcloud.Certificate.Create(context.Background(), opts)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %v", name, err)
+		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	if cert == nil {
 		return nil, fmt.Errorf("no certificate created")
@@ -278,7 +278,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 	lbSvc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Create(l.t.Context(), lbSvc, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("could not create service: %s", err)
+		return nil, fmt.Errorf("could not create service: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(l.t.Context(), 4*time.Minute)
@@ -351,7 +351,7 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 	for {
 		resp, err := client.Get(fmt.Sprintf("%s://%s", proto, ingressIP))
 		if err != nil {
-			l.t.Log("service still unavailable, keep waiting")
+			l.t.Logf("request to %s failed, keep waiting: %v", ingressIP, err)
 		} else {
 			resp.Body.Close()
 			switch resp.StatusCode {
