@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand/v2"
 	"net"
 	"time"
 
@@ -22,15 +21,6 @@ import (
 )
 
 var serversCacheMissRefreshRate = rate.Every(30 * time.Second)
-
-// routeRetryDelay returns a jittered delay in [1s, 2s) for the single
-// retry we attempt on hcloud lock/conflict errors. Jitter avoids a
-// thundering herd when many concurrent route operations collide on the
-// same Network lock.
-func routeRetryDelay() time.Duration {
-	const base = 1 * time.Second
-	return base + time.Duration(rand.Int64N(int64(base))) //nolint:gosec // jitter, not security-sensitive
-}
 
 type routes struct {
 	client      *hcloud.Client
@@ -188,21 +178,6 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 		},
 	}
 	action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
-	if err != nil && hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
-		delay := routeRetryDelay()
-		klog.InfoS(
-			"network is locked: retrying route creation",
-			"target-node", route.TargetNode,
-			"destination-cidr", route.DestinationCIDR,
-			"delay", delay,
-		)
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("%s: %w", op, ctx.Err())
-		case <-time.After(delay):
-		}
-		action, _, err = r.client.Network.AddRoute(ctx, r.network, opts)
-	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -256,21 +231,6 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 	}
 
 	action, _, err := r.client.Network.DeleteRoute(ctx, r.network, opts)
-	if err != nil && hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
-		delay := routeRetryDelay()
-		klog.InfoS(
-			"network is locked: retrying route deletion",
-			"target-ip", ip,
-			"destination-cidr", cidr,
-			"delay", delay,
-		)
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("%s: %w", op, ctx.Err())
-		case <-time.After(delay):
-		}
-		action, _, err = r.client.Network.DeleteRoute(ctx, r.network, opts)
-	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
