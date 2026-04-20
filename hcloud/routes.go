@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"time"
 
@@ -20,9 +21,16 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-var (
-	serversCacheMissRefreshRate = rate.Every(30 * time.Second)
-)
+var serversCacheMissRefreshRate = rate.Every(30 * time.Second)
+
+// routeRetryDelay returns a jittered delay in [1s, 2s) for the single
+// retry we attempt on hcloud lock/conflict errors. Jitter avoids a
+// thundering herd when many concurrent route operations collide on the
+// same Network lock.
+func routeRetryDelay() time.Duration {
+	const base = 1 * time.Second
+	return base + time.Duration(rand.Int64N(int64(base))) //nolint:gosec // jitter, not security-sensitive
+}
 
 type routes struct {
 	client      *hcloud.Client
@@ -102,7 +110,7 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 // CreateRoute creates the described managed route
 // route.Name will be ignored, although the cloud-provider may use nameHint
 // to create a more user-meaningful name.
-func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint string, route *cloudprovider.Route) error {
+func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *cloudprovider.Route) error {
 	const op = "hcloud/CreateRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -159,35 +167,50 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 		)
 	}
 
-	doesRouteAlreadyExist, err := r.checkIfRouteAlreadyExists(ctx, route)
+	routeExists, err := r.checkIfRouteAlreadyExists(ctx, route)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if !doesRouteAlreadyExist {
-		opts := hcloud.NetworkAddRouteOpts{
-			Route: hcloud.NetworkRoute{
-				Destination: cidr,
-				Gateway:     ip,
-			},
-		}
-		action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
-		if err != nil {
-			if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
-				retryDelay := time.Second * 5
-				klog.InfoS("retry due to conflict or lock",
-					"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
-				time.Sleep(retryDelay)
-
-				return r.CreateRoute(ctx, clusterName, nameHint, route)
-			}
-			return fmt.Errorf("%s: %w", op, err)
-		}
-
-		if err := r.client.Action.WaitFor(ctx, action); err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
+	if routeExists {
+		klog.InfoS(
+			"route already exists: skipping creation",
+			"target-node", route.TargetNode,
+			"destination-cidr", route.DestinationCIDR,
+		)
+		return nil
 	}
+
+	opts := hcloud.NetworkAddRouteOpts{
+		Route: hcloud.NetworkRoute{
+			Destination: cidr,
+			Gateway:     ip,
+		},
+	}
+	action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
+	if err != nil && hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
+		delay := routeRetryDelay()
+		klog.InfoS(
+			"network is locked: retrying route creation",
+			"target-node", route.TargetNode,
+			"destination-cidr", route.DestinationCIDR,
+			"delay", delay,
+		)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("%s: %w", op, ctx.Err())
+		case <-time.After(delay):
+		}
+		action, _, err = r.client.Network.AddRoute(ctx, r.network, opts)
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := r.client.Action.WaitFor(ctx, action); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	return nil
 }
 
@@ -233,15 +256,22 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 	}
 
 	action, _, err := r.client.Network.DeleteRoute(ctx, r.network, opts)
-	if err != nil {
-		if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
-			retryDelay := time.Second * 5
-			klog.InfoS("retry due to conflict or lock",
-				"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
-			time.Sleep(retryDelay)
-
-			return r.deleteRouteFromHcloud(ctx, cidr, ip)
+	if err != nil && hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
+		delay := routeRetryDelay()
+		klog.InfoS(
+			"network is locked: retrying route deletion",
+			"target-ip", ip,
+			"destination-cidr", cidr,
+			"delay", delay,
+		)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("%s: %w", op, ctx.Err())
+		case <-time.After(delay):
 		}
+		action, _, err = r.client.Network.DeleteRoute(ctx, r.network, opts)
+	}
+	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := r.client.Action.WaitFor(ctx, action); err != nil {
