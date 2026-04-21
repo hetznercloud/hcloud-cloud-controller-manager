@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -179,6 +180,13 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 	}
 	action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
 	if err != nil {
+		if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
+			return apierrors.NewConflict(
+				corev1.Resource("nodes"),
+				string(route.TargetNode),
+				err,
+			)
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
