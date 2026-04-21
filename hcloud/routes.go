@@ -130,10 +130,10 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	clusterNetSize, _ := r.clusterCIDR.Mask.Size()
-	destNetSize, _ := cidr.Mask.Size()
+	clusterPrefixLen, _ := r.clusterCIDR.Mask.Size()
+	destPrefixLen, _ := cidr.Mask.Size()
 
-	if !r.clusterCIDR.Contains(cidr.IP) || destNetSize < clusterNetSize {
+	if !r.clusterCIDR.Contains(cidr.IP) || destPrefixLen < clusterPrefixLen {
 		node := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      string(route.TargetNode),
