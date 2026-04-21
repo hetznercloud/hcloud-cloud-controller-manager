@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -20,9 +21,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-var (
-	serversCacheMissRefreshRate = rate.Every(30 * time.Second)
-)
+var serversCacheMissRefreshRate = rate.Every(30 * time.Second)
 
 type routes struct {
 	client      *hcloud.Client
@@ -102,7 +101,7 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 // CreateRoute creates the described managed route
 // route.Name will be ignored, although the cloud-provider may use nameHint
 // to create a more user-meaningful name.
-func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint string, route *cloudprovider.Route) error {
+func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *cloudprovider.Route) error {
 	const op = "hcloud/CreateRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -131,10 +130,10 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	clusterNetSize, _ := r.clusterCIDR.Mask.Size()
-	destNetSize, _ := cidr.Mask.Size()
+	clusterPrefixLen, _ := r.clusterCIDR.Mask.Size()
+	destPrefixLen, _ := cidr.Mask.Size()
 
-	if !r.clusterCIDR.Contains(cidr.IP) || destNetSize < clusterNetSize {
+	if !r.clusterCIDR.Contains(cidr.IP) || destPrefixLen < clusterPrefixLen {
 		node := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      string(route.TargetNode),
@@ -159,35 +158,42 @@ func (r *routes) CreateRoute(ctx context.Context, clusterName string, nameHint s
 		)
 	}
 
-	doesRouteAlreadyExist, err := r.checkIfRouteAlreadyExists(ctx, route)
+	routeExists, err := r.checkIfRouteAlreadyExists(ctx, route)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if !doesRouteAlreadyExist {
-		opts := hcloud.NetworkAddRouteOpts{
-			Route: hcloud.NetworkRoute{
-				Destination: cidr,
-				Gateway:     ip,
-			},
-		}
-		action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
-		if err != nil {
-			if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
-				retryDelay := time.Second * 5
-				klog.InfoS("retry due to conflict or lock",
-					"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
-				time.Sleep(retryDelay)
-
-				return r.CreateRoute(ctx, clusterName, nameHint, route)
-			}
-			return fmt.Errorf("%s: %w", op, err)
-		}
-
-		if err := r.client.Action.WaitFor(ctx, action); err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
+	if routeExists {
+		klog.InfoS(
+			"route already exists: skipping creation",
+			"target-node", route.TargetNode,
+			"destination-cidr", route.DestinationCIDR,
+		)
+		return nil
 	}
+
+	opts := hcloud.NetworkAddRouteOpts{
+		Route: hcloud.NetworkRoute{
+			Destination: cidr,
+			Gateway:     ip,
+		},
+	}
+	action, _, err := r.client.Network.AddRoute(ctx, r.network, opts)
+	if err != nil {
+		if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
+			return apierrors.NewConflict(
+				corev1.Resource("nodes"),
+				string(route.TargetNode),
+				err,
+			)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := r.client.Action.WaitFor(ctx, action); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	return nil
 }
 
@@ -234,14 +240,6 @@ func (r *routes) deleteRouteFromHcloud(ctx context.Context, cidr *net.IPNet, ip 
 
 	action, _, err := r.client.Network.DeleteRoute(ctx, r.network, opts)
 	if err != nil {
-		if hcloud.IsError(err, hcloud.ErrorCodeLocked, hcloud.ErrorCodeConflict) {
-			retryDelay := time.Second * 5
-			klog.InfoS("retry due to conflict or lock",
-				"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
-			time.Sleep(retryDelay)
-
-			return r.deleteRouteFromHcloud(ctx, cidr, ip)
-		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := r.client.Action.WaitFor(ctx, action); err != nil {
