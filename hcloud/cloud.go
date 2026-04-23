@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
@@ -55,9 +56,10 @@ type cloud struct {
 	recorder    record.EventRecorder
 	networkID   int64
 	cidr        string
+	nodeLister  corelisters.NodeLister
 }
 
-func NewCloud(cidr string) (cloudprovider.Interface, error) {
+func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -147,6 +149,7 @@ func NewCloud(cidr string) (cloudprovider.Interface, error) {
 		cfg:         cfg,
 		networkID:   networkID,
 		cidr:        cidr,
+		nodeLister:  nodeLister,
 	}, nil
 }
 
@@ -213,6 +216,7 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 		c.networkID,
 		c.cidr,
 		c.recorder,
+		c.nodeLister,
 	)
 	if err != nil {
 		klog.ErrorS(err, "create routes provider", "networkID", c.networkID)
