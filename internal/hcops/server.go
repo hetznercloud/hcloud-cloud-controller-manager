@@ -32,6 +32,7 @@ type AllServersCache struct {
 	lastRefresh time.Time
 	byPrivIP    map[string]*hcloud.Server
 	byName      map[string]*hcloud.Server
+	byID        map[int64]*hcloud.Server
 
 	mu sync.Mutex
 }
@@ -72,6 +73,26 @@ func (c *AllServersCache) ByName(ctx context.Context, name string) (*hcloud.Serv
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s %w", op, name, err)
+	}
+
+	return srv, nil
+}
+
+// ByID obtains a server from the cache using the servers id.
+//
+// Note that a pointer to the object stored in the cache is returned. Modifying
+// this object affects the cache and all other code parts holding a reference.
+// Furthermore, modifying the returned server is not concurrency safe.
+func (c *AllServersCache) ByID(ctx context.Context, id int64) (*hcloud.Server, error) {
+	const op = "hcops/AllServersCache.ByID"
+	metrics.OperationCalled.WithLabelValues(op).Inc()
+
+	srv, err := c.getFromCache(ctx, func() (*hcloud.Server, bool) {
+		srv, ok := c.byID[id]
+		return srv, ok
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %d %w", op, id, err)
 	}
 
 	return srv, nil
@@ -136,6 +157,7 @@ func (c *AllServersCache) refreshCache(ctx context.Context) error {
 	// Re-initialize all maps. This effectively clears the current cache.
 	c.byPrivIP = make(map[string]*hcloud.Server)
 	c.byName = make(map[string]*hcloud.Server)
+	c.byID = make(map[int64]*hcloud.Server)
 
 	for _, server := range servers {
 		// Index servers by the IPs of their private networks
@@ -157,6 +179,9 @@ func (c *AllServersCache) refreshCache(ctx context.Context) error {
 
 		// Index servers by their names.
 		c.byName[server.Name] = server
+
+		// Index servers by their ID.
+		c.byID[server.ID] = server
 	}
 
 	c.lastRefresh = time.Now()
