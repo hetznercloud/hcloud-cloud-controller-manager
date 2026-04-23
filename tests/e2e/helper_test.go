@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -331,7 +330,8 @@ func (l *lbTestHelper) TearDown() {
 		}
 		return k8serrors.IsNotFound(err), nil
 	})
-	require.NoError(l.t, err)
+	// The cluster is deleted afterward, so we can info log this error
+	l.t.Logf("error tearing down test namespace: %w", err)
 }
 
 // WaitForHTTPAvailable tries to connect to the given IP via HTTP or HTTPS
