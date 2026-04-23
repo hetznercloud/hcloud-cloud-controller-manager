@@ -275,7 +275,6 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 					Name:       "http",
 				},
 			},
-			ExternalTrafficPolicy: corev1.ServiceExternalTrafficPolicyTypeLocal,
 		},
 	}
 }
