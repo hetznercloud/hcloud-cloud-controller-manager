@@ -289,7 +289,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 		return nil, fmt.Errorf("could not create service: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 4*time.Minute)
+	ctx, cancel := context.WithTimeout(l.t.Context(), 6*time.Minute)
 	defer cancel()
 
 	retries := 0
