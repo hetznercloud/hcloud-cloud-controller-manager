@@ -331,7 +331,7 @@ func (l *lbTestHelper) TearDown() {
 		return k8serrors.IsNotFound(err), nil
 	})
 	// The cluster is deleted afterward, so we can info log this error
-	l.t.Logf("error tearing down test namespace: %w", err)
+	l.t.Logf("error tearing down test namespace: %v", err)
 }
 
 // WaitForHTTPAvailable tries to connect to the given IP via HTTP or HTTPS
