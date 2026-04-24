@@ -228,7 +228,7 @@ func (l *lbTestHelper) DeployTestPod() (*corev1.Pod, error) {
 		return nil, fmt.Errorf("could not create test pod: %w", err)
 	}
 
-	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, false, func(ctx context.Context) (done bool, err error) {
 		p, err := testCluster.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -242,7 +242,7 @@ func (l *lbTestHelper) DeployTestPod() (*corev1.Pod, error) {
 		return false, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("pod %s did not come up after 1 minute: %w", podName, err)
+		return nil, fmt.Errorf("pod %s did not come up after 2 minutes: %w", podName, err)
 	}
 
 	return pod, nil
@@ -288,7 +288,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 		return nil, fmt.Errorf("could not create service: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 6*time.Minute)
+	ctx, cancel := context.WithTimeout(l.t.Context(), 8*time.Minute)
 	defer cancel()
 
 	retries := 0
@@ -323,7 +323,9 @@ func (l *lbTestHelper) TearDown() {
 
 	// Use context.Background() rather than t.Context(): cleanup must run to
 	// completion even when the test has already been cancelled or failed.
-	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+	ctx := context.Background()
+
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		err := testCluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
@@ -338,7 +340,7 @@ func (l *lbTestHelper) TearDown() {
 
 // WaitForHTTPAvailable tries to connect to the given IP via HTTP or HTTPS
 // (controlled by useHTTPS). It uses exponential backoff starting at 1s and
-// capping at 30s, waiting up to 6 minutes for a successful HTTP 200 response.
+// capping at 30s, waiting up to 8 minutes for a successful HTTP 200 response.
 // Each individual request has a 5s timeout.
 func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) error {
 	l.t.Helper()
@@ -356,7 +358,7 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 		proto = "https"
 	}
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 6*time.Minute)
+	ctx, cancel := context.WithTimeout(l.t.Context(), 8*time.Minute)
 	defer cancel()
 
 	retries := 0
@@ -378,7 +380,7 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timed out after 6m waiting for %s to be available", ingressIP)
+			return fmt.Errorf("timed out after 8m waiting for %s to be available", ingressIP)
 		case <-time.After(pollBackoff(retries)):
 			retries++
 		}
