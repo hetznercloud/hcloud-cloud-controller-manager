@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,7 +88,7 @@ func TestServiceLoadBalancersRobot(t *testing.T) {
 		string(annotation.LBNodeSelector): "instance.hetzner.cloud/is-root-server=true",
 	})
 
-	lbSvc, err = lbTest.CreateService(lbSvc)
+	lbSvc, err = lbTest.CreateService(lbSvc, 8*time.Minute)
 	require.NoError(t, err)
 
 	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, false)

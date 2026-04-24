@@ -292,7 +292,7 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 
 // CreateService creates a k8s service based on the given service definition
 // and waits until it is "ready".
-func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
+func (l *lbTestHelper) CreateService(lbSvc *corev1.Service, timeout time.Duration) (*corev1.Service, error) {
 	l.t.Helper()
 
 	lbSvc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Create(l.t.Context(), lbSvc, metav1.CreateOptions{})
@@ -302,7 +302,7 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 
 	testCluster.loadBalancers.Add(string(lbSvc.UID))
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 8*time.Minute)
+	ctx, cancel := context.WithTimeout(l.t.Context(), timeout)
 	defer cancel()
 
 	retries := 0

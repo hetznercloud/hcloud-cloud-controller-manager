@@ -73,7 +73,7 @@ func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 		string(annotation.LBLocation): "nbg1",
 	})
 
-	lbSvc, err = lbTest.CreateService(lbSvc)
+	lbSvc, err = lbTest.CreateService(lbSvc, 6*time.Minute)
 	require.NoError(t, err)
 
 	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
@@ -102,7 +102,7 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 		string(annotation.LBSvcProtocol):         "https",
 	})
 
-	lbSvc, err = lbTest.CreateService(lbSvc)
+	lbSvc, err = lbTest.CreateService(lbSvc, 6*time.Minute)
 	require.NoError(t, err)
 
 	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, true)
@@ -135,7 +135,7 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 		string(annotation.LBSvcHTTPManagedCertificateUseACMEStaging): "true",
 	})
 
-	lbSvc, err = lbTest.CreateService(lbSvc)
+	lbSvc, err = lbTest.CreateService(lbSvc, 16*time.Minute)
 	require.NoError(t, err)
 
 	certs, err := testCluster.hcloud.Certificate.AllWithOpts(t.Context(), hcloud.CertificateListOpts{
@@ -171,7 +171,7 @@ func TestServiceLoadBalancersWithPrivateNetwork(t *testing.T) {
 		string(annotation.PrivateSubnetIPRange): ipRange.String(),
 	})
 
-	lbSvc, err = lbTest.CreateService(lbSvc)
+	lbSvc, err = lbTest.CreateService(lbSvc, 8*time.Minute)
 	require.NoError(t, err)
 
 	err = lbTest.WaitForHTTPAvailable(lbSvc.Status.LoadBalancer.Ingress[0].IP, false)
