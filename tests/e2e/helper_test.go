@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -52,7 +54,7 @@ type TestCluster struct {
 	certDomain string
 
 	certificates  *utils.SyncSet[int64]
-	loadBalancers *utils.SyncSet[int64]
+	loadBalancers *utils.SyncSet[string]
 }
 
 func (tc *TestCluster) Start() error {
@@ -103,7 +105,7 @@ func (tc *TestCluster) Start() error {
 	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
 	tc.certificates = utils.NewSyncSet[int64]()
-	tc.loadBalancers = utils.NewSyncSet[int64]()
+	tc.loadBalancers = utils.NewSyncSet[string]()
 
 	return nil
 }
@@ -112,10 +114,20 @@ func (tc *TestCluster) Stop() error {
 	errs := make([]error, 0, tc.loadBalancers.Size()+tc.certificates.Size())
 	ctx := context.Background()
 
-	for _, item := range tc.loadBalancers.All() {
-		fmt.Printf("deleting load balancer %d\n", item)
-		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, &hcloud.LoadBalancer{ID: item}); err != nil {
-			errs = append(errs, fmt.Errorf("delete load balancer %d failed: %w", item, err))
+	uids := tc.loadBalancers.All()
+	selector := fmt.Sprintf("%s in (%s)", hcops.LabelServiceUID, strings.Join(uids, ","))
+	lbs, err := tc.hcloud.LoadBalancer.AllWithOpts(ctx, hcloud.LoadBalancerListOpts{
+		ListOpts: hcloud.ListOpts{
+			LabelSelector: selector,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("fetching load balancers via selector %s: %w", selector, err)
+	}
+	for _, lb := range lbs {
+		fmt.Printf("force-deleting leaked load balancer %d (%s)\n", lb.ID, lb.Name)
+		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, lb); err != nil {
+			errs = append(errs, fmt.Errorf("delete leaked load balancer %d failed: %w", lb.ID, err))
 		}
 	}
 
@@ -287,6 +299,8 @@ func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, er
 	if err != nil {
 		return nil, fmt.Errorf("could not create service: %w", err)
 	}
+
+	testCluster.loadBalancers.Add(string(lbSvc.UID))
 
 	ctx, cancel := context.WithTimeout(l.t.Context(), 8*time.Minute)
 	defer cancel()
