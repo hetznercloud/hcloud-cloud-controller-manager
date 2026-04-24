@@ -81,8 +81,6 @@ func TestServiceLoadBalancersMinimalSetup(t *testing.T) {
 }
 
 func TestServiceLoadBalancersHTTPS(t *testing.T) {
-	t.Parallel()
-
 	lbTest := lbTestHelper{
 		t:       t,
 		podName: "loadbalancer-https",
@@ -112,8 +110,6 @@ func TestServiceLoadBalancersHTTPS(t *testing.T) {
 }
 
 func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
-	t.Parallel()
-
 	if testCluster.certDomain == "" {
 		t.Skip("Skipping because CERT_DOMAIN is not set")
 	}
