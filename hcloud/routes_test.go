@@ -250,7 +250,7 @@ func TestRoutes_CreateRoute_RobotProviderID(t *testing.T) {
 		DestinationCIDR: "10.5.0.0/24",
 	})
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "not a Cloud server")
+	assert.ErrorContains(t, err, "not a cloud server")
 }
 
 // TestRoutes_CreateRoute_NodeNameDrift proves the routes controller still works when the

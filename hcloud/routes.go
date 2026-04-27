@@ -152,10 +152,10 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 
 	id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error parsing providerID %q for node %s: %w", node.Spec.ProviderID, nodeName, err)
+		return nil, nil, fmt.Errorf("error parsing provider id %q for node %s: %w", node.Spec.ProviderID, nodeName, err)
 	}
 	if !isCloudServer {
-		return nil, nil, fmt.Errorf("node %s is not a Cloud server, routes are only supported for Cloud servers", node.Name)
+		return nil, nil, fmt.Errorf("node %s is not a cloud server, routes are only supported for cloud servers", node.Name)
 	}
 
 	server, err := r.serverCache.ByID(ctx, id)
@@ -163,7 +163,7 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		server, err = r.serverCache.ByName(ctx, node.Name)
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("error fetching node %s by ID: %w", nodeName, err)
+		return nil, nil, fmt.Errorf("error fetching node %s by id: %w", nodeName, err)
 	}
 
 	privNet, ok := findServerPrivateNetByID(server, r.network.ID)
@@ -171,7 +171,7 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		r.serverCache.InvalidateCache()
 		server, err = r.serverCache.ByID(ctx, server.ID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error fetching node %s by ID: %w", nodeName, err)
+			return nil, nil, fmt.Errorf("error fetching node %s by id: %w", nodeName, err)
 		}
 		privNet, ok = findServerPrivateNetByID(server, r.network.ID)
 		if !ok {
