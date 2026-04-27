@@ -24,11 +24,36 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
+
+// Load Balancer creation timeouts. Services that involve certificate
+// provisioning take longer to become ready.
+const (
+	lbCreateTimeoutDefault = 8 * time.Minute
+	lbCreateTimeoutCert    = 16 * time.Minute
+)
+
+// lbCreateTimeoutFor returns the timeout to use when waiting for the given
+// Load Balancer service to become ready.
+func lbCreateTimeoutFor(svc *corev1.Service) time.Duration {
+	certAnnotations := []annotation.Name{
+		annotation.LBSvcHTTPCertificates,
+		annotation.LBSvcHTTPCertificateType,
+		annotation.LBSvcHTTPManagedCertificateName,
+		annotation.LBSvcHTTPManagedCertificateDomains,
+	}
+	for _, a := range certAnnotations {
+		if _, ok := svc.Annotations[string(a)]; ok {
+			return lbCreateTimeoutCert
+		}
+	}
+	return lbCreateTimeoutDefault
+}
 
 var rng *rand.Rand
 
@@ -291,9 +316,12 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 }
 
 // CreateService creates a k8s service based on the given service definition
-// and waits until it is "ready".
-func (l *lbTestHelper) CreateService(lbSvc *corev1.Service, timeout time.Duration) (*corev1.Service, error) {
+// and waits until it is "ready". The wait timeout is derived from the service
+// annotations: services that provision certificates get a longer timeout.
+func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
 	l.t.Helper()
+
+	timeout := lbCreateTimeoutFor(lbSvc)
 
 	lbSvc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Create(l.t.Context(), lbSvc, metav1.CreateOptions{})
 	if err != nil {
