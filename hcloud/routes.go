@@ -111,7 +111,7 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 
 	node, gateway, err := r.resolveRouteTarget(ctx, string(route.TargetNode))
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: error resolving route target: %w", op, err)
 	}
 
 	if !slices.ContainsFunc(route.TargetNodeAddresses, func(target corev1.NodeAddress) bool {
@@ -127,7 +127,11 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 
 	r.warnCIDRMismatch(cidr, node)
 
-	return r.upsertRoute(ctx, gateway, cidr, string(route.TargetNode))
+	if err := r.upsertRoute(ctx, gateway, cidr, string(route.TargetNode)); err != nil {
+		return fmt.Errorf("error upserting route %q via %q: %w", cidr.String(), gateway.String(), err)
+	}
+
+	return nil
 }
 
 // resolveRouteTarget returns the k8s node and the hcloud server's private IP on the routes
@@ -137,24 +141,21 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 // ID changes (e.g. server recreated). Refreshes the cache once if the private-net attachment
 // isn't yet reflected.
 func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*corev1.Node, net.IP, error) {
-	const op = "hcloud/resolveRouteTarget"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
 	node, err := r.nodeLister.Get(nodeName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", op, err)
+		return nil, nil, fmt.Errorf("error fetching node %s by name: %w", nodeName, err)
 	}
 
 	if node.Spec.ProviderID == "" {
-		return nil, nil, fmt.Errorf("%s: node %q not yet initialized", op, node.Name)
+		return nil, nil, fmt.Errorf("node %s not yet initialized", node.Name)
 	}
 
 	id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", op, err)
+		return nil, nil, fmt.Errorf("error parsing providerID %q for node %s: %w", node.Spec.ProviderID, nodeName, err)
 	}
 	if !isCloudServer {
-		return nil, nil, fmt.Errorf("%s: node %q is not a Cloud server, routes are only supported for Cloud servers", op, node.Name)
+		return nil, nil, fmt.Errorf("node %s is not a Cloud server, routes are only supported for Cloud servers", node.Name)
 	}
 
 	server, err := r.serverCache.ByID(ctx, id)
@@ -162,7 +163,7 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		server, err = r.serverCache.ByName(ctx, node.Name)
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", op, err)
+		return nil, nil, fmt.Errorf("error fetching node %s by ID: %w", nodeName, err)
 	}
 
 	privNet, ok := findServerPrivateNetByID(server, r.network.ID)
@@ -170,11 +171,11 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		r.serverCache.InvalidateCache()
 		server, err = r.serverCache.ByID(ctx, server.ID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %w", op, err)
+			return nil, nil, fmt.Errorf("error fetching node %s by ID: %w", nodeName, err)
 		}
 		privNet, ok = findServerPrivateNetByID(server, r.network.ID)
 		if !ok {
-			return nil, nil, fmt.Errorf("%s: server %q: network with id %d not attached to this server", op, node.Name, r.network.ID)
+			return nil, nil, fmt.Errorf("server %s (%d): network with id %d not attached to this server", server.Name, server.ID, r.network.ID)
 		}
 	}
 
@@ -185,11 +186,8 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 // route is a no-op; a stale route with a different gateway is replaced in place. nodeName is
 // used only for logging and for surfacing API conflicts against the right k8s object.
 func (r *routes) upsertRoute(ctx context.Context, gateway net.IP, cidr *net.IPNet, nodeName string) error {
-	const op = "hcloud/upsertRoute"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
 	if err := r.reloadNetwork(ctx); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("error reloading network: %w", err)
 	}
 
 	destination := cidr.String()
@@ -211,15 +209,16 @@ func (r *routes) upsertRoute(ctx context.Context, gateway net.IP, cidr *net.IPNe
 			Route: existing,
 		})
 		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+			return fmt.Errorf("error deleting route for %q via %q: %w", cidr.String(), gateway.String(), err)
 		}
 		if err := r.client.Action.WaitFor(ctx, action); err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+			return fmt.Errorf("error deleting route for %q via %q: %w", cidr.String(), gateway.String(), err)
 		}
 		klog.InfoS(
 			"deleted stale route with wrong gateway; recreating",
-			"target-node", nodeName,
-			"destination-cidr", destination,
+			"node", nodeName,
+			"gateway", gateway,
+			"cidr", destination,
 		)
 	}
 
@@ -238,11 +237,11 @@ func (r *routes) upsertRoute(ctx context.Context, gateway net.IP, cidr *net.IPNe
 				err,
 			)
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("error adding route for %q via %q: %w", cidr.String(), gateway.String(), err)
 	}
 
 	if err := r.client.Action.WaitFor(ctx, action); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("error adding route for %q via %q: %w", cidr.String(), gateway.String(), err)
 	}
 
 	return nil
