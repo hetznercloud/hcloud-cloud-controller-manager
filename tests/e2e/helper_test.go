@@ -150,6 +150,7 @@ func (tc *TestCluster) Stop() error {
 		return fmt.Errorf("fetching load balancers via selector %s: %w", selector, err)
 	}
 	for _, lb := range lbs {
+		// Stop is called after `m.Run()`, so we can't use t.Log anymore.
 		fmt.Printf("force-deleting leaked load balancer %d (%s)\n", lb.ID, lb.Name)
 		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, lb); err != nil {
 			errs = append(errs, fmt.Errorf("delete leaked load balancer %d failed: %w", lb.ID, err))
@@ -157,6 +158,7 @@ func (tc *TestCluster) Stop() error {
 	}
 
 	for _, item := range tc.certificates.All() {
+		// Stop is called after `m.Run()`, so we can't use t.Log anymore.
 		fmt.Printf("deleting certificate %d\n", item)
 		if _, err := tc.hcloud.Certificate.Delete(ctx, &hcloud.Certificate{ID: item}); err != nil {
 			errs = append(errs, fmt.Errorf("delete certificate %d failed: %w", item, err))
