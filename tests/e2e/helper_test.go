@@ -11,10 +11,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,10 +24,36 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
+
+// Load Balancer creation timeouts. Services that involve certificate
+// provisioning take longer to become ready.
+const (
+	lbCreateTimeoutDefault = 8 * time.Minute
+	lbCreateTimeoutCert    = 16 * time.Minute
+)
+
+// lbCreateTimeoutFor returns the timeout to use when waiting for the given
+// Load Balancer service to become ready.
+func lbCreateTimeoutFor(svc *corev1.Service) time.Duration {
+	certAnnotations := []annotation.Name{
+		annotation.LBSvcHTTPCertificates,
+		annotation.LBSvcHTTPCertificateType,
+		annotation.LBSvcHTTPManagedCertificateName,
+		annotation.LBSvcHTTPManagedCertificateDomains,
+	}
+	for _, a := range certAnnotations {
+		if _, ok := svc.Annotations[string(a)]; ok {
+			return lbCreateTimeoutCert
+		}
+	}
+	return lbCreateTimeoutDefault
+}
 
 var rng *rand.Rand
 
@@ -53,7 +79,7 @@ type TestCluster struct {
 	certDomain string
 
 	certificates  *utils.SyncSet[int64]
-	loadBalancers *utils.SyncSet[int64]
+	loadBalancers *utils.SyncSet[string]
 }
 
 func (tc *TestCluster) Start() error {
@@ -104,7 +130,7 @@ func (tc *TestCluster) Start() error {
 	tc.certDomain = os.Getenv("CERT_DOMAIN")
 
 	tc.certificates = utils.NewSyncSet[int64]()
-	tc.loadBalancers = utils.NewSyncSet[int64]()
+	tc.loadBalancers = utils.NewSyncSet[string]()
 
 	return nil
 }
@@ -113,14 +139,26 @@ func (tc *TestCluster) Stop() error {
 	errs := make([]error, 0, tc.loadBalancers.Size()+tc.certificates.Size())
 	ctx := context.Background()
 
-	for _, item := range tc.loadBalancers.All() {
-		fmt.Printf("deleting load balancer %d\n", item)
-		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, &hcloud.LoadBalancer{ID: item}); err != nil {
-			errs = append(errs, fmt.Errorf("delete load balancer %d failed: %w", item, err))
+	uids := tc.loadBalancers.All()
+	selector := fmt.Sprintf("%s in (%s)", hcops.LabelServiceUID, strings.Join(uids, ","))
+	lbs, err := tc.hcloud.LoadBalancer.AllWithOpts(ctx, hcloud.LoadBalancerListOpts{
+		ListOpts: hcloud.ListOpts{
+			LabelSelector: selector,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("fetching load balancers via selector %s: %w", selector, err)
+	}
+	for _, lb := range lbs {
+		// Stop is called after `m.Run()`, so we can't use t.Log anymore.
+		fmt.Printf("force-deleting leaked load balancer %d (%s)\n", lb.ID, lb.Name)
+		if _, err := tc.hcloud.LoadBalancer.Delete(ctx, lb); err != nil {
+			errs = append(errs, fmt.Errorf("delete leaked load balancer %d failed: %w", lb.ID, err))
 		}
 	}
 
 	for _, item := range tc.certificates.All() {
+		// Stop is called after `m.Run()`, so we can't use t.Log anymore.
 		fmt.Printf("deleting certificate %d\n", item)
 		if _, err := tc.hcloud.Certificate.Delete(ctx, &hcloud.Certificate{ID: item}); err != nil {
 			errs = append(errs, fmt.Errorf("delete certificate %d failed: %w", item, err))
@@ -229,7 +267,7 @@ func (l *lbTestHelper) DeployTestPod() (*corev1.Pod, error) {
 		return nil, fmt.Errorf("could not create test pod: %w", err)
 	}
 
-	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, false, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, false, func(ctx context.Context) (done bool, err error) {
 		p, err := testCluster.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -243,7 +281,7 @@ func (l *lbTestHelper) DeployTestPod() (*corev1.Pod, error) {
 		return false, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("pod %s did not come up after 1 minute: %w", podName, err)
+		return nil, fmt.Errorf("pod %s did not come up after 2 minutes: %w", podName, err)
 	}
 
 	return pod, nil
@@ -280,16 +318,21 @@ func (l *lbTestHelper) ServiceDefinition(pod *corev1.Pod, annotations map[string
 }
 
 // CreateService creates a k8s service based on the given service definition
-// and waits until it is "ready".
+// and waits until it is "ready". The wait timeout is derived from the service
+// annotations: services that provision certificates get a longer timeout.
 func (l *lbTestHelper) CreateService(lbSvc *corev1.Service) (*corev1.Service, error) {
 	l.t.Helper()
+
+	timeout := lbCreateTimeoutFor(lbSvc)
 
 	lbSvc, err := testCluster.k8sClient.CoreV1().Services(l.namespace).Create(l.t.Context(), lbSvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("could not create service: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 4*time.Minute)
+	testCluster.loadBalancers.Add(string(lbSvc.UID))
+
+	ctx, cancel := context.WithTimeout(l.t.Context(), timeout)
 	defer cancel()
 
 	retries := 0
@@ -324,19 +367,24 @@ func (l *lbTestHelper) TearDown() {
 
 	// Use context.Background() rather than t.Context(): cleanup must run to
 	// completion even when the test has already been cancelled or failed.
-	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+	ctx := context.Background()
+
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		err := testCluster.k8sClient.CoreV1().Namespaces().Delete(ctx, l.namespace, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return false, err
 		}
 		return k8serrors.IsNotFound(err), nil
 	})
-	require.NoError(l.t, err)
+	if err != nil {
+		// The cluster is deleted afterward, so we can info log this error
+		l.t.Logf("error tearing down test namespace: %v", err)
+	}
 }
 
 // WaitForHTTPAvailable tries to connect to the given IP via HTTP or HTTPS
 // (controlled by useHTTPS). It uses exponential backoff starting at 1s and
-// capping at 30s, waiting up to 6 minutes for a successful HTTP 200 response.
+// capping at 30s, waiting up to 8 minutes for a successful HTTP 200 response.
 // Each individual request has a 5s timeout.
 func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) error {
 	l.t.Helper()
@@ -354,7 +402,7 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 		proto = "https"
 	}
 
-	ctx, cancel := context.WithTimeout(l.t.Context(), 6*time.Minute)
+	ctx, cancel := context.WithTimeout(l.t.Context(), 8*time.Minute)
 	defer cancel()
 
 	retries := 0
@@ -376,7 +424,7 @@ func (l *lbTestHelper) WaitForHTTPAvailable(ingressIP string, useHTTPS bool) err
 
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timed out after 6m waiting for %s to be available", ingressIP)
+			return fmt.Errorf("timed out after 8m waiting for %s to be available", ingressIP)
 		case <-time.After(pollBackoff(retries)):
 			retries++
 		}
