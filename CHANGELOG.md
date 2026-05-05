@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.31.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.31.0)
+
+### Features
+
+- **robot**: allow Robot support without API credentials for IP-based LB targets (#1163)
+- **helm**: allow customizing chart deployment strategy (#1190)
+
+### Bug Fixes
+
+- **helm**: remove permissions for persistentvolumes (#1203)
+- **route**: error handling on locked networks (#1215)
+
 ## [v1.30.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.1)
 
 ### Datacenter Deprecation
