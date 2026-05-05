@@ -59,7 +59,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: hetznercloud/setup-hcloud@v1
+      - uses: hetznercloud/setup-hcloud@v2
 
       - uses: opentofu/setup-opentofu@v2
         with:
@@ -177,7 +177,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: hetznercloud/setup-hcloud@v1
+      - uses: hetznercloud/setup-hcloud@v2
 
       - uses: opentofu/setup-opentofu@v2
         with:
