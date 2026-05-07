@@ -23,7 +23,7 @@ linters:
     - gocritic
     - godot
     - gomoddirectives
-    - gomodguard
+    - gomodguard_v2
     - gosec
     - gosmopolitan
     - govet
