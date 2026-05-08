@@ -28,7 +28,7 @@ func (m *ServerClient) All(ctx context.Context) ([]*hcloud.Server, error) {
 	return serverPtrSlice(m.T, args.Get(0)), args.Error(1)
 }
 
-func serverPtrSlice(t *testing.T, v interface{}) []*hcloud.Server {
+func serverPtrSlice(t *testing.T, v any) []*hcloud.Server {
 	const op = "mocks/serverPtrSlice"
 
 	t.Helper()
