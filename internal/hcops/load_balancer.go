@@ -670,7 +670,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 					node.Name,
 				)
 				klog.Warning(warnMsg)
-				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", warnMsg)
+				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", "%s", warnMsg)
 				continue
 			}
 
@@ -699,7 +699,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 					id,
 				)
 				klog.Warning(warnMsg)
-				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", warnMsg)
+				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", "%s", warnMsg)
 				continue
 			}
 
