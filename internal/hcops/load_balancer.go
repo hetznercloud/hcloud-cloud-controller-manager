@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"sync"
 	"time"
@@ -167,10 +168,10 @@ func (l *LoadBalancerOps) Create(
 	disablePubIface, err := annotation.LBDisablePublicNetwork.BoolFromService(svc)
 	switch {
 	case err == nil:
-		opts.PublicInterface = hcloud.Ptr(!disablePubIface)
+		opts.PublicInterface = new(!disablePubIface)
 	case errors.Is(err, annotation.ErrNotSet):
 		if l.Cfg.LoadBalancer.DisablePublicNetwork != nil {
-			opts.PublicInterface = hcloud.Ptr(!*l.Cfg.LoadBalancer.DisablePublicNetwork)
+			opts.PublicInterface = new(!*l.Cfg.LoadBalancer.DisablePublicNetwork)
 		}
 	default:
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -285,9 +286,7 @@ func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBal
 		// updating is really successful.
 		labels := make(map[string]string, len(lb.Labels)+1)
 		labels[LabelServiceUID] = string(svc.ObjectMeta.UID)
-		for k, v := range lb.Labels {
-			labels[k] = v
-		}
+		maps.Copy(labels, lb.Labels)
 		opts.Labels = labels
 		update = true
 	}
@@ -536,7 +535,7 @@ func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.
 	var desiredDisable *bool
 	switch {
 	case err == nil:
-		desiredDisable = hcloud.Ptr(disable)
+		desiredDisable = new(disable)
 	case errors.Is(err, annotation.ErrNotSet):
 		desiredDisable = l.Cfg.LoadBalancer.DisablePublicNetwork
 	default:
@@ -1075,7 +1074,7 @@ func (b *hclbServiceOptsBuilder) extract() {
 	b.do(func() error {
 		pp, err := annotation.LBSvcProxyProtocol.BoolFromService(b.Service)
 		if err == nil {
-			b.proxyProtocol = hcloud.Ptr(pp)
+			b.proxyProtocol = new(pp)
 			return nil
 		}
 		if errors.Is(err, annotation.ErrNotSet) {
@@ -1242,7 +1241,7 @@ func (b *hclbServiceOptsBuilder) extractHealthCheck() {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
-		b.healthCheckOpts.Port = hcloud.Ptr(hcPort)
+		b.healthCheckOpts.Port = new(hcPort)
 		b.addHealthCheck = true
 		return nil
 	})
@@ -1356,8 +1355,8 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 	}
 
 	opts := hcloud.LoadBalancerAddServiceOpts{
-		ListenPort:      hcloud.Ptr(b.listenPort),
-		DestinationPort: hcloud.Ptr(b.destinationPort),
+		ListenPort:      new(b.listenPort),
+		DestinationPort: new(b.destinationPort),
 		Protocol:        b.protocol,
 		Proxyprotocol:   b.proxyProtocol,
 	}
@@ -1373,7 +1372,7 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 	if b.addHealthCheck {
 		port := b.healthCheckOpts.Port
 		if port == nil {
-			port = hcloud.Ptr(b.destinationPort)
+			port = new(b.destinationPort)
 		}
 		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 			Protocol: b.healthCheckOpts.Protocol,
@@ -1395,7 +1394,7 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 	} else {
 		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 			Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-			Port:     hcloud.Ptr(b.destinationPort),
+			Port:     new(b.destinationPort),
 		}
 	}
 
@@ -1411,7 +1410,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	}
 
 	opts := hcloud.LoadBalancerUpdateServiceOpts{
-		DestinationPort: hcloud.Ptr(b.destinationPort),
+		DestinationPort: new(b.destinationPort),
 		Protocol:        b.protocol,
 		Proxyprotocol:   b.proxyProtocol,
 	}
@@ -1427,7 +1426,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	if b.addHealthCheck {
 		port := b.healthCheckOpts.Port
 		if port == nil {
-			port = hcloud.Ptr(b.destinationPort)
+			port = new(b.destinationPort)
 		}
 		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 			Protocol: b.healthCheckOpts.Protocol,
@@ -1449,7 +1448,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 	} else {
 		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 			Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-			Port:     hcloud.Ptr(b.destinationPort),
+			Port:     new(b.destinationPort),
 		}
 	}
 

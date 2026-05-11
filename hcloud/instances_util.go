@@ -39,7 +39,7 @@ func (er *MockEventRecorder) Event(_ runtime.Object, _, _, _ string) {
 func (er *MockEventRecorder) Eventf(
 	_ runtime.Object,
 	_, _, _ string,
-	_ ...interface{},
+	_ ...any,
 ) {
 }
 
@@ -47,7 +47,7 @@ func (er *MockEventRecorder) AnnotatedEventf(
 	_ runtime.Object,
 	_ map[string]string,
 	_, _, _ string,
-	_ ...interface{},
+	_ ...any,
 ) {
 }
 

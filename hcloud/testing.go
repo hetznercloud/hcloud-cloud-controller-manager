@@ -46,11 +46,11 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 	t.Helper()
 
 	if tt.UsePrivateIngressDefault == nil {
-		tt.UsePrivateIngressDefault = hcloud.Ptr(true)
+		tt.UsePrivateIngressDefault = new(true)
 	}
 
 	if tt.UseIPv6Default == nil {
-		tt.UseIPv6Default = hcloud.Ptr(true)
+		tt.UseIPv6Default = new(true)
 	}
 
 	tt.LBOps = &hcops.MockLoadBalancerOps{}
