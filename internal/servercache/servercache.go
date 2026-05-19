@@ -16,8 +16,7 @@ import (
 
 // ErrRateLimited is returned by a [ServerCache] when a lookup would have
 // required a refresh but the cache's internal rate limiter denied it.
-// Callers must treat this as "result unknown" — not as "server does not exist".
-var ErrRateLimited = errors.New("servercache: refresh rate limited")
+var ErrRateLimited = errors.New("refresh_rate_limited")
 
 type ServerCache interface {
 	ByID(context.Context, int64) (*hcloud.Server, error)
