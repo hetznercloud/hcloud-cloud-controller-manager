@@ -310,6 +310,101 @@ func TestRoutes_CreateRoute_NodeNameDrift(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestRoutes_CreateRoute_NoProviderID asserts the fallback path in resolveRouteTarget:
+// when the node has no ProviderID (e.g. node controller not used), the hcloud server
+// is resolved by node name instead.
+func TestRoutes_CreateRoute_NoProviderID(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerListResponse{
+			Servers: []schema.Server{
+				{
+					ID:   1,
+					Name: "node15",
+					PrivateNet: []schema.ServerPrivateNet{
+						{Network: 1, IP: "10.0.0.2"},
+					},
+				},
+			},
+		})
+	})
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
+			Network: schema.Network{ID: 1, Name: "network-1", IPRange: "10.0.0.0/8"},
+		})
+	})
+	env.Mux.HandleFunc("/actions", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ActionListResponse{
+			Actions: []schema.Action{{ID: 1, Status: string(hcloud.ActionStatusSuccess), Progress: 100}},
+		})
+	})
+	env.Mux.HandleFunc("/networks/1/actions/add_route", func(w http.ResponseWriter, r *http.Request) {
+		var reqBody schema.NetworkActionAddRouteRequest
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&reqBody))
+		assert.Equal(t, "10.0.0.2", reqBody.Gateway)
+		json.NewEncoder(w).Encode(schema.NetworkActionAddRouteResponse{
+			Action: schema.Action{ID: 1, Status: string(hcloud.ActionStatusRunning)},
+		})
+	})
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node15"},
+		// ProviderID intentionally unset
+	}
+
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	require.NoError(t, err)
+
+	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
+		TargetNode:      "node15",
+		DestinationCIDR: "10.5.0.0/24",
+		TargetNodeAddresses: []corev1.NodeAddress{
+			{Type: corev1.NodeInternalIP, Address: "10.0.0.2"},
+		},
+	})
+	require.NoError(t, err)
+}
+
+// TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh asserts that even
+// after a cache refresh, the server is still not attached to the routes network.
+func TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+
+	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerListResponse{
+			Servers: []schema.Server{
+				{ID: 1, Name: "node15"}, // never attached to network 1
+			},
+		})
+	})
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
+			Network: schema.Network{ID: 1, Name: "network-1", IPRange: "10.0.0.0/8"},
+		})
+	})
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node15"},
+		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
+	}
+
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	require.NoError(t, err)
+
+	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
+		TargetNode:      "node15",
+		DestinationCIDR: "10.5.0.0/24",
+		TargetNodeAddresses: []corev1.NodeAddress{
+			{Type: corev1.NodeInternalIP, Address: "10.0.0.2"},
+		},
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "not attached to this server")
+}
+
 // TestRoutes_CreateRoute_ReplaceStaleRoute asserts that a pre-existing route with a wrong
 // gateway is deleted and a new one is added in the same call (upsert-in-place).
 func TestRoutes_CreateRoute_ReplaceStaleRoute(t *testing.T) {
