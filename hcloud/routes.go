@@ -137,33 +137,34 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 // resolveRouteTarget returns the k8s node and the hcloud server's private IP on the routes
 // network — everything needed to create a route for this node (gateway IP) and record events
 // against it (node).
-// Looks up the server by ProviderID to survive k8s node-name drift, with a ByName fallback for
-// ID changes (e.g. server recreated). Refreshes the cache once if the private-net attachment
-// isn't yet reflected.
+//
+// The hcloud server is resolved by ProviderID. Nodes without a ProviderID yet are
+// looked up by name as a fallback. Refreshes the cache once if the
+// private-net attachment isn't yet reflected.
 func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*corev1.Node, net.IP, error) {
 	node, err := r.nodeLister.Get(nodeName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error fetching node %s by name: %w", nodeName, err)
 	}
 
-	if node.Spec.ProviderID == "" {
-		return nil, nil, fmt.Errorf("node %s not yet initialized", node.Name)
-	}
-
-	id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error parsing provider id %q for node %s: %w", node.Spec.ProviderID, nodeName, err)
-	}
-	if !isCloudServer {
-		return nil, nil, fmt.Errorf("node %s is not a cloud server, routes are only supported for cloud servers", node.Name)
-	}
-
-	server, err := r.serverCache.ByID(ctx, id)
-	if errors.Is(err, hcops.ErrNotFound) {
+	var server *hcloud.Server
+	if node.Spec.ProviderID != "" {
+		id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error parsing provider id %q for node %s: %w", node.Spec.ProviderID, nodeName, err)
+		}
+		if !isCloudServer {
+			return nil, nil, fmt.Errorf("node %s is not a cloud server, routes are only supported for cloud servers", node.Name)
+		}
+		server, err = r.serverCache.ByID(ctx, id)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error looking up hcloud server by id %d for node %s: %w", id, nodeName, err)
+		}
+	} else {
 		server, err = r.serverCache.ByName(ctx, node.Name)
-	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("error fetching node %s by id: %w", nodeName, err)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error looking up hcloud server by name for node %s: %w", nodeName, err)
+		}
 	}
 
 	privNet, ok := findServerPrivateNetByID(server, r.network.ID)
@@ -171,7 +172,7 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		r.serverCache.InvalidateCache()
 		server, err = r.serverCache.ByID(ctx, server.ID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error fetching node %s by id: %w", nodeName, err)
+			return nil, nil, fmt.Errorf("error refreshing hcloud server for node %s: %w", nodeName, err)
 		}
 		privNet, ok = findServerPrivateNetByID(server, r.network.ID)
 		if !ok {
