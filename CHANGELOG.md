@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.31.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.31.1)
+
+### Bug Fixes
+
+- routes controller on node name drift (#1221)
+
 ## [v1.31.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.31.0)
 
 ### Features
