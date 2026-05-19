@@ -19,7 +19,6 @@ package hcloud
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -53,6 +52,7 @@ type cloud struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
 	cfg         config.HCCMConfiguration
+	credentials *runtimeCredentials
 	recorder    record.EventRecorder
 	networkID   int64
 	cidr        string
@@ -72,14 +72,14 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 		return nil, err
 	}
 
+	credentials, err := newRuntimeCredentials()
+	if err != nil {
+		return nil, err
+	}
+
 	opts := []hcloud.ClientOption{
-		hcloud.WithToken(cfg.HCloudClient.Token),
 		hcloud.WithApplication("hcloud-cloud-controller", providerVersion),
-		hcloud.WithHTTPClient(
-			&http.Client{
-				Timeout: apiClientTimeout,
-			},
-		),
+		hcloud.WithHTTPClient(newHCloudHTTPClient(apiClientTimeout, credentials)),
 	}
 
 	// start metrics server if enabled (enabled by default)
@@ -102,9 +102,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 		c := hrobot.NewBasicAuthClientWithCustomHttpClient(
 			cfg.Robot.User,
 			cfg.Robot.Password,
-			&http.Client{
-				Timeout: apiClientTimeout,
-			},
+			newRobotHTTPClient(apiClientTimeout, credentials),
 		)
 
 		robotClient = robot.NewRateLimitedClient(
@@ -147,6 +145,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 		client:      client,
 		robotClient: robotClient,
 		cfg:         cfg,
+		credentials: credentials,
 		networkID:   networkID,
 		cidr:        cidr,
 		nodeLister:  nodeLister,
@@ -161,6 +160,11 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 
 	go func() {
 		<-stop
+		if c.credentials != nil {
+			if err := c.credentials.close(); err != nil {
+				klog.ErrorS(err, "close runtime credential watcher")
+			}
+		}
 		eventBroadcaster.Shutdown()
 	}()
 
