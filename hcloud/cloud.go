@@ -62,6 +62,7 @@ type cloud struct {
 func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Interface, error) {
 	const op = "hcloud/newCloud"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	ctx := context.Background()
 
 	cfg, err := config.Read()
 	if err != nil {
@@ -115,7 +116,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	var networkID int64
 	if cfg.Network.NameOrID != "" {
-		n, _, err := client.Network.Get(context.Background(), cfg.Network.NameOrID)
+		n, _, err := client.Network.Get(ctx, cfg.Network.NameOrID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -125,7 +126,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 		networkID = n.ID
 
 		if cfg.Network.AttachedCheckEnabled {
-			attached, err := serverIsAttachedToNetwork(metadataClient, networkID)
+			attached, err := serverIsAttachedToNetwork(ctx, metadataClient, networkID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: checking if server is in Network not possible: %w", op, err)
 			}
@@ -136,7 +137,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 	}
 
 	// Validate that the provided token works, and we have network connectivity to the Hetzner Cloud API
-	_, _, err = client.Location.List(context.Background(), hcloud.LocationListOpts{})
+	_, _, err = client.Location.List(ctx, hcloud.LocationListOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -236,11 +237,11 @@ func (c *cloud) HasClusterID() bool {
 // serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network
 // We use this measurement to protect users against some parts of misconfiguration, like configuring a master in a not attached
 // network.
-func serverIsAttachedToNetwork(metadataClient *metadata.Client, networkID int64) (bool, error) {
+func serverIsAttachedToNetwork(ctx context.Context, metadataClient *metadata.Client, networkID int64) (bool, error) {
 	const op = "serverIsAttachedToNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	serverPrivateNetworks, err := metadataClient.PrivateNetworks()
+	serverPrivateNetworks, err := metadataClient.PrivateNetworksWithContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
