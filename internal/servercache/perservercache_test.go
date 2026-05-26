@@ -133,7 +133,7 @@ func TestPerServerCache_APIError(t *testing.T) {
 	assert.Nil(t, srv)
 }
 
-func TestPerServerCache_LRUEviction(t *testing.T) {
+func TestPerServerCache_ExpiredEviction(t *testing.T) {
 	// Cache size 2; adding a third entry evicts the least-recently-used.
 	// Touching server 1 before inserting 3 keeps 1 in cache and evicts 2.
 	client := newCacheTestClient(t, []mockutil.Request{
