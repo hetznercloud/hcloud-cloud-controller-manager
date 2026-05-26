@@ -11,14 +11,22 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
+// ServerCache defines a caching layer for retrieving Hetzner Cloud servers.
+type ServerCache interface {
+	// ByID retrieves a server by its unique numeric ID.
+	// Returns the server if found, nil and no error if not found,
+	// or nil and an error if the lookup fails.
+	ByID(context.Context, int64) (*hcloud.Server, error)
+
+	// ByName retrieves a server by its name.
+	// Returns the server if found, nil and no error if not found,
+	// or nil and an error if the lookup fails.
+	ByName(context.Context, string) (*hcloud.Server, error)
+}
+
 // ErrRateLimited is returned by a [ServerCache] when a lookup would have
 // required a refresh but the cache's internal rate limiter denied it.
 var ErrRateLimited = errors.New("refresh_rate_limited")
-
-type ServerCache interface {
-	ByID(context.Context, int64) (*hcloud.Server, error)
-	ByName(context.Context, string) (*hcloud.Server, error)
-}
 
 type Mode string
 
