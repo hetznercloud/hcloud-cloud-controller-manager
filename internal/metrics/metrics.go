@@ -41,7 +41,7 @@ var (
 	CacheRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "cloud_controller_manager_cache_requests_total",
 		Help: "Total cache requests partitioned by cache name and result.",
-	}, []string{"subsytem", "mode", "result"})
+	}, []string{"subsystem", "mode", "result"})
 )
 
 func init() {
