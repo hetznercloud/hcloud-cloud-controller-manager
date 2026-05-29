@@ -9,14 +9,14 @@ jobs:
     name: unit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
 
       - run: go test -v -race -coverprofile=coverage.txt ./...
 
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
           !startsWith(github.head_ref, 'releaser-pleaser--')
@@ -53,28 +53,28 @@ jobs:
       CERT_DOMAIN: hc-integrations-test.de
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
 
-      - uses: hetznercloud/setup-hcloud@v2
+      - uses: hetznercloud/setup-hcloud@ac9e7d74fb41a3ca44a6a3da123bd5aa70731e3a # v2
 
-      - uses: opentofu/setup-opentofu@v2
+      - uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2
         with:
-          tofu_version: v1.11.7 # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: v1.12.0 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@v0.13.5
+      - uses: yokawasa/action-setup-kube-tools@9d39563c24d4a419d1a8289c34d6da5a6171252c # v0.13.5
         with:
           setup-tools: |
             helm
             kubectl
             skaffold
-          helm: v4.1.4 # renovate: datasource=github-releases depName=helm/helm
+          helm: v4.2.0 # renovate: datasource=github-releases depName=helm/helm
           kubectl: v1.36.1 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-          skaffold: v2.19.0 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
+          skaffold: v2.21.0 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
 
       - name: Setup k3sup
         env:
@@ -83,7 +83,7 @@ jobs:
           curl https://github.com/alexellis/k3sup/releases/download/$K3SUP_VERSION/k3sup -sSL -o /usr/local/bin/k3sup
           chmod +x /usr/local/bin/k3sup
 
-      - uses: hetznercloud/tps-action@main
+      - uses: hetznercloud/tps-action@dc6d67c5768ca43b840429b6c7409cda61cf4092 # main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
 
@@ -106,7 +106,7 @@ jobs:
           bash scripts/get-coverage-from-k8s.sh
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
           !startsWith(github.head_ref, 'releaser-pleaser--')
@@ -148,7 +148,7 @@ jobs:
       - name: Persist debug artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: debug-logs-${{ env.ENV }}
           path: debug-logs/
@@ -171,34 +171,34 @@ jobs:
       ROBOT_ENABLED: "true"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
 
-      - uses: hetznercloud/setup-hcloud@v2
+      - uses: hetznercloud/setup-hcloud@ac9e7d74fb41a3ca44a6a3da123bd5aa70731e3a # v2
 
-      - uses: opentofu/setup-opentofu@v2
+      - uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2
         with:
-          tofu_version: v1.11.7 # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: v1.12.0 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@v0.13.5
+      - uses: yokawasa/action-setup-kube-tools@9d39563c24d4a419d1a8289c34d6da5a6171252c # v0.13.5
         with:
           setup-tools: |
             helm
             kubectl
             skaffold
-          helm: v4.1.4 # renovate: datasource=github-releases depName=helm/helm
+          helm: v4.2.0 # renovate: datasource=github-releases depName=helm/helm
           kubectl: v1.36.1 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-          skaffold: v2.19.0 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
+          skaffold: v2.21.0 # renovate: datasource=github-releases depName=GoogleContainerTools/skaffold
 
       - name: Install k3sup
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-      - uses: hetznercloud/tps-action@main
+      - uses: hetznercloud/tps-action@dc6d67c5768ca43b840429b6c7409cda61cf4092 # main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
 
@@ -229,7 +229,7 @@ jobs:
           bash scripts/get-coverage-from-k8s.sh
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
         if: >
           !startsWith(github.head_ref, 'renovate/') &&
           !startsWith(github.head_ref, 'releaser-pleaser--')
@@ -271,7 +271,7 @@ jobs:
       - name: Persist debug artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: debug-logs-${{ env.ENV }}
           path: debug-logs/

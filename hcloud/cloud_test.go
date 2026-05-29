@@ -95,7 +95,7 @@ func TestNewCloud(t *testing.T) {
 		json.NewEncoder(w).Encode(schema.LocationListResponse{Locations: []schema.Location{}})
 	})
 
-	_, err := NewCloud(DefaultClusterCIDR)
+	_, err := NewCloud(DefaultClusterCIDR, nil)
 	assert.NoError(t, err)
 }
 
@@ -107,7 +107,7 @@ func TestNewCloudConnectionNotPossible(t *testing.T) {
 	)
 	defer resetEnv()
 
-	_, err := NewCloud(DefaultClusterCIDR)
+	_, err := NewCloud(DefaultClusterCIDR, nil)
 	assert.EqualError(t, err,
 		`hcloud/newCloud: Get "http://127.0.0.1:4711/v1/locations?": dial tcp 127.0.0.1:4711: connect: connection refused`)
 }
@@ -135,7 +135,7 @@ func TestNewCloudInvalidToken(t *testing.T) {
 		)
 	})
 
-	_, err := NewCloud(DefaultClusterCIDR)
+	_, err := NewCloud(DefaultClusterCIDR, nil)
 	assert.EqualError(t, err, "hcloud/newCloud: unable to authenticate (unauthorized)")
 }
 
@@ -172,7 +172,7 @@ func TestCloud(t *testing.T) {
 		)
 	})
 
-	cloud, err := NewCloud(DefaultClusterCIDR)
+	cloud, err := NewCloud(DefaultClusterCIDR, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -229,7 +229,7 @@ func TestCloud(t *testing.T) {
 		)
 		defer resetEnv()
 
-		c, err := NewCloud(DefaultClusterCIDR)
+		c, err := NewCloud(DefaultClusterCIDR, nil)
 		if err != nil {
 			t.Errorf("%s", err)
 		}

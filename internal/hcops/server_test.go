@@ -375,6 +375,12 @@ func newAllServersCacheOps(t *testing.T, srv *hcloud.Server) map[string]allServe
 			}
 			return c.ByName(t.Context(), srv.Name)
 		},
+		"ByID": func(c *hcops.AllServersCache) (*hcloud.Server, error) {
+			if srv.ID == 0 {
+				t.Fatal("ByID: server has no id")
+			}
+			return c.ByID(t.Context(), srv.ID)
+		},
 	}
 }
 
