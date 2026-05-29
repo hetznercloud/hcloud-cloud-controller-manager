@@ -231,14 +231,7 @@ func (c *cloud) ProviderName() string {
 }
 
 func (c *cloud) HasClusterID() bool {
-	// Hetzner does not consume the kubernetes/cloud-provider ClusterID for
-	// any tagging or reconciliation — see issue #1119, where this was
-	// confirmed by maintainers. Returning true lets operators omit the
-	// `--allow-untagged-cloud` flag entirely, which in turn silences the
-	// upstream deprecation warning ("Flag --allow-untagged-cloud has been
-	// deprecated, ... A cluster-id will be required on cloud instances.")
-	// emitted by k8s.io/cloud-provider when the flag is set.
-	return true
+	return false
 }
 
 // serverIsAttachedToNetwork checks if the server where the master is running on is attached to the configured private network

@@ -240,8 +240,8 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("HasClusterID", func(t *testing.T) {
-		if !cloud.HasClusterID() {
-			t.Error("HasClusterID should be true so operators can omit --allow-untagged-cloud (see issue #1119)")
+		if cloud.HasClusterID() {
+			t.Error("HasClusterID should be false")
 		}
 	})
 

@@ -72,13 +72,14 @@ func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
 		klog.Fatalf("Cloud provider is nil")
 	}
 
-	if !cloud.HasClusterID() {
-		if config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
-			klog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
-		} else {
-			klog.Fatalf("no ClusterID found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
-		}
-	}
+	// Hetzner does not consume the kubernetes/cloud-provider ClusterID for any
+	// tagging or reconciliation, so HasClusterID() returns false (see issue
+	// #1119). We intentionally skip the upstream fail-fast that would otherwise
+	// require operators to set --allow-untagged-cloud. Forcing that flag was the
+	// only thing that triggered the upstream deprecation warning ("Flag
+	// --allow-untagged-cloud has been deprecated, ... A cluster-id will be
+	// required on cloud instances."); by no longer requiring it, operators can
+	// omit the flag and the warning goes away at its source.
 	return cloud
 }
 
