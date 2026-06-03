@@ -42,7 +42,7 @@ type testEnv struct {
 	Mux         *http.ServeMux
 	Client      *hcloud.Client
 	RobotClient hrobot.RobotClient
-	ServerCache servercache.ServerCache
+	ServerCache *servercache.Cache[hcloud.Server]
 	Recorder    record.EventRecorder
 	Cfg         config.HCCMConfiguration
 }
@@ -69,7 +69,7 @@ func newTestEnv() testEnv {
 	)
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
-	serverCache := servercache.NewPerServerCache(client, "instances_v2", 10*time.Second)
+	serverCache := servercache.NewServerCache(client, "instances_v2", servercache.ModePerServer, 10*time.Second)
 	recorder := record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
 
 	cfg := config.HCCMConfiguration{}

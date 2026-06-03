@@ -45,7 +45,7 @@ const (
 type instances struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
-	serverCache servercache.ServerCache
+	serverCache *servercache.Cache[hcloud.Server]
 	recorder    record.EventRecorder
 	networkID   int64
 	cfg         config.HCCMConfiguration
@@ -59,7 +59,7 @@ var (
 func newInstances(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
-	serverCache servercache.ServerCache,
+	serverCache *servercache.Cache[hcloud.Server],
 	recorder record.EventRecorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
@@ -179,7 +179,8 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bo
 	if server == nil {
 		return false, fmt.Errorf(
 			"%s: failed to get instance metadata: no matching server found for node '%s': %w",
-			op, node.Name, errServerNotFound)
+			op, node.Name, errServerNotFound,
+		)
 	}
 
 	isShutdown, err := server.IsShutdown()
@@ -203,7 +204,8 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	if server == nil {
 		return nil, fmt.Errorf(
 			"%s: failed to get instance metadata: no matching server found for node '%s': %w",
-			op, node.Name, errServerNotFound)
+			op, node.Name, errServerNotFound,
+		)
 	}
 
 	metadata, err := server.Metadata(i.networkID, node, i.cfg)

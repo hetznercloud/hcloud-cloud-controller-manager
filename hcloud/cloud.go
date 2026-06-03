@@ -53,7 +53,7 @@ var providerVersion = "unknown"
 type cloud struct {
 	client        *hcloud.Client
 	robotClient   hrobot.RobotClient
-	instanceCache servercache.ServerCache
+	instanceCache *servercache.Cache[hcloud.Server]
 	cfg           config.HCCMConfiguration
 	recorder      record.EventRecorder
 	networkID     int64
@@ -146,10 +146,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
-	instanceCache, err := servercache.New(client, "instances_v2", cfg.Instance.Cache.Mode, cfg.Instance.Cache.TTL)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
+	instanceCache := servercache.NewServerCache(client, "instances_v2", cfg.Instance.Cache.Mode, cfg.Instance.Cache.TTL)
 
 	return &cloud{
 		client:        client,
