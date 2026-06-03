@@ -30,8 +30,8 @@ const (
 	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
-	hcloudInstancesCacheMode     = "HCLOUD_INSTANCES_CACHE_MODE"
-	hcloudInstancesCacheTTL      = "HCLOUD_INSTANCES_CACHE_TTL"
+	hcloudCacheMode              = "HCLOUD_CACHE_MODE"
+	hcloudCacheTTL               = "HCLOUD_CACHE_TTL"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -70,14 +70,13 @@ const (
 	AddressFamilyIPv4      AddressFamily = "ipv4"
 )
 
-const InstanceCacheDefaultTTL time.Duration = 10 * time.Second
+const CacheDefaultTTL time.Duration = 10 * time.Second
 
 type InstanceConfiguration struct {
 	AddressFamily AddressFamily
-	Cache         InstanceConfigurationCache
 }
 
-type InstanceConfigurationCache struct {
+type CacheConfiguration struct {
 	Mode servercache.Mode
 	TTL  time.Duration
 }
@@ -116,6 +115,7 @@ type HCCMConfiguration struct {
 	LoadBalancer LoadBalancerConfiguration
 	Network      NetworkConfiguration
 	Route        RouteConfiguration
+	Cache        CacheConfiguration
 }
 
 // Read evaluates all environment variables and returns a [HCCMConfiguration]. It only validates as far as
@@ -185,23 +185,25 @@ func Read() (HCCMConfiguration, error) {
 		cfg.Instance.AddressFamily = AddressFamilyIPv4
 	}
 
-	// ---- Instance Cache ----
+	// ---- Server Cache ----
 
-	cfg.Instance.Cache = InstanceConfigurationCache{
+	cfg.Cache = CacheConfiguration{
 		Mode: servercache.ModeAll,
-		TTL:  InstanceCacheDefaultTTL,
+		TTL:  CacheDefaultTTL,
 	}
 
-	if mode, ok := os.LookupEnv(hcloudInstancesCacheMode); ok {
-		cfg.Instance.Cache.Mode = servercache.Mode(mode)
+	if mode, ok := os.LookupEnv(hcloudCacheMode); ok {
+		klog.Warningf("Experimental: %s is experimental, breaking changes may occur within minor releases.", hcloudCacheMode)
+		cfg.Cache.Mode = servercache.Mode(mode)
 	}
 
-	if ttlStr, ok := os.LookupEnv(hcloudInstancesCacheTTL); ok {
+	if ttlStr, ok := os.LookupEnv(hcloudCacheTTL); ok {
+		klog.Warningf("Experimental: %s is experimental, breaking changes may occur within minor releases.", hcloudCacheTTL)
 		ttl, err := time.ParseDuration(ttlStr)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudInstancesCacheTTL, err))
+			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudCacheTTL, err))
 		} else {
-			cfg.Instance.Cache.TTL = ttl
+			cfg.Cache.TTL = ttl
 		}
 	}
 
