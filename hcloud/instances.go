@@ -40,6 +40,7 @@ import (
 const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
+	instancesV2Subsystem    = "instances_v2"
 )
 
 type instances struct {
@@ -81,6 +82,8 @@ func (i *instances) lookupServer(
 	ctx context.Context,
 	node *corev1.Node,
 ) (genericServer, error) {
+	ctx = servercache.SetSubsystem(ctx, instancesV2Subsystem)
+
 	if node.Spec.ProviderID != "" {
 		var serverID int64
 		serverID, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)

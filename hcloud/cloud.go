@@ -146,7 +146,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
-	instanceCache := servercache.NewServerCache(client, "instances_v2", cfg.Instance.Cache.Mode, cfg.Instance.Cache.TTL)
+	instanceCache := servercache.NewServerCache(client, cfg.Instance.Cache.Mode, cfg.Instance.Cache.TTL)
 
 	return &cloud{
 		client:        client,

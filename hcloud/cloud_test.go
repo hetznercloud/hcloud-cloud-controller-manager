@@ -69,7 +69,7 @@ func newTestEnv() testEnv {
 	)
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
-	serverCache := servercache.NewServerCache(client, "instances_v2", servercache.ModePerServer, 10*time.Second)
+	serverCache := servercache.NewServerCache(client, servercache.ModeOne, 10*time.Second)
 	recorder := record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
 
 	cfg := config.HCCMConfiguration{}

@@ -26,7 +26,7 @@ func TestRead(t *testing.T) {
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -49,7 +49,7 @@ func TestRead(t *testing.T) {
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					NameOrID:             "foobar",
 					AttachedCheckEnabled: true,
@@ -86,7 +86,7 @@ func TestRead(t *testing.T) {
 					ForwardInternalIPs: false,
 				},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -142,7 +142,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				},
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -171,7 +171,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: false, Address: "127.0.0.1:9999"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -202,7 +202,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					ForwardInternalIPs: true,
 				},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -234,7 +234,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					ForwardInternalIPs: false,
 				},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -254,7 +254,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv6, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv6, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -275,7 +275,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
 					PrivateIngressEnabled: true,
@@ -298,7 +298,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
 					PrivateIngressEnabled: true,
@@ -325,7 +325,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 			want: HCCMConfiguration{
 				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -414,7 +414,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "minimal",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 			},
 			wantErr: nil,
 		},
@@ -424,7 +424,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Network: NetworkConfiguration{
 					NameOrID: "foobar",
 				},
@@ -438,7 +438,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "token missing",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: ""},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 			},
 			wantErr: errors.New("environment variable \"HCLOUD_TOKEN\" is required"),
 		},
@@ -446,7 +446,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "address family invalid",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamily("foobar"), Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamily("foobar"), Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 			},
 			wantErr: errors.New("invalid value for \"HCLOUD_INSTANCES_ADDRESS_FAMILY\", expect one of: ipv4,ipv6,dualstack"),
 		},
@@ -454,7 +454,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "LB location and network zone set",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				LoadBalancer: LoadBalancerConfiguration{
 					Location:    "nbg1",
 					NetworkZone: "eu-central",
@@ -466,7 +466,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "LB private subnet invalid cidr",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				LoadBalancer: LoadBalancerConfiguration{
 					PrivateSubnetIPRange: "10.0.0.0/33",
 				},
@@ -477,7 +477,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "algorithm type invalid",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				LoadBalancer: LoadBalancerConfiguration{
 					AlgorithmType: "invalid",
 				},
@@ -488,7 +488,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "robot enabled without credentials (valid)",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 
 				Robot: RobotConfiguration{
 					Enabled: true,
@@ -500,7 +500,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "robot enabled with partial credentials (only user)",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 
 				Robot: RobotConfiguration{
 					Enabled:  true,
@@ -514,7 +514,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "robot enabled with partial credentials (only password)",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 
 				Robot: RobotConfiguration{
 					Enabled:  true,
@@ -528,7 +528,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			name: "robot & routes activated",
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAllServers, TTL: 10 * time.Second}},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, Cache: InstanceConfigurationCache{Mode: servercache.ModeAll, TTL: 10 * time.Second}},
 				Route:        RouteConfiguration{Enabled: true},
 				Robot: RobotConfiguration{
 					Enabled: true,

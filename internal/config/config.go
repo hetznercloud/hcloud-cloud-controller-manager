@@ -188,7 +188,7 @@ func Read() (HCCMConfiguration, error) {
 	// ---- Instance Cache ----
 
 	cfg.Instance.Cache = InstanceConfigurationCache{
-		Mode: servercache.ModeAllServers,
+		Mode: servercache.ModeAll,
 		TTL:  InstanceCacheDefaultTTL,
 	}
 

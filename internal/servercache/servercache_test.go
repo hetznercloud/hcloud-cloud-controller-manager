@@ -38,8 +38,7 @@ func TestServerCacheModeAllServers(t *testing.T) {
 		nil,
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
-		"test",
-		ModeAllServers,
+		ModeAll,
 		10*time.Second,
 	)
 
@@ -97,8 +96,7 @@ func TestServerCacheModeAllServersNotFound(t *testing.T) {
 		nil,
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
-		"test",
-		ModeAllServers,
+		ModeAll,
 		10*time.Second,
 	)
 
@@ -147,8 +145,7 @@ func TestServerCacheModePerServer(t *testing.T) {
 		nil,
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
-		"test",
-		ModePerServer,
+		ModeOne,
 		10*time.Second,
 	)
 
@@ -204,7 +201,7 @@ func TestServerCacheModePerServer(t *testing.T) {
 	assert.Equal(t, int64(2), apiCalls.Load())
 }
 
-func TestServerCacheModePerServerNotFound(t *testing.T) {
+func TestServerCacheModeOneNotFound(t *testing.T) {
 	apiCalls := atomic.Int64{}
 
 	sc := newCache[hcloud.Server](
@@ -213,8 +210,7 @@ func TestServerCacheModePerServerNotFound(t *testing.T) {
 		nil,
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
-		"test",
-		ModePerServer,
+		ModeOne,
 		10*time.Second,
 	)
 
@@ -278,7 +274,6 @@ func TestServerCacheModeOff(t *testing.T) {
 		nil,
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
-		"test",
 		ModeOff,
 		10*time.Second,
 	)
@@ -352,8 +347,7 @@ func TestServerCacheModePerServer_EvictExpiredEntries(t *testing.T) {
 			nil,
 			func(value *hcloud.Server) int64 { return value.ID },
 			func(value *hcloud.Server) string { return value.Name },
-			"test",
-			ModePerServer,
+			ModeOne,
 			10*time.Second,
 		)
 
@@ -405,8 +399,7 @@ func TestServerCacheModePerServer_WithTTLRefreshOpts(t *testing.T) {
 			nil,
 			func(value *hcloud.Server) int64 { return value.ID },
 			func(value *hcloud.Server) string { return value.Name },
-			"test",
-			ModePerServer,
+			ModeOne,
 			5*time.Second,
 		)
 
@@ -471,8 +464,7 @@ func TestServerCacheModePerServer_WithModeRefreshOpts(t *testing.T) {
 			nil,
 			func(value *hcloud.Server) int64 { return value.ID },
 			func(value *hcloud.Server) string { return value.Name },
-			"test",
-			ModePerServer,
+			ModeOne,
 			5*time.Second,
 		)
 
@@ -514,7 +506,7 @@ func TestServerCacheModePerServer_WithModeRefreshOpts(t *testing.T) {
 				{ID: 2, Name: "test2", Status: hcloud.ServerStatusRunning},
 			}, nil
 		}
-		srv, err = sc.ByID(ctx, 1, WithMode(ModeAllServers))
+		srv, err = sc.ByID(ctx, 1, WithMode(ModeAll))
 		require.NoError(t, err)
 		assertServer1(t, srv)
 
@@ -561,7 +553,6 @@ func TestServerCacheAllModesError(t *testing.T) {
 			},
 			func(value *hcloud.Server) int64 { return value.ID },
 			func(value *hcloud.Server) string { return value.Name },
-			"test",
 			mode,
 			10*time.Second,
 		)
@@ -602,7 +593,7 @@ func TestServerCacheAllModesError(t *testing.T) {
 		assert.Equal(t, int64(2), apiCalls.Load())
 	}
 
-	for _, mode := range []Mode{ModeAllServers, ModePerServer, ModeOff} {
+	for _, mode := range []Mode{ModeAll, ModeOne, ModeOff} {
 		t.Run(string(mode), func(t *testing.T) { testCase(t, mode) })
 	}
 }
@@ -615,13 +606,13 @@ func TestNewServerCache(t *testing.T) {
 		requests []mockutil.Request
 	}{
 		{
-			mode: ModeAllServers,
+			mode: ModeAll,
 			requests: []mockutil.Request{
 				{Method: "GET", Path: "/servers?page=1&per_page=50", Status: 200, JSONRaw: `{ "servers": [{ "id": 1, "name": "test" }]}`},
 			},
 		},
 		{
-			mode: ModePerServer,
+			mode: ModeOne,
 			requests: []mockutil.Request{
 				{Method: "GET", Path: "/servers/1", Status: 200, JSONRaw: `{ "server": { "id": 1, "name": "test" }}`},
 			},
@@ -640,7 +631,7 @@ func TestNewServerCache(t *testing.T) {
 			server := mockutil.NewServer(t, tt.requests)
 			client := hcloud.NewClient(hcloud.WithEndpoint(server.Server.URL))
 
-			cache := NewServerCache(client, "test", tt.mode, 10*time.Second)
+			cache := NewServerCache(client, tt.mode, 10*time.Second)
 			require.NotNil(t, cache)
 			require.NotNil(t, cache.fetchOneByID)
 			require.NotNil(t, cache.fetchOneByName)

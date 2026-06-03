@@ -15,9 +15,12 @@ import (
 type Mode string
 
 const (
-	ModeAllServers Mode = "all-server"
-	ModePerServer  Mode = "per-server"
-	ModeOff        Mode = "off"
+	// ModeAll fetches and caches all Servers.
+	ModeAll Mode = "all"
+	// ModeOne fetches and caches one Server.
+	ModeOne Mode = "one"
+	// ModeOff disables caching.
+	ModeOff Mode = "off"
 )
 
 type RefreshOpts struct {
@@ -36,7 +39,7 @@ func newCacheRefreshOpts[T any](cache *Cache[T], opts ...RefreshOption) *Refresh
 	return refreshOpts
 }
 
-type RefreshOption func(cro *RefreshOpts)
+type RefreshOption func(ro *RefreshOpts)
 
 func WithTTL(ttl time.Duration) func(*RefreshOpts) {
 	return func(ro *RefreshOpts) {
@@ -65,15 +68,13 @@ type Cache[T any] struct {
 	defaultTTL  time.Duration
 	defaultMode Mode
 
-	subsystem string
-
 	byID   map[int64]*entry[T]
 	byName map[string]*entry[T]
 
 	mu sync.Mutex
 }
 
-func NewServerCache(client *hcloud.Client, subsystem string, defaultMode Mode, defaultTTL time.Duration) *Cache[hcloud.Server] {
+func NewServerCache(client *hcloud.Client, defaultMode Mode, defaultTTL time.Duration) *Cache[hcloud.Server] {
 	return newCache[hcloud.Server](
 		func(ctx context.Context, id int64) (*hcloud.Server, error) {
 			value, _, err := client.Server.GetByID(ctx, id)
@@ -89,7 +90,6 @@ func NewServerCache(client *hcloud.Client, subsystem string, defaultMode Mode, d
 		},
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
-		subsystem,
 		defaultMode,
 		defaultTTL,
 	)
@@ -101,7 +101,6 @@ func newCache[T any](
 	fetchAll func(ctx context.Context) ([]*T, error),
 	getID func(value *T) int64,
 	getName func(value *T) string,
-	subsystem string,
 	defaultMode Mode,
 	defaultTTL time.Duration,
 ) *Cache[T] {
@@ -112,7 +111,6 @@ func newCache[T any](
 		getID:          getID,
 		getName:        getName,
 
-		subsystem:   subsystem,
 		defaultMode: defaultMode,
 		defaultTTL:  defaultTTL,
 
@@ -124,6 +122,7 @@ func newCache[T any](
 func (c *Cache[T]) ByID(ctx context.Context, id int64, opts ...RefreshOption) (*T, error) {
 	return c.getFromCache(
 		ctx,
+		GetSubsystem(ctx),
 		func() *entry[T] {
 			return c.byID[id]
 		},
@@ -137,6 +136,7 @@ func (c *Cache[T]) ByID(ctx context.Context, id int64, opts ...RefreshOption) (*
 func (c *Cache[T]) ByName(ctx context.Context, name string, opts ...RefreshOption) (*T, error) {
 	return c.getFromCache(
 		ctx,
+		GetSubsystem(ctx),
 		func() *entry[T] {
 			return c.byName[name]
 		},
@@ -149,6 +149,7 @@ func (c *Cache[T]) ByName(ctx context.Context, name string, opts ...RefreshOptio
 
 func (c *Cache[T]) getFromCache(
 	ctx context.Context,
+	subsystem string,
 	lookup func() *entry[T],
 	fetch func() (*T, error),
 	opts ...RefreshOption,
@@ -156,8 +157,8 @@ func (c *Cache[T]) getFromCache(
 	refreshOpts := newCacheRefreshOpts(c, opts...)
 
 	if refreshOpts.mode == ModeOff {
-		metrics.CacheRequests.WithLabelValues(c.subsystem, string(refreshOpts.mode), "miss").Inc()
-		klog.V(4).InfoS("cache mode is off")
+		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
+		klog.V(4).InfoS("cache mode is off: fetching entry from api", "subsystem", subsystem)
 		return fetch()
 	}
 
@@ -165,40 +166,51 @@ func (c *Cache[T]) getFromCache(
 	defer c.mu.Unlock()
 
 	if e := lookup(); e != nil && time.Now().Before(e.expiresAt) {
-		metrics.CacheRequests.WithLabelValues(c.subsystem, string(refreshOpts.mode), "hit").Inc()
-		klog.V(4).InfoS("cache hit", "id", c.getID(e.value), "name", c.getName(e.value), "expiresAt", e.expiresAt.Format(time.RFC3339))
+		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
+		klog.V(4).InfoS(
+			"cache hit",
+			"subsystem", subsystem,
+			"id", c.getID(e.value),
+			"name", c.getName(e.value),
+			"expiresAt", e.expiresAt.Format(time.RFC3339),
+		)
 		return e.value, nil
 	}
 
 	switch refreshOpts.mode {
-	case ModePerServer:
-		if err := c.refreshPerServer(fetch, refreshOpts.ttl); err != nil {
+	case ModeOne:
+		if err := c.refreshOne(subsystem, fetch, refreshOpts.ttl); err != nil {
 			return nil, err
 		}
-	case ModeAllServers:
-		if err := c.refreshAllServer(ctx, refreshOpts.ttl); err != nil {
+	case ModeAll:
+		if err := c.refreshAll(ctx, subsystem, refreshOpts.ttl); err != nil {
 			return nil, err
 		}
 	case ModeOff:
 		// Handled above -> early return
 	}
 
-	metrics.CacheRequests.WithLabelValues(c.subsystem, string(refreshOpts.mode), "miss").Inc()
+	metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
 
 	if e := lookup(); e != nil {
-		klog.V(4).InfoS("entry found after refresh", "id", c.getID(e.value), "name", c.getName(e.value))
+		klog.V(4).InfoS(
+			"entry found after refresh",
+			"subsystem", subsystem,
+			"id", c.getID(e.value), "name", c.getName(e.value),
+		)
 		return e.value, nil
 	}
 
-	klog.V(4).InfoS("entry not found after refresh")
+	klog.V(4).InfoS("entry not found after refresh", "subsystem", subsystem)
 	return nil, nil
 }
 
-func (c *Cache[T]) refreshPerServer(
+func (c *Cache[T]) refreshOne(
+	subsystem string,
 	fetch func() (*T, error),
 	ttl time.Duration,
 ) error {
-	klog.V(4).InfoS("refreshing server from api")
+	klog.V(4).InfoS("refreshing entry from api", "subsystem", subsystem)
 	value, err := fetch()
 	if err != nil {
 		return err
@@ -212,7 +224,13 @@ func (c *Cache[T]) refreshPerServer(
 		value:     value,
 		expiresAt: time.Now().Add(ttl),
 	}
-	klog.V(4).InfoS("refreshed entry from api", "id", c.getID(e.value), "name", c.getName(e.value), "expiresAt", e.expiresAt.Format(time.RFC3339))
+	klog.V(4).InfoS(
+		"refreshed entry from api",
+		"subsystem", subsystem,
+		"id", c.getID(e.value),
+		"name", c.getName(e.value),
+		"expiresAt", e.expiresAt.Format(time.RFC3339),
+	)
 
 	c.byID[c.getID(value)] = e
 	c.byName[c.getName(value)] = e
@@ -221,14 +239,26 @@ func (c *Cache[T]) refreshPerServer(
 	// Nodes or renamed Servers are cleaned from the cache.
 	maps.DeleteFunc(c.byID, func(_ int64, ev *entry[T]) bool {
 		if time.Now().After(ev.expiresAt) {
-			klog.V(4).InfoS("evicting entry from cache by id", "id", c.getID(ev.value), "name", c.getName(ev.value), "expiresAt", ev.expiresAt.Format(time.RFC3339))
+			klog.V(4).InfoS(
+				"evicting entry from cache by id",
+				"subsystem", subsystem,
+				"id", c.getID(ev.value),
+				"name", c.getName(ev.value),
+				"expiresAt", ev.expiresAt.Format(time.RFC3339),
+			)
 			return true
 		}
 		return false
 	})
 	maps.DeleteFunc(c.byName, func(_ string, ev *entry[T]) bool {
 		if time.Now().After(ev.expiresAt) {
-			klog.V(4).InfoS("evicting entry from cache by name", "id", c.getID(ev.value), "name", c.getName(ev.value), "expiresAt", ev.expiresAt.Format(time.RFC3339))
+			klog.V(4).InfoS(
+				"evicting entry from cache by name",
+				"subsystem", subsystem,
+				"id", c.getID(ev.value),
+				"name", c.getName(ev.value),
+				"expiresAt", ev.expiresAt.Format(time.RFC3339),
+			)
 			return true
 		}
 		return false
@@ -237,8 +267,8 @@ func (c *Cache[T]) refreshPerServer(
 	return nil
 }
 
-func (c *Cache[T]) refreshAllServer(ctx context.Context, ttl time.Duration) error {
-	klog.V(4).InfoS("refreshing all entries from api")
+func (c *Cache[T]) refreshAll(ctx context.Context, subsystem string, ttl time.Duration) error {
+	klog.V(4).InfoS("refreshing all entries from api", "subsystem", subsystem)
 
 	values, err := c.fetchAll(ctx)
 	if err != nil {
@@ -260,6 +290,11 @@ func (c *Cache[T]) refreshAllServer(ctx context.Context, ttl time.Duration) erro
 		c.byName[c.getName(value)] = e
 	}
 
-	klog.V(4).InfoS("refreshed all entries from api", "count", len(values), "expiresAt", expiresAt.Format(time.RFC3339))
+	klog.V(4).InfoS(
+		"refreshed all entries from api",
+		"subsystem", subsystem,
+		"count", len(values),
+		"expiresAt", expiresAt.Format(time.RFC3339),
+	)
 	return nil
 }
