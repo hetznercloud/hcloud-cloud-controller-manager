@@ -5,6 +5,7 @@ kind: ServiceAccount
 metadata:
   name: hcloud-cloud-controller-manager
   namespace: kube-system
+
 ---
 # Source: hcloud-cloud-controller-manager/templates/clusterrole.yml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -70,6 +71,7 @@ rules:
       - list
       - watch
       - update
+
 ---
 # Source: hcloud-cloud-controller-manager/templates/clusterrolebinding.yaml
 kind: ClusterRoleBinding
@@ -86,6 +88,7 @@ subjects:
   - kind: ServiceAccount
     name: hcloud-cloud-controller-manager
     namespace: kube-system
+
 ---
 # Source: hcloud-cloud-controller-manager/templates/deployment.yaml
 apiVersion: apps/v1
@@ -105,6 +108,11 @@ spec:
         app: hcloud-cloud-controller-manager
     spec:
       serviceAccountName: hcloud-cloud-controller-manager
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       dnsPolicy: Default
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
@@ -126,6 +134,12 @@ spec:
           effect: "NoExecute"
       containers:
         - name: hcloud-cloud-controller-manager
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
           args:
             - "--allow-untagged-cloud"
             - "--cloud-provider=hcloud"

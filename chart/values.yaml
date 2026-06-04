@@ -120,6 +120,27 @@ resources:
     cpu: 100m
     memory: 50Mi
 
+# Pod-level security context for the hccm Pod.
+# The defaults run the controller as a non-root user with a RuntimeDefault
+# seccomp profile, satisfying the Pod Security "restricted" profile.
+# Set to {} (or override individual fields) to relax these constraints.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context for the hccm container.
+# The controller does not write to its root filesystem at runtime, so a
+# read-only root filesystem with all capabilities dropped is safe by default.
+# Set to {} (or override individual fields) to relax these constraints.
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
 selectorLabels:
   app.kubernetes.io/name: '{{ include "hcloud-cloud-controller-manager.name" $ }}'
   app.kubernetes.io/instance: "{{ $.Release.Name }}"
