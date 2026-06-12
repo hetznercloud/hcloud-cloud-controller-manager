@@ -30,8 +30,8 @@ const (
 	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
-	hcloudCacheMode              = "HCLOUD_CACHE_MODE"
-	hcloudCacheTTL               = "HCLOUD_CACHE_TTL"
+	hcloudCacheMode              = "HCLOUD_SERVER_CACHE_MODE"
+	hcloudCacheTTL               = "HCLOUD_SERVER_CACHE_TTL"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"

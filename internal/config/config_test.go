@@ -469,7 +469,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
 				Cache:        CacheConfiguration{Mode: servercache.Mode("foobar")},
 			},
-			wantErr: errors.New("invalid value for \"HCLOUD_CACHE_MODE\", expect one of: all,one,off"),
+			wantErr: errors.New("invalid value for \"HCLOUD_SERVER_CACHE_MODE\", expect one of: all,one,off"),
 		},
 		{
 			name: "LB location and network zone set",
