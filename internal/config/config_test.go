@@ -24,10 +24,10 @@ func TestRead(t *testing.T) {
 			name: "minimal",
 			env:  []string{},
 			want: HCCMConfiguration{
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -51,7 +51,7 @@ func TestRead(t *testing.T) {
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:        CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache:  ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					NameOrID:             "foobar",
 					AttachedCheckEnabled: true,
@@ -87,9 +87,9 @@ func TestRead(t *testing.T) {
 					RateLimitWaitTime:  0,
 					ForwardInternalIPs: false,
 				},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -143,10 +143,10 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					Endpoint: "https://api.example.com",
 					Debug:    true,
 				},
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -173,10 +173,10 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_METRICS_ADDRESS", "127.0.0.1:9999",
 			},
 			want: HCCMConfiguration{
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: false, Address: "127.0.0.1:9999"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: false, Address: "127.0.0.1:9999"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -206,9 +206,9 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					RateLimitWaitTime:  5 * time.Minute,
 					ForwardInternalIPs: true,
 				},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -239,9 +239,9 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					RateLimitWaitTime:  5 * time.Minute,
 					ForwardInternalIPs: false,
 				},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -259,10 +259,10 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_INSTANCES_ADDRESS_FAMILY", "ipv6",
 			},
 			want: HCCMConfiguration{
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -281,10 +281,10 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_NETWORK", "foobar",
 			},
 			want: HCCMConfiguration{
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
 					PrivateIngressEnabled: true,
@@ -305,10 +305,10 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_NETWORK_ROUTES_ENABLED", "false",
 			},
 			want: HCCMConfiguration{
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
 					PrivateIngressEnabled: true,
@@ -333,10 +333,10 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				"HCLOUD_LOAD_BALANCERS_DISABLE_IPV6", "true",
 			},
 			want: HCCMConfiguration{
-				Robot:    RobotConfiguration{CacheTimeout: 5 * time.Minute},
-				Metrics:  MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance: InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:    CacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
+				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -415,7 +415,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 		LoadBalancer LoadBalancerConfiguration
 		Network      NetworkConfiguration
 		Route        RouteConfiguration
-		Cache        CacheConfiguration
+		Cache        ServerCacheConfiguration
 	}
 	tests := []struct {
 		name    string
@@ -467,7 +467,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 			fields: fields{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				Cache:        CacheConfiguration{Mode: cache.Mode("foobar")},
+				Cache:        ServerCacheConfiguration{Mode: cache.Mode("foobar")},
 			},
 			wantErr: errors.New("invalid value for \"HCLOUD_SERVER_CACHE_MODE\", expect one of: all,one,off"),
 		},
@@ -577,7 +577,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 				LoadBalancer: tt.fields.LoadBalancer,
 				Network:      tt.fields.Network,
 				Route:        tt.fields.Route,
-				Cache:        cacheConfig,
+				ServerCache:  cacheConfig,
 			}
 			err := c.Validate()
 			if tt.wantErr == nil {
