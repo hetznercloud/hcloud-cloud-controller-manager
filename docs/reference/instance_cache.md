@@ -24,3 +24,7 @@ Caches each Server individually with its own expiration. A `ByID` / `ByName` loo
 ### `off`
 
 Disables caching entirely. Every lookup goes directly to the API.
+| Default | Description |
+| ------------------- | ------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `HCLOUD_CACHE_MODE` | `all \| one \| off` | `all` | Selects the caching strategy. See [Modes](#modes) below. |
+| `HCLOUD_CACHE_TTL` | `duration`

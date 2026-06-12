@@ -187,7 +187,7 @@ func (c *Cache[T]) getFromCache(
 			return nil, err
 		}
 	case ModeOff:
-		// Handled above -> early return
+		// Handled above through early return
 	}
 
 	metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
