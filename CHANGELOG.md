@@ -1,5 +1,26 @@
 # Changelog
 
+## [v1.32.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.32.0)
+
+### Cache Server Lookups in Node Controllers
+
+This release introduces an experimental server cache to reduce Hetzner Cloud API calls. During an experimental phase, breaking changes on those features may occur within minor releases.
+
+The node and node lifecycle controllers look up Servers by ID or name, generating significant API traffic during cluster scaling. A new cache sits between the controllers and the API to serve these lookups, reducing the number of requests.
+
+It is enabled by default since we believe the implementation is safe in practice, but is experimental and may see breaking changes within minor releases. Configure it via environment variables:
+
+- `HCLOUD_SERVER_CACHE_MODE` (`all` | `one` | `off`, default `all`):
+
+  - `all` — fetch all Servers once and serve lookups from the snapshot until the TTL expires.
+  - `one`  — cache each Server individually with its own expiration.
+  - `off`  — disable caching; every lookup hits the API.
+- `HCLOUD_SERVER_CACHE_TTL` (duration, default `10s`): lifetime of cached entries (e.g. `30s`, `2m`); values above a minute are not recommended.
+
+### Features
+
+- **instances**: cache server lookups to reduce API calls (#1252)
+
 ## [v1.31.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.31.1)
 
 ### Bug Fixes
