@@ -213,11 +213,12 @@ func (c *Cache[T]) refreshOne(
 	c.byName[c.getName(value)] = e
 
 	// Evict expired entries so the cache does not grow indefinitely. This ensures deleted
-	// Nodes or renamed Servers are cleaned from the cache.
-	maps.DeleteFunc(c.byID, func(_ int64, ev *entry[T]) bool {
-		if time.Now().After(ev.expiresAt) {
+	// or updated entries are cleaned from the cache. It only acts on entries that
+	// expired some time ago, which keeps log output from being spammed.
+	evictFunc := func(ev *entry[T]) bool {
+		if time.Now().After(ev.expiresAt.Add(time.Hour)) {
 			klog.V(4).InfoS(
-				"evicting entry from cache by id",
+				"evicting entry from cache",
 				"subsystem", subsystem,
 				"id", c.getID(ev.value),
 				"name", c.getName(ev.value),
@@ -226,19 +227,13 @@ func (c *Cache[T]) refreshOne(
 			return true
 		}
 		return false
+	}
+
+	maps.DeleteFunc(c.byID, func(_ int64, ev *entry[T]) bool {
+		return evictFunc(ev)
 	})
 	maps.DeleteFunc(c.byName, func(_ string, ev *entry[T]) bool {
-		if time.Now().After(ev.expiresAt) {
-			klog.V(4).InfoS(
-				"evicting entry from cache by name",
-				"subsystem", subsystem,
-				"id", c.getID(ev.value),
-				"name", c.getName(ev.value),
-				"expiresAt", ev.expiresAt.Format(time.RFC3339),
-			)
-			return true
-		}
-		return false
+		return evictFunc(ev)
 	})
 
 	return nil
