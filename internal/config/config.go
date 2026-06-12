@@ -305,6 +305,10 @@ func (c HCCMConfiguration) Validate() (err error) {
 		errs = append(errs, fmt.Errorf("invalid value for %q, expect one of: %s,%s,%s", hcloudInstancesAddressFamily, AddressFamilyIPv4, AddressFamilyIPv6, AddressFamilyDualStack))
 	}
 
+	if c.Cache.Mode != servercache.ModeAll && c.Cache.Mode != servercache.ModeOne && c.Cache.Mode != servercache.ModeOff {
+		errs = append(errs, fmt.Errorf("invalid value for %q, expect one of: %s,%s,%s", hcloudCacheMode, servercache.ModeAll, servercache.ModeOne, servercache.ModeOff))
+	}
+
 	if c.LoadBalancer.Location != "" && c.LoadBalancer.NetworkZone != "" {
 		errs = append(errs, fmt.Errorf("invalid value for %q/%q, only one of them can be set", hcloudLoadBalancersLocation, hcloudLoadBalancersNetworkZone))
 	}

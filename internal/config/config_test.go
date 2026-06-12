@@ -415,6 +415,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 		LoadBalancer LoadBalancerConfiguration
 		Network      NetworkConfiguration
 		Route        RouteConfiguration
+		Cache        CacheConfiguration
 	}
 	tests := []struct {
 		name    string
@@ -460,6 +461,15 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamily("foobar")},
 			},
 			wantErr: errors.New("invalid value for \"HCLOUD_INSTANCES_ADDRESS_FAMILY\", expect one of: ipv4,ipv6,dualstack"),
+		},
+		{
+			name: "cache mode invalid",
+			fields: fields{
+				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Cache:        CacheConfiguration{Mode: servercache.Mode("foobar")},
+			},
+			wantErr: errors.New("invalid value for \"HCLOUD_CACHE_MODE\", expect one of: all,one,off"),
 		},
 		{
 			name: "LB location and network zone set",
@@ -553,6 +563,12 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cache := tt.fields.Cache
+			if cache.Mode == "" {
+				// Mirror the default set by Read() so cases that don't
+				// exercise cache validation stay valid.
+				cache.Mode = servercache.ModeAll
+			}
 			c := HCCMConfiguration{
 				HCloudClient: tt.fields.HCloudClient,
 				Robot:        tt.fields.Robot,
@@ -561,6 +577,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 				LoadBalancer: tt.fields.LoadBalancer,
 				Network:      tt.fields.Network,
 				Route:        tt.fields.Route,
+				Cache:        cache,
 			}
 			err := c.Validate()
 			if tt.wantErr == nil {
