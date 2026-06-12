@@ -33,6 +33,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
@@ -52,6 +53,7 @@ var providerVersion = "unknown"
 type cloud struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
+	serverCache *cache.Cache[hcloud.Server]
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
@@ -144,9 +146,12 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
+	serverCache := cache.NewServerCache(client, cfg.ServerCache.Mode, cfg.ServerCache.TTL)
+
 	return &cloud{
 		client:      client,
 		robotClient: robotClient,
+		serverCache: serverCache,
 		cfg:         cfg,
 		networkID:   networkID,
 		cidr:        cidr,
@@ -175,7 +180,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.recorder, c.networkID, c.cfg), true
+	return newInstances(c.client, c.robotClient, c.serverCache, c.recorder, c.networkID, c.cfg), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
