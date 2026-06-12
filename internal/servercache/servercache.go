@@ -288,13 +288,15 @@ func (c *Cache[T]) refreshAll(ctx context.Context, subsystem string, ttl time.Du
 
 		c.byID[c.getID(value)] = e
 		c.byName[c.getName(value)] = e
+
+		klog.V(4).InfoS(
+			"refreshed entry from api",
+			"subsystem", subsystem,
+			"id", c.getID(e.value),
+			"name", c.getName(e.value),
+			"expiresAt", expiresAt.Format(time.RFC3339),
+		)
 	}
 
-	klog.V(4).InfoS(
-		"refreshed all entries from api",
-		"subsystem", subsystem,
-		"count", len(values),
-		"expiresAt", expiresAt.Format(time.RFC3339),
-	)
 	return nil
 }
