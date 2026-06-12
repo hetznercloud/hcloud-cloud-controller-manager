@@ -39,7 +39,7 @@ var (
 	}, []string{"op"})
 
 	CacheRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "cloud_controller_manager_cache_requests_total",
+		Name: "cloud_controller_manager_server_cache_requests_total",
 		Help: "Total cache requests partitioned by cache name and result.",
 	}, []string{"subsystem", "mode", "result"})
 )
