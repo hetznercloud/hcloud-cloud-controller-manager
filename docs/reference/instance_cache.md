@@ -1,4 +1,4 @@
-# Instance Cache
+# Server Cache
 
 > **Experimental:** Instance caching is experimental, breaking changes may occur within minor releases. We believe the implementation is safe in practice — that is why it ships enabled by default (`all-server`). Set `HCLOUD_CACHE_MODE=off` to opt out.
 
