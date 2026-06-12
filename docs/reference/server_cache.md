@@ -15,7 +15,7 @@ The server cache reduces calls to the Hetzner Cloud API made by the `InstancesV2
 
 ### `all`
 
-Fetches every Server in the project with a single `GET /servers` call and serves all subsequent `ByID` / `ByName` lookups from the resulting snapshot until the TTL expires. The snapshot is refreshed on the next lookup after expiry. On a cache miss within the TTL (e.g. a freshly created Server), one rate-limited refresh per TTL window is allowed to pick up the new Server; further misses in the same window return without an API call.
+Fetches every Server in the project with a single `GET /servers` call and serves all subsequent `ByID` / `ByName` lookups from the resulting snapshot until the TTL expires. The snapshot is refreshed on the next lookup after expiry.
 
 ### `one`
 
