@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/kit/envutil"
 )
@@ -77,7 +77,7 @@ type InstanceConfiguration struct {
 }
 
 type CacheConfiguration struct {
-	Mode servercache.Mode
+	Mode cache.Mode
 	TTL  time.Duration
 }
 
@@ -188,13 +188,13 @@ func Read() (HCCMConfiguration, error) {
 	// ---- Server Cache ----
 
 	cfg.Cache = CacheConfiguration{
-		Mode: servercache.ModeAll,
+		Mode: cache.ModeAll,
 		TTL:  CacheDefaultTTL,
 	}
 
 	if mode, ok := os.LookupEnv(hcloudCacheMode); ok {
 		klog.Warningf("Experimental: %s is experimental, breaking changes may occur within minor releases.", hcloudCacheMode)
-		cfg.Cache.Mode = servercache.Mode(mode)
+		cfg.Cache.Mode = cache.Mode(mode)
 	}
 
 	if ttlStr, ok := os.LookupEnv(hcloudCacheTTL); ok {
@@ -305,8 +305,8 @@ func (c HCCMConfiguration) Validate() (err error) {
 		errs = append(errs, fmt.Errorf("invalid value for %q, expect one of: %s,%s,%s", hcloudInstancesAddressFamily, AddressFamilyIPv4, AddressFamilyIPv6, AddressFamilyDualStack))
 	}
 
-	if c.Cache.Mode != servercache.ModeAll && c.Cache.Mode != servercache.ModeOne && c.Cache.Mode != servercache.ModeOff {
-		errs = append(errs, fmt.Errorf("invalid value for %q, expect one of: %s,%s,%s", hcloudCacheMode, servercache.ModeAll, servercache.ModeOne, servercache.ModeOff))
+	if c.Cache.Mode != cache.ModeAll && c.Cache.Mode != cache.ModeOne && c.Cache.Mode != cache.ModeOff {
+		errs = append(errs, fmt.Errorf("invalid value for %q, expect one of: %s,%s,%s", hcloudCacheMode, cache.ModeAll, cache.ModeOne, cache.ModeOff))
 	}
 
 	if c.LoadBalancer.Location != "" && c.LoadBalancer.NetworkZone != "" {

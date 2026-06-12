@@ -30,8 +30,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
@@ -42,7 +42,7 @@ type testEnv struct {
 	Mux         *http.ServeMux
 	Client      *hcloud.Client
 	RobotClient hrobot.RobotClient
-	ServerCache *servercache.Cache[hcloud.Server]
+	ServerCache *cache.Cache[hcloud.Server]
 	Recorder    record.EventRecorder
 	Cfg         config.HCCMConfiguration
 }
@@ -69,7 +69,7 @@ func newTestEnv() testEnv {
 	)
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
-	serverCache := servercache.NewServerCache(client, servercache.ModeOne, 10*time.Second)
+	serverCache := cache.NewServerCache(client, cache.ModeOne, 10*time.Second)
 	recorder := record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
 
 	cfg := config.HCCMConfiguration{}

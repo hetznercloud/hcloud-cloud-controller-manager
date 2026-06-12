@@ -33,11 +33,11 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
@@ -53,7 +53,7 @@ var providerVersion = "unknown"
 type cloud struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
-	serverCache *servercache.Cache[hcloud.Server]
+	serverCache *cache.Cache[hcloud.Server]
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
@@ -146,7 +146,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
-	serverCache := servercache.NewServerCache(client, cfg.Cache.Mode, cfg.Cache.TTL)
+	serverCache := cache.NewServerCache(client, cfg.Cache.Mode, cfg.Cache.TTL)
 
 	return &cloud{
 		client:      client,

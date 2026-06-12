@@ -1,4 +1,4 @@
-package servercache
+package cache
 
 import (
 	"context"

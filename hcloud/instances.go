@@ -29,11 +29,11 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/servercache"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -46,7 +46,7 @@ const (
 type instances struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
-	serverCache *servercache.Cache[hcloud.Server]
+	serverCache *cache.Cache[hcloud.Server]
 	recorder    record.EventRecorder
 	networkID   int64
 	cfg         config.HCCMConfiguration
@@ -60,7 +60,7 @@ var (
 func newInstances(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
-	serverCache *servercache.Cache[hcloud.Server],
+	serverCache *cache.Cache[hcloud.Server],
 	recorder record.EventRecorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
@@ -82,7 +82,7 @@ func (i *instances) lookupServer(
 	ctx context.Context,
 	node *corev1.Node,
 ) (genericServer, error) {
-	ctx = servercache.SetSubsystem(ctx, instancesV2Subsystem)
+	ctx = cache.SetSubsystem(ctx, instancesV2Subsystem)
 
 	if node.Spec.ProviderID != "" {
 		var serverID int64
