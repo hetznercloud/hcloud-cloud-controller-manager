@@ -122,7 +122,6 @@ func newCache[T any](
 func (c *Cache[T]) ByID(ctx context.Context, id int64, opts ...RefreshOption) (*T, error) {
 	return c.getFromCache(
 		ctx,
-		GetSubsystem(ctx),
 		func() *entry[T] {
 			return c.byID[id]
 		},
@@ -136,7 +135,6 @@ func (c *Cache[T]) ByID(ctx context.Context, id int64, opts ...RefreshOption) (*
 func (c *Cache[T]) ByName(ctx context.Context, name string, opts ...RefreshOption) (*T, error) {
 	return c.getFromCache(
 		ctx,
-		GetSubsystem(ctx),
 		func() *entry[T] {
 			return c.byName[name]
 		},
@@ -149,11 +147,11 @@ func (c *Cache[T]) ByName(ctx context.Context, name string, opts ...RefreshOptio
 
 func (c *Cache[T]) getFromCache(
 	ctx context.Context,
-	subsystem string,
 	lookup func() *entry[T],
 	fetch func() (*T, error),
 	opts ...RefreshOption,
 ) (*T, error) {
+	subsystem := GetSubsystem(ctx)
 	refreshOpts := newCacheRefreshOpts(c, opts...)
 
 	if refreshOpts.mode == ModeOff {
@@ -179,11 +177,11 @@ func (c *Cache[T]) getFromCache(
 
 	switch refreshOpts.mode {
 	case ModeOne:
-		if err := c.refreshOne(subsystem, fetch, refreshOpts.ttl); err != nil {
+		if err := c.refreshOne(ctx, fetch, refreshOpts.ttl); err != nil {
 			return nil, err
 		}
 	case ModeAll:
-		if err := c.refreshAll(ctx, subsystem, refreshOpts.ttl); err != nil {
+		if err := c.refreshAll(ctx, refreshOpts.ttl); err != nil {
 			return nil, err
 		}
 	case ModeOff:
@@ -206,10 +204,11 @@ func (c *Cache[T]) getFromCache(
 }
 
 func (c *Cache[T]) refreshOne(
-	subsystem string,
+	ctx context.Context,
 	fetch func() (*T, error),
 	ttl time.Duration,
 ) error {
+	subsystem := GetSubsystem(ctx)
 	klog.V(4).InfoS("refreshing entry from api", "subsystem", subsystem)
 	value, err := fetch()
 	if err != nil {
@@ -267,7 +266,8 @@ func (c *Cache[T]) refreshOne(
 	return nil
 }
 
-func (c *Cache[T]) refreshAll(ctx context.Context, subsystem string, ttl time.Duration) error {
+func (c *Cache[T]) refreshAll(ctx context.Context, ttl time.Duration) error {
+	subsystem := GetSubsystem(ctx)
 	klog.V(4).InfoS("refreshing all entries from api", "subsystem", subsystem)
 
 	values, err := c.fetchAll(ctx)
