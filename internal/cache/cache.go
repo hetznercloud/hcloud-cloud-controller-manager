@@ -14,9 +14,9 @@ import (
 type Mode string
 
 const (
-	// ModeAll fetches and caches all Servers.
+	// ModeAll fetches and caches all entries.
 	ModeAll Mode = "all"
-	// ModeOne fetches and caches one Server.
+	// ModeOne fetches and caches one entry.
 	ModeOne Mode = "one"
 	// ModeOff disables caching.
 	ModeOff Mode = "off"
