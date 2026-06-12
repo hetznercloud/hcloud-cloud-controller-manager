@@ -331,8 +331,9 @@ func TestServerCacheModePerServer_EvictExpiredEntries(t *testing.T) {
 
 		assert.Equal(t, time.Now().Add(sc.defaultTTL), sc.byID[srv.ID].expiresAt)
 
-		// Wait for expiration
-		time.Sleep(sc.defaultTTL + 1)
+		// Wait for expiration plus the eviction grace period (entries are only
+		// evicted once they have been expired for at least an hour).
+		time.Sleep(sc.defaultTTL + time.Hour + 1)
 
 		// Cache miss by ID 2, fetch from API
 		sc.fetchOneByID = client.FetchOneByIDFunc(&hcloud.Server{ID: 2, Name: "test2"}, nil)
