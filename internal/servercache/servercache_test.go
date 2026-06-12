@@ -28,6 +28,18 @@ func assertServer2(t *testing.T, server *hcloud.Server) {
 	assert.Equal(t, "test2", server.Name)
 }
 
+func newTestCache(mode Mode) *Cache[hcloud.Server] {
+	return newCache(
+		nil,
+		nil,
+		nil,
+		func(value *hcloud.Server) int64 { return value.ID },
+		func(value *hcloud.Server) string { return value.Name },
+		mode,
+		10*time.Second,
+	)
+}
+
 type testClient struct {
 	t         *testing.T
 	callCount int
@@ -77,15 +89,7 @@ func (c *testClient) FetchOneByNameFunc(server *hcloud.Server, err error) func(c
 }
 
 func TestServerCacheModeAllServers(t *testing.T) {
-	sc := newCache[hcloud.Server](
-		nil,
-		nil,
-		nil,
-		func(value *hcloud.Server) int64 { return value.ID },
-		func(value *hcloud.Server) string { return value.Name },
-		ModeAll,
-		10*time.Second,
-	)
+	sc := newTestCache(ModeAll)
 
 	ctx := t.Context()
 	client := newTestClient(t)
@@ -131,15 +135,7 @@ func TestServerCacheModeAllServers(t *testing.T) {
 }
 
 func TestServerCacheModeAllServersNotFound(t *testing.T) {
-	sc := newCache[hcloud.Server](
-		nil,
-		nil,
-		nil,
-		func(value *hcloud.Server) int64 { return value.ID },
-		func(value *hcloud.Server) string { return value.Name },
-		ModeAll,
-		10*time.Second,
-	)
+	sc := newTestCache(ModeAll)
 
 	ctx := t.Context()
 	client := newTestClient(t)
@@ -176,15 +172,7 @@ func TestServerCacheModeAllServersNotFound(t *testing.T) {
 }
 
 func TestServerCacheModePerServer(t *testing.T) {
-	sc := newCache[hcloud.Server](
-		nil,
-		nil,
-		nil,
-		func(value *hcloud.Server) int64 { return value.ID },
-		func(value *hcloud.Server) string { return value.Name },
-		ModeOne,
-		10*time.Second,
-	)
+	sc := newTestCache(ModeOne)
 
 	ctx := t.Context()
 	client := newTestClient(t)
@@ -232,15 +220,7 @@ func TestServerCacheModePerServer(t *testing.T) {
 }
 
 func TestServerCacheModeOneNotFound(t *testing.T) {
-	sc := newCache[hcloud.Server](
-		nil,
-		nil,
-		nil,
-		func(value *hcloud.Server) int64 { return value.ID },
-		func(value *hcloud.Server) string { return value.Name },
-		ModeOne,
-		10*time.Second,
-	)
+	sc := newTestCache(ModeOne)
 
 	ctx := t.Context()
 	client := newTestClient(t)
@@ -283,15 +263,7 @@ func TestServerCacheModeOneNotFound(t *testing.T) {
 }
 
 func TestServerCacheModeOff(t *testing.T) {
-	sc := newCache[hcloud.Server](
-		nil,
-		nil,
-		nil,
-		func(value *hcloud.Server) int64 { return value.ID },
-		func(value *hcloud.Server) string { return value.Name },
-		ModeOff,
-		10*time.Second,
-	)
+	sc := newTestCache(ModeOff)
 
 	ctx := t.Context()
 	client := newTestClient(t)
@@ -347,15 +319,7 @@ func TestServerCacheModeOff(t *testing.T) {
 
 func TestServerCacheModePerServer_EvictExpiredEntries(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		sc := newCache[hcloud.Server](
-			nil,
-			nil,
-			nil,
-			func(value *hcloud.Server) int64 { return value.ID },
-			func(value *hcloud.Server) string { return value.Name },
-			ModeOne,
-			10*time.Second,
-		)
+		sc := newTestCache(ModeOne)
 
 		ctx := t.Context()
 		client := newTestClient(t)
@@ -391,15 +355,7 @@ func TestServerCacheModePerServer_EvictExpiredEntries(t *testing.T) {
 
 func TestServerCacheModePerServer_WithTTLRefreshOpts(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		sc := newCache[hcloud.Server](
-			nil,
-			nil,
-			nil,
-			func(value *hcloud.Server) int64 { return value.ID },
-			func(value *hcloud.Server) string { return value.Name },
-			ModeOne,
-			5*time.Second,
-		)
+		sc := newTestCache(ModeOne)
 
 		ctx := t.Context()
 		client := newTestClient(t)
@@ -448,15 +404,7 @@ func TestServerCacheModePerServer_WithTTLRefreshOpts(t *testing.T) {
 
 func TestServerCacheModePerServer_WithModeRefreshOpts(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		sc := newCache[hcloud.Server](
-			nil,
-			nil,
-			nil,
-			func(value *hcloud.Server) int64 { return value.ID },
-			func(value *hcloud.Server) string { return value.Name },
-			ModeOne,
-			5*time.Second,
-		)
+		sc := newTestCache(ModeOne)
 
 		ctx := t.Context()
 		client := newTestClient(t)
@@ -517,15 +465,7 @@ func TestServerCacheModePerServer_WithModeRefreshOpts(t *testing.T) {
 
 func TestServerCacheAllModesError(t *testing.T) {
 	testCase := func(t *testing.T, mode Mode) {
-		sc := newCache[hcloud.Server](
-			nil,
-			nil,
-			nil,
-			func(value *hcloud.Server) int64 { return value.ID },
-			func(value *hcloud.Server) string { return value.Name },
-			mode,
-			10*time.Second,
-		)
+		sc := newTestCache(mode)
 
 		ctx := t.Context()
 		client := newTestClient(t)
