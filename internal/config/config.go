@@ -70,7 +70,7 @@ const (
 	AddressFamilyIPv4      AddressFamily = "ipv4"
 )
 
-const CacheDefaultTTL time.Duration = 10 * time.Second
+const ServerCacheDefaultTTL time.Duration = 10 * time.Second
 
 type InstanceConfiguration struct {
 	AddressFamily AddressFamily
@@ -189,7 +189,7 @@ func Read() (HCCMConfiguration, error) {
 
 	cfg.ServerCache = ServerCacheConfiguration{
 		Mode: cache.ModeAll,
-		TTL:  CacheDefaultTTL,
+		TTL:  ServerCacheDefaultTTL,
 	}
 
 	if mode, ok := os.LookupEnv(hcloudServerCacheMode); ok {
