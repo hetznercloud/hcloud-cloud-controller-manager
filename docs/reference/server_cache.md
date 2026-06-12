@@ -6,10 +6,10 @@ The server cache reduces calls to the Hetzner Cloud API made by the `InstancesV2
 
 ## Environment Variables
 
-| Name                       | Type                | Default | Description                                                                           |
-| -------------------------- | ------------------- | ------- | ------------------------------------------------------------------------------------- |
-| `HCLOUD_SERVER_CACHE_MODE` | `all \| one \| off` | `all`   | Selects the caching strategy. See [Modes](#modes) below.                              |
-| `HCLOUD_SERVER_CACHE_TTL`  | `duration`          | `10s`   | Lifetime of cached entries. Accepts any Go `time.Duration` string (e.g. `30s`, `2m`). |
+| Name                       | Type                | Default | Description                                                                                                                     |
+| -------------------------- | ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `HCLOUD_SERVER_CACHE_MODE` | `all \| one \| off` | `all`   | Selects the caching strategy. See [Modes](#modes) below.                                                                        |
+| `HCLOUD_SERVER_CACHE_TTL`  | `duration`          | `10s`   | Lifetime of cached entries. Accepts any Go `time.Duration` string (e.g. `30s`, `2m`). We don't recommend values above a minute. |
 
 ## Modes
 
