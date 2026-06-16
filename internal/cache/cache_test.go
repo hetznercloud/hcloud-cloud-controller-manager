@@ -87,7 +87,7 @@ func (c *testClient) FetchOneByNameFunc(server *hcloud.Server, err error) func(c
 	}
 }
 
-func TestServerCacheModeAllServers(t *testing.T) {
+func TestCache_ModeAll(t *testing.T) {
 	sc := newTestCache(ModeAll)
 
 	ctx := t.Context()
@@ -133,7 +133,7 @@ func TestServerCacheModeAllServers(t *testing.T) {
 	assert.Equal(t, 1, client.CallCount())
 }
 
-func TestServerCacheModeAllServersNotFound(t *testing.T) {
+func TestCache_ModeAll_NotFound(t *testing.T) {
 	sc := newTestCache(ModeAll)
 
 	ctx := t.Context()
@@ -170,7 +170,7 @@ func TestServerCacheModeAllServersNotFound(t *testing.T) {
 	assert.Equal(t, 2, client.CallCount())
 }
 
-func TestServerCacheModePerServer(t *testing.T) {
+func TestCache_ModeOne(t *testing.T) {
 	sc := newTestCache(ModeOne)
 
 	ctx := t.Context()
@@ -218,7 +218,7 @@ func TestServerCacheModePerServer(t *testing.T) {
 	assert.Equal(t, 2, client.CallCount())
 }
 
-func TestServerCacheModeOneNotFound(t *testing.T) {
+func TestCache_ModeOne_NotFound(t *testing.T) {
 	sc := newTestCache(ModeOne)
 
 	ctx := t.Context()
@@ -261,7 +261,7 @@ func TestServerCacheModeOneNotFound(t *testing.T) {
 	assert.Len(t, sc.byName, 1)
 }
 
-func TestServerCacheModeOff(t *testing.T) {
+func TestCache_ModeOff(t *testing.T) {
 	sc := newTestCache(ModeOff)
 
 	ctx := t.Context()
@@ -316,7 +316,7 @@ func TestServerCacheModeOff(t *testing.T) {
 	assert.Empty(t, sc.byName)
 }
 
-func TestServerCacheModePerServer_EvictExpiredEntries(t *testing.T) {
+func TestCache_ModeOne_EvictExpiredEntries(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		sc := newTestCache(ModeOne)
 
@@ -353,7 +353,7 @@ func TestServerCacheModePerServer_EvictExpiredEntries(t *testing.T) {
 	})
 }
 
-func TestServerCacheModePerServer_WithTTLRefreshOpts(t *testing.T) {
+func TestCache_ModeOne_WithTTLRefreshOpts(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		sc := newTestCache(ModeOne)
 
@@ -402,7 +402,7 @@ func TestServerCacheModePerServer_WithTTLRefreshOpts(t *testing.T) {
 	})
 }
 
-func TestServerCacheModePerServer_WithModeRefreshOpts(t *testing.T) {
+func TestCache_ModeOne_WithModeRefreshOpts(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		sc := newTestCache(ModeOne)
 
@@ -463,7 +463,7 @@ func TestServerCacheModePerServer_WithModeRefreshOpts(t *testing.T) {
 	})
 }
 
-func TestServerCacheAllModesError(t *testing.T) {
+func TestCache_Error(t *testing.T) {
 	testCase := func(t *testing.T, mode Mode) {
 		sc := newTestCache(mode)
 
