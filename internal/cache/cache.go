@@ -132,9 +132,9 @@ func (c *Cache[T]) All(ctx context.Context, opts ...RefreshOption) ([]*T, error)
 
 	now := time.Now()
 
-	refreshedAllAt := now
+	refreshedAllAt := time.Time{}
 	for _, e := range c.byID {
-		if e.refreshedAt.Before(refreshedAllAt) {
+		if refreshedAllAt.IsZero() || e.refreshedAt.Before(refreshedAllAt) {
 			refreshedAllAt = e.refreshedAt
 		}
 	}

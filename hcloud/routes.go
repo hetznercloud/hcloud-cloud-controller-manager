@@ -87,7 +87,7 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 		return nil, fmt.Errorf("%s: error fetching servers: %w", op, err)
 	}
 
-	serversByPrivateIP := make(map[string]*hcloud.Server)
+	serversByPrivateIP := make(map[string]*hcloud.Server, len(servers))
 	for _, server := range servers {
 		if privateNet := server.PrivateNetFor(r.network); privateNet != nil {
 			serversByPrivateIP[privateNet.IP.String()] = server
@@ -108,7 +108,6 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 			// Route belongs to non-existing target
 			cpRoute.Blackhole = true
 		}
-
 		routes = append(routes, cpRoute)
 	}
 
