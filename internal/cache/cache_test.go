@@ -346,39 +346,19 @@ func TestCache_ModeOne_WithTTLRefreshOpts(t *testing.T) {
 		srv, err := sc.ByID(ctx, 1)
 		require.NoError(t, err)
 		assertServer1(t, srv)
-		assert.Equal(t, time.Now().Add(sc.defaultTTL), sc.byID[srv.ID].expiresAt)
+		assert.Equal(t, time.Now(), sc.byID[srv.ID].refreshedAt)
 
-		// Cache miss by ID 2, fetch from API with different TTL
-		sc.fetchOneByID = client.FetchOneByIDFunc(&hcloud.Server{ID: 2, Name: "test2"}, nil)
+		// Sleep a bit so refreshedAt has to change
+		time.Sleep(15 * time.Second)
 
-		// Fetch Server ID 2, use larger TTL
-		srv, err = sc.ByID(ctx, 2, WithTTL(2*sc.defaultTTL))
+		// Fetch Server ID 1, use mode off
+		srv, err = sc.ByID(ctx, 1, WithMaxAge(15*time.Second))
 		require.NoError(t, err)
-		assertServer2(t, srv)
-		// Server ID 2 should have different TTL
-		assert.Equal(t, time.Now().Add(2*sc.defaultTTL), sc.byID[srv.ID].expiresAt)
+		assertServer1(t, srv)
+		assert.Equal(t, hcloud.ServerStatusRunning, srv.Status)
+		assert.Equal(t, time.Now(), sc.byID[srv.ID].refreshedAt.Add(15*time.Second))
 
-		// Wait for expiration of Server ID 1
-		time.Sleep(sc.defaultTTL + 1)
-
-		// Fetch Server ID 2 again, Server ID 1 is not evicted as no refresh happens
-		srv, err = sc.ByID(ctx, 2)
-		require.NoError(t, err)
-		assertServer2(t, srv)
-
-		// Expect two API calls
-		assert.Equal(t, 2, client.CallCount())
-
-		// Server ID 1 is not evicted, because no refresh happened
-		assert.Len(t, sc.byID, 2)
-		assert.Len(t, sc.byName, 2)
-		assertServer1(t, sc.byID[1].value)
-		assertServer2(t, sc.byID[2].value)
-
-		// Server ID 1 is expired with default TTL
-		assert.False(t, time.Now().Before(sc.byID[1].expiresAt))
-		// Server ID 2 is still fresh -> higher TTL with `WithTTL` option
-		assert.True(t, time.Now().Before(sc.byID[2].expiresAt))
+		assert.Equal(t, 1, client.CallCount())
 	})
 }
 
@@ -408,7 +388,7 @@ func TestCache_ModeOne_WithModeRefreshOpts(t *testing.T) {
 		assert.Equal(t, time.Now().Add(sc.defaultTTL), sc.byID[srv.ID].expiresAt)
 
 		// Wait for expiration of Server ID 1 and 2
-		time.Sleep(sc.defaultTTL + 1)
+		time.Sleep(sc.defaultMaxAge + 1)
 
 		// Ensure we only call fetchAll
 		sc.fetchOneByID = nil
@@ -435,11 +415,6 @@ func TestCache_ModeOne_WithModeRefreshOpts(t *testing.T) {
 		assert.Len(t, sc.byName, 2)
 		assertServer1(t, sc.byID[1].value)
 		assertServer2(t, sc.byID[2].value)
-
-		// Server ID 1 is expired with default TTL
-		assert.True(t, time.Now().Before(sc.byID[1].expiresAt))
-		// Server ID 2 is still fresh -> higher TTL with `WithTTL` option
-		assert.True(t, time.Now().Before(sc.byID[2].expiresAt))
 	})
 }
 

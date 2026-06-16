@@ -223,6 +223,7 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 		c.cidr,
 		c.recorder,
 		c.nodeLister,
+		c.serverCache,
 	)
 	if err != nil {
 		klog.ErrorS(err, "create routes provider", "networkID", c.networkID)

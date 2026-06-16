@@ -23,14 +23,14 @@ const (
 )
 
 type RefreshOpts struct {
-	ttl  time.Duration
-	mode Mode
+	maxAge time.Duration
+	mode   Mode
 }
 
 func newCacheRefreshOpts[T any](cache *Cache[T], opts ...RefreshOption) *RefreshOpts {
 	refreshOpts := &RefreshOpts{
-		ttl:  cache.defaultTTL,
-		mode: cache.defaultMode,
+		maxAge: cache.defaultMaxAge,
+		mode:   cache.defaultMode,
 	}
 	for _, opt := range opts {
 		opt(refreshOpts)
@@ -40,9 +40,9 @@ func newCacheRefreshOpts[T any](cache *Cache[T], opts ...RefreshOption) *Refresh
 
 type RefreshOption func(ro *RefreshOpts)
 
-func WithTTL(ttl time.Duration) func(*RefreshOpts) {
+func WithMaxAge(ttl time.Duration) func(*RefreshOpts) {
 	return func(ro *RefreshOpts) {
-		ro.ttl = ttl
+		ro.maxAge = ttl
 	}
 }
 
@@ -53,8 +53,8 @@ func WithMode(mode Mode) func(*RefreshOpts) {
 }
 
 type entry[T any] struct {
-	expiresAt time.Time
-	value     *T
+	refreshedAt time.Time
+	value       *T
 }
 
 type Cache[T any] struct {
@@ -64,8 +64,8 @@ type Cache[T any] struct {
 	getID          func(value *T) int64
 	getName        func(value *T) string
 
-	defaultTTL  time.Duration
-	defaultMode Mode
+	defaultMaxAge time.Duration
+	defaultMode   Mode
 
 	byID   map[int64]*entry[T]
 	byName map[string]*entry[T]
@@ -80,7 +80,7 @@ func newCache[T any](
 	getID func(value *T) int64,
 	getName func(value *T) string,
 	defaultMode Mode,
-	defaultTTL time.Duration,
+	defaultMaxAge time.Duration,
 ) *Cache[T] {
 	return &Cache[T]{
 		fetchOneByID:   fetchOneByID,
@@ -89,8 +89,8 @@ func newCache[T any](
 		getID:          getID,
 		getName:        getName,
 
-		defaultMode: defaultMode,
-		defaultTTL:  defaultTTL,
+		defaultMode:   defaultMode,
+		defaultMaxAge: defaultMaxAge,
 
 		byID:   make(map[int64]*entry[T]),
 		byName: make(map[string]*entry[T]),
@@ -123,6 +123,39 @@ func (c *Cache[T]) ByName(ctx context.Context, name string, opts ...RefreshOptio
 	)
 }
 
+func (c *Cache[T]) All(ctx context.Context, opts ...RefreshOption) ([]*T, error) {
+	subsystem := GetSubsystem(ctx)
+	refreshOpts := newCacheRefreshOpts(c, opts...)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	now := time.Now()
+
+	refreshedAllAt := now
+	for _, e := range c.byID {
+		if e.refreshedAt.Before(refreshedAllAt) {
+			refreshedAllAt = e.refreshedAt
+		}
+	}
+
+	if now.Sub(refreshedAllAt) > refreshOpts.maxAge {
+		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
+		if err := c.refreshAll(ctx); err != nil {
+			return nil, err
+		}
+	} else {
+		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
+	}
+
+	values := make([]*T, 0, len(c.byID))
+	for _, e := range c.byID {
+		values = append(values, e.value)
+	}
+
+	return values, nil
+}
+
 func (c *Cache[T]) getFromCache(
 	ctx context.Context,
 	lookup func() *entry[T],
@@ -141,25 +174,27 @@ func (c *Cache[T]) getFromCache(
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if e := lookup(); e != nil && time.Now().Before(e.expiresAt) {
+	now := time.Now()
+
+	if e := lookup(); e != nil && now.Sub(e.refreshedAt) <= refreshOpts.maxAge {
 		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
 		klog.V(4).InfoS(
 			"cache hit",
 			"subsystem", subsystem,
 			"id", c.getID(e.value),
 			"name", c.getName(e.value),
-			"expiresAt", e.expiresAt.Format(time.RFC3339),
+			"age", now.Sub(e.refreshedAt).String(),
 		)
 		return e.value, nil
 	}
 
 	switch refreshOpts.mode {
 	case ModeOne:
-		if err := c.refreshOne(ctx, fetch, refreshOpts.ttl); err != nil {
+		if err := c.refreshOne(ctx, fetch); err != nil {
 			return nil, err
 		}
 	case ModeAll:
-		if err := c.refreshAll(ctx, refreshOpts.ttl); err != nil {
+		if err := c.refreshAll(ctx); err != nil {
 			return nil, err
 		}
 	case ModeOff:
@@ -175,7 +210,8 @@ func (c *Cache[T]) getFromCache(
 		klog.V(4).InfoS(
 			"entry found after refresh",
 			"subsystem", subsystem,
-			"id", c.getID(e.value), "name", c.getName(e.value),
+			"id", c.getID(e.value),
+			"name", c.getName(e.value),
 		)
 		return e.value, nil
 	}
@@ -187,7 +223,6 @@ func (c *Cache[T]) getFromCache(
 func (c *Cache[T]) refreshOne(
 	ctx context.Context,
 	fetch func() (*T, error),
-	ttl time.Duration,
 ) error {
 	subsystem := GetSubsystem(ctx)
 	klog.V(4).InfoS("refreshing entry from api", "subsystem", subsystem)
@@ -200,16 +235,17 @@ func (c *Cache[T]) refreshOne(
 		return nil
 	}
 
+	now := time.Now()
+
 	e := &entry[T]{
-		value:     value,
-		expiresAt: time.Now().Add(ttl),
+		value:       value,
+		refreshedAt: now,
 	}
 	klog.V(4).InfoS(
 		"refreshed entry from api",
 		"subsystem", subsystem,
 		"id", c.getID(e.value),
 		"name", c.getName(e.value),
-		"expiresAt", e.expiresAt.Format(time.RFC3339),
 	)
 
 	c.byID[c.getID(value)] = e
@@ -219,13 +255,13 @@ func (c *Cache[T]) refreshOne(
 	// or updated entries are cleaned from the cache. It only acts on entries that
 	// expired some time ago, which keeps log output from being spammed.
 	evictFunc := func(ev *entry[T]) bool {
-		if time.Now().After(ev.expiresAt.Add(time.Hour)) {
+		if now.After(ev.refreshedAt.Add(time.Hour)) {
 			klog.V(4).InfoS(
 				"evicting entry from cache",
 				"subsystem", subsystem,
 				"id", c.getID(ev.value),
 				"name", c.getName(ev.value),
-				"expiresAt", ev.expiresAt.Format(time.RFC3339),
+				"age", now.Sub(ev.refreshedAt).String(),
 			)
 			return true
 		}
@@ -242,7 +278,7 @@ func (c *Cache[T]) refreshOne(
 	return nil
 }
 
-func (c *Cache[T]) refreshAll(ctx context.Context, ttl time.Duration) error {
+func (c *Cache[T]) refreshAll(ctx context.Context) error {
 	subsystem := GetSubsystem(ctx)
 	klog.V(4).InfoS("refreshing all entries from api", "subsystem", subsystem)
 
@@ -253,13 +289,12 @@ func (c *Cache[T]) refreshAll(ctx context.Context, ttl time.Duration) error {
 
 	c.byID = make(map[int64]*entry[T], len(values))
 	c.byName = make(map[string]*entry[T], len(values))
-
-	expiresAt := time.Now().Add(ttl)
+	refreshedAt := time.Now()
 
 	for _, value := range values {
 		e := &entry[T]{
-			value:     value,
-			expiresAt: expiresAt,
+			value:       value,
+			refreshedAt: refreshedAt,
 		}
 
 		c.byID[c.getID(value)] = e
@@ -270,7 +305,6 @@ func (c *Cache[T]) refreshAll(ctx context.Context, ttl time.Duration) error {
 			"subsystem", subsystem,
 			"id", c.getID(e.value),
 			"name", c.getName(e.value),
-			"expiresAt", expiresAt.Format(time.RFC3339),
 		)
 	}
 

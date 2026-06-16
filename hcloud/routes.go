@@ -2,13 +2,11 @@ package hcloud
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"slices"
 	"time"
 
-	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,24 +15,22 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-var serversCacheMissRefreshRate = rate.Every(30 * time.Second)
-
 type routes struct {
 	client      *hcloud.Client
 	network     *hcloud.Network
-	serverCache *hcops.AllServersCache
+	serverCache *cache.Cache[hcloud.Server]
 	clusterCIDR *net.IPNet
 	recorder    record.EventRecorder
 	nodeLister  corelisters.NodeLister
 }
 
-func newRoutes(client *hcloud.Client, networkID int64, clusterCIDR string, recorder record.EventRecorder, nodeLister corelisters.NodeLister) (*routes, error) {
+func newRoutes(client *hcloud.Client, networkID int64, clusterCIDR string, recorder record.EventRecorder, nodeLister corelisters.NodeLister, serverCache *cache.Cache[hcloud.Server]) (*routes, error) {
 	const op = "hcloud/newRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -52,15 +48,9 @@ func newRoutes(client *hcloud.Client, networkID int64, clusterCIDR string, recor
 	}
 
 	return &routes{
-		client:  client,
-		network: networkObj,
-		serverCache: &hcops.AllServersCache{
-			// client.Server.All will load ALL the servers in the project, even those
-			// that are not part of the Kubernetes cluster.
-			LoadFunc:                client.Server.All,
-			Network:                 networkObj,
-			CacheMissRefreshLimiter: rate.NewLimiter(serversCacheMissRefreshRate, 1),
-		},
+		client:      client,
+		network:     networkObj,
+		serverCache: serverCache,
 		clusterCIDR: cidr,
 		recorder:    recorder,
 		nodeLister:  nodeLister,
@@ -86,19 +76,42 @@ func (r *routes) reloadNetwork(ctx context.Context) error {
 func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Route, error) {
 	const op = "hcloud/ListRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	ctx = cache.SetSubsystem(ctx, "routes")
 
 	if err := r.reloadNetwork(ctx); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	servers, err := r.serverCache.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s: error fetching servers: %w", op, err)
+	}
+
+	serversByPrivateIP := make(map[string]*hcloud.Server)
+	for _, server := range servers {
+		if privateNet := server.PrivateNetFor(r.network); privateNet != nil {
+			serversByPrivateIP[privateNet.IP.String()] = server
+		}
+	}
+
 	routes := make([]*cloudprovider.Route, 0, len(r.network.Routes))
 	for _, route := range r.network.Routes {
-		ro, err := r.hcloudRouteToRoute(ctx, route)
-		if err != nil {
-			return routes, fmt.Errorf("%s: %w", op, err)
+		cpRoute := &cloudprovider.Route{
+			DestinationCIDR: route.Destination.String(),
+			Name:            fmt.Sprintf("%s-%s", route.Gateway.String(), route.Destination.String()),
 		}
-		routes = append(routes, ro)
+
+		server, ok := serversByPrivateIP[route.Gateway.String()]
+		if ok {
+			cpRoute.TargetNode = types.NodeName(server.Name)
+		} else {
+			// Route belongs to non-existing target
+			cpRoute.Blackhole = true
+		}
+
+		routes = append(routes, cpRoute)
 	}
+
 	return routes, nil
 }
 
@@ -108,6 +121,7 @@ func (r *routes) ListRoutes(ctx context.Context, _ string) ([]*cloudprovider.Rou
 func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *cloudprovider.Route) error {
 	const op = "hcloud/CreateRoute"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
+	ctx = cache.SetSubsystem(ctx, "routes")
 
 	node, gateway, err := r.resolveRouteTarget(ctx, string(route.TargetNode))
 	if err != nil {
@@ -156,7 +170,7 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		if !isCloudServer {
 			return nil, nil, fmt.Errorf("node %s is not a cloud server, routes are only supported for cloud servers", node.Name)
 		}
-		server, err = r.serverCache.ByID(ctx, id)
+		server, err = r.serverCache.ByID(ctx, id, cache.WithMaxAge(1*time.Minute))
 		if err != nil {
 			return nil, nil, fmt.Errorf("error looking up hcloud server by id %d for node %s: %w", id, nodeName, err)
 		}
@@ -167,17 +181,14 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		}
 	}
 
-	privNet, ok := findServerPrivateNetByID(server, r.network.ID)
-	if !ok {
-		r.serverCache.InvalidateCache()
-		server, err = r.serverCache.ByID(ctx, server.ID)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error refreshing hcloud server for node %s: %w", nodeName, err)
-		}
-		privNet, ok = findServerPrivateNetByID(server, r.network.ID)
-		if !ok {
-			return nil, nil, fmt.Errorf("server %s (%d): network with id %d not attached to this server", server.Name, server.ID, r.network.ID)
-		}
+	// The cache returns (nil, nil) when the server does not exist (e.g. it was deleted).
+	if server == nil {
+		return nil, nil, fmt.Errorf("hcloud server for node %s not found", nodeName)
+	}
+
+	privNet := server.PrivateNetFor(r.network)
+	if privNet == nil {
+		return nil, nil, fmt.Errorf("server %s (%d): network with id %d not attached to this server", server.Name, server.ID, r.network.ID)
 	}
 
 	return node, privNet.IP, nil
@@ -288,30 +299,6 @@ func (r *routes) DeleteRoute(ctx context.Context, _ string, route *cloudprovider
 	return nil
 }
 
-func (r *routes) hcloudRouteToRoute(ctx context.Context, route hcloud.NetworkRoute) (*cloudprovider.Route, error) {
-	const op = "hcloud/hcloudRouteToRoute"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	cpRoute := &cloudprovider.Route{
-		DestinationCIDR: route.Destination.String(),
-		Name:            fmt.Sprintf("%s-%s", route.Gateway.String(), route.Destination.String()),
-	}
-
-	srv, err := r.serverCache.ByPrivateIP(ctx, route.Gateway)
-	if err != nil {
-		if errors.Is(err, hcops.ErrNotFound) {
-			// Route belongs to non-existing target
-			cpRoute.Blackhole = true
-			return cpRoute, nil
-		}
-
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	cpRoute.TargetNode = types.NodeName(srv.Name)
-	return cpRoute, nil
-}
-
 func (r *routes) warnCIDRMismatch(cidr *net.IPNet, node *corev1.Node) {
 	clusterPrefixLen, _ := r.clusterCIDR.Mask.Size()
 	destPrefixLen, _ := cidr.Mask.Size()
@@ -325,13 +312,4 @@ func (r *routes) warnCIDRMismatch(cidr *net.IPNet, node *corev1.Node) {
 		klog.Warning(warnMsg)
 		r.recorder.Event(node, corev1.EventTypeWarning, "ClusterCIDRMisconfigured", warnMsg)
 	}
-}
-
-func findServerPrivateNetByID(srv *hcloud.Server, id int64) (hcloud.ServerPrivateNet, bool) {
-	for _, n := range srv.PrivateNet {
-		if n.Network.ID == id {
-			return n, true
-		}
-	}
-	return hcloud.ServerPrivateNet{}, false
 }
