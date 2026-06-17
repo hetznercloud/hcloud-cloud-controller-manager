@@ -40,9 +40,9 @@ func newCacheRefreshOpts[T any](cache *Cache[T], opts ...RefreshOption) *Refresh
 
 type RefreshOption func(ro *RefreshOpts)
 
-func WithMaxAge(ttl time.Duration) func(*RefreshOpts) {
+func WithMaxAge(maxAge time.Duration) func(*RefreshOpts) {
 	return func(ro *RefreshOpts) {
-		ro.maxAge = ttl
+		ro.maxAge = maxAge
 	}
 }
 
