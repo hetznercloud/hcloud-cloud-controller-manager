@@ -174,7 +174,7 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 			return nil, nil, fmt.Errorf("error looking up hcloud server by id %d for node %s: %w", id, nodeName, err)
 		}
 	} else {
-		server, err = r.serverCache.ByName(ctx, node.Name)
+		server, err = r.serverCache.ByName(ctx, node.Name, cache.WithMaxAge(1*time.Minute))
 		if err != nil {
 			return nil, nil, fmt.Errorf("error looking up hcloud server by name for node %s: %w", nodeName, err)
 		}
