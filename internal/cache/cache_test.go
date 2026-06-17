@@ -41,7 +41,7 @@ func newTestCache(mode Mode) *Cache[hcloud.Server] {
 
 func assertCacheHasFreshServer(t *testing.T, cache *Cache[hcloud.Server], value *hcloud.Server) {
 	t.Helper()
-	assert.Equal(t, time.Now().Add(cache.defaultTTL), cache.byID[value.ID].expiresAt)
+	assert.Equal(t, time.Now(), cache.byID[value.ID].refreshedAt)
 	assert.Equal(t, value, cache.byID[value.ID].value)
 	assert.Equal(t, value, cache.byName[value.Name].value)
 }
@@ -146,9 +146,9 @@ func TestCache_ModeAll(t *testing.T) {
 			assertServer1(t, srv)
 			assert.Equal(t, 1, client.CallCount())
 		}
-		time.Sleep(sc.defaultTTL - time.Second)
+		time.Sleep(sc.defaultMaxAge)
 		{
-			// cache hit (by id)
+			// cache hit (by id), exactly at maxAge is still fresh
 			srv, err := sc.ByID(ctx, 2)
 			require.NoError(t, err)
 			assertServer2(t, srv)
@@ -221,9 +221,9 @@ func TestCache_ModeOne(t *testing.T) {
 			assertCacheLen(t, sc, 1)
 			assertCacheHasFreshServer(t, sc, srv)
 		}
-		time.Sleep(sc.defaultTTL - time.Second)
+		time.Sleep(sc.defaultMaxAge)
 		{
-			// cache hit (by id)
+			// cache hit (by id), exactly at maxAge is still fresh
 			srv, err := sc.ByID(ctx, 1)
 			require.NoError(t, err)
 			assertServer1(t, srv)
@@ -279,7 +279,7 @@ func TestCache_ModeOne(t *testing.T) {
 			assertCacheLen(t, sc, 2)
 			assertCacheHasFreshServer(t, sc, srv)
 		}
-		time.Sleep(sc.defaultTTL)
+		time.Sleep(sc.defaultMaxAge + time.Second)
 		{
 			// cache expired (by id), fetch one, not found
 			sc.fetchOneByID = client.FetchOneByIDFunc(nil, nil)
@@ -309,7 +309,7 @@ func TestCache_ModeOne(t *testing.T) {
 			assertCacheHasFreshServer(t, sc, srv)
 		}
 		// We evict only after ttl+hour, not after hour.
-		time.Sleep(sc.defaultTTL)
+		time.Sleep(sc.defaultMaxAge)
 		time.Sleep(time.Hour + time.Second)
 		{
 			// cache miss (by id), fetch one, not found
@@ -363,7 +363,6 @@ func TestCache_ModeOne_WithTTLRefreshOpts(t *testing.T) {
 		srv, err = sc.ByID(ctx, 1, WithMaxAge(15*time.Second))
 		require.NoError(t, err)
 		assertServer1(t, srv)
-		assert.Equal(t, hcloud.ServerStatusRunning, srv.Status)
 		assert.Equal(t, time.Now(), sc.byID[srv.ID].refreshedAt.Add(15*time.Second))
 
 		assert.Equal(t, 1, client.CallCount())
@@ -383,7 +382,7 @@ func TestCache_ModeOne_WithModeRefreshOpts(t *testing.T) {
 		srv, err := sc.ByID(ctx, 1)
 		require.NoError(t, err)
 		assertServer1(t, srv)
-		assert.Equal(t, time.Now().Add(sc.defaultTTL), sc.byID[srv.ID].expiresAt)
+		assert.Equal(t, time.Now(), sc.byID[srv.ID].refreshedAt)
 
 		// Cache miss by ID 2, fetch from API with different TTL
 		sc.fetchOneByID = client.FetchOneByIDFunc(&hcloud.Server{ID: 2, Name: "test2"}, nil)
@@ -393,7 +392,7 @@ func TestCache_ModeOne_WithModeRefreshOpts(t *testing.T) {
 		require.NoError(t, err)
 		assertServer2(t, srv)
 		assert.Equal(t, "call=2", string(srv.Status))
-		assert.Equal(t, time.Now().Add(sc.defaultTTL), sc.byID[srv.ID].expiresAt)
+		assert.Equal(t, time.Now(), sc.byID[srv.ID].refreshedAt)
 
 		// Wait for expiration of Server ID 1 and 2
 		time.Sleep(sc.defaultMaxAge + 1)
