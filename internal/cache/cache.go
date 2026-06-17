@@ -168,7 +168,10 @@ func (c *Cache[T]) getFromCache(
 
 	metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
 
-	if e := lookup(); e != nil {
+	// When the value is not found in the API, the entry is not removed from the cache.
+	// Expired entries are only evicted after an hour and when a value is found.
+	// Make sure not to return an expired entry.
+	if e := lookup(); e != nil && time.Now().Before(e.expiresAt) {
 		klog.V(4).InfoS(
 			"entry found after refresh",
 			"subsystem", subsystem,
