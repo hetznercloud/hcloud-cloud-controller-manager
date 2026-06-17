@@ -520,6 +520,19 @@ func TestCache_Error(t *testing.T) {
 		require.ErrorContains(t, err, "test error")
 		assert.Nil(t, srv)
 		assert.Equal(t, 2, client.CallCount())
+
+		// Reset for fetch by Name
+		client = newTestClient(t)
+		sc.fetchAll = client.FetchAllFunc(nil, fmt.Errorf("test error"))
+
+		// Cache miss by name "test", fetch from API
+		srvs, err := sc.All(ctx)
+		require.ErrorContains(t, err, "test error")
+		assert.Nil(t, srvs)
+
+		// Error - nothing stored in cache
+		assert.Empty(t, sc.byID)
+		assert.Empty(t, sc.byName)
 	}
 
 	for _, mode := range []Mode{ModeAll, ModeOne, ModeOff} {
