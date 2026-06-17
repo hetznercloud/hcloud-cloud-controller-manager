@@ -31,7 +31,7 @@ const (
 
 	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
 	hcloudServerCacheMode        = "HCLOUD_SERVER_CACHE_MODE"
-	hcloudServerCacheTTL         = "HCLOUD_SERVER_CACHE_TTL"
+	hcloudServerCacheMaxAge      = "HCLOUD_SERVER_CACHE_MAX_AGE"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -70,15 +70,15 @@ const (
 	AddressFamilyIPv4      AddressFamily = "ipv4"
 )
 
-const ServerCacheDefaultTTL time.Duration = 10 * time.Second
+const ServerCacheDefaultMaxAge time.Duration = 10 * time.Second
 
 type InstanceConfiguration struct {
 	AddressFamily AddressFamily
 }
 
 type ServerCacheConfiguration struct {
-	Mode cache.Mode
-	TTL  time.Duration
+	Mode   cache.Mode
+	MaxAge time.Duration
 }
 
 type LoadBalancerConfiguration struct {
@@ -188,8 +188,8 @@ func Read() (HCCMConfiguration, error) {
 	// ---- Server Cache ----
 
 	cfg.ServerCache = ServerCacheConfiguration{
-		Mode: cache.ModeAll,
-		TTL:  ServerCacheDefaultTTL,
+		Mode:   cache.ModeAll,
+		MaxAge: ServerCacheDefaultMaxAge,
 	}
 
 	if mode, ok := os.LookupEnv(hcloudServerCacheMode); ok {
@@ -197,13 +197,13 @@ func Read() (HCCMConfiguration, error) {
 		cfg.ServerCache.Mode = cache.Mode(mode)
 	}
 
-	if ttlStr, ok := os.LookupEnv(hcloudServerCacheTTL); ok {
-		klog.Warningf("Experimental: %s is experimental, breaking changes may occur within minor releases.", hcloudServerCacheTTL)
+	if ttlStr, ok := os.LookupEnv(hcloudServerCacheMaxAge); ok {
+		klog.Warningf("Experimental: %s is experimental, breaking changes may occur within minor releases.", hcloudServerCacheMaxAge)
 		ttl, err := time.ParseDuration(ttlStr)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudServerCacheTTL, err))
+			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudServerCacheMaxAge, err))
 		} else {
-			cfg.ServerCache.TTL = ttl
+			cfg.ServerCache.MaxAge = ttl
 		}
 	}
 
