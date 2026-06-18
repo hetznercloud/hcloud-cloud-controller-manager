@@ -1,5 +1,42 @@
 # Changelog
 
+## [v1.33.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.33.0)
+
+### Changed
+
+Renamed `HCLOUD_SERVER_CACHE_TTL` to `HCLOUD_SERVER_CACHE_MAX_AGE`. The server cache lifetime is now configured via `HCLOUD_SERVER_CACHE_MAX_AGE` (default 10s). Individual controllers may override this default for specific lookups — for example, the routes controller uses a longer max age. Action required: if you set `HCLOUD_SERVER_CACHE_TTL`, switch to `HCLOUD_SERVER_CACHE_MAX_AGE`; the old variable is no longer recognized.
+
+### Removed
+
+Removed the `hcops/AllServersCache.*` operation metrics. The legacy AllServersCache was replaced by the shared server cache, so the following `cloud_controller_manager_operations_total` series labeled op="hcops/AllServersCache.*" are no longer emitted:
+- `hcops/AllServersCache.ByID`
+- `hcops/AllServersCache.ByName`
+- `hcops/AllServersCache.ByPrivateIP`
+- `hcops/AllServersCache.getCache`
+- `hcops/AllServersCache.refreshCache`
+
+They are superseded by the new server cache metric `cloud_controller_manager_server_cache_requests_total`, a counter partitioned by subsystem, mode, and result:
+
+- subsystem: instances_v2, routes (or none when unset)
+- mode: all, one, off
+- result: hit, miss
+
+```
+cloud_controller_manager_server_cache_requests_total{subsystem="instances_v2", mode="all", result="hit"}
+cloud_controller_manager_server_cache_requests_total{subsystem="routes",       mode="all", result="miss"}
+```
+
+Update any dashboards or alerts referencing the old op series accordingly.
+
+### Features
+
+- **cache**: replace TTL with max-age
+- **cache**: use server cache in routes controller
+
+### Bug Fixes
+
+- **cache**: when api returns not found do not return an expired entry (#1271)
+
 ## [v1.32.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.32.0)
 
 ### Cache Server Lookups in Node Controllers
