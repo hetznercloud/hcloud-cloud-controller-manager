@@ -21,6 +21,13 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
+// routeTargetCacheMaxAge overrides the shared server cache's short default max age
+// for route reconciliation. The routes controller only reads the server's
+// slow-changing private-net attachment, so it can tolerate staler entries and skip
+// an extra API call. ListRoutes refreshes the cache first, so CreateRoute has less
+// need for an additional refresh.
+const routeTargetCacheMaxAge = 1 * time.Minute
+
 type routes struct {
 	client      *hcloud.Client
 	network     *hcloud.Network
@@ -169,12 +176,12 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		if !isCloudServer {
 			return nil, nil, fmt.Errorf("node %s is not a cloud server, routes are only supported for cloud servers", node.Name)
 		}
-		server, err = r.serverCache.ByID(ctx, id, cache.WithMaxAge(1*time.Minute))
+		server, err = r.serverCache.ByID(ctx, id, cache.WithMaxAge(routeTargetCacheMaxAge))
 		if err != nil {
 			return nil, nil, fmt.Errorf("error looking up hcloud server by id %d for node %s: %w", id, nodeName, err)
 		}
 	} else {
-		server, err = r.serverCache.ByName(ctx, node.Name, cache.WithMaxAge(1*time.Minute))
+		server, err = r.serverCache.ByName(ctx, node.Name, cache.WithMaxAge(routeTargetCacheMaxAge))
 		if err != nil {
 			return nil, nil, fmt.Errorf("error looking up hcloud server by name for node %s: %w", nodeName, err)
 		}
