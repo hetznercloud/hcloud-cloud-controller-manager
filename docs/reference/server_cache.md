@@ -2,7 +2,7 @@
 
 > **Experimental:** Server caching is experimental, breaking changes may occur within minor releases. We believe the implementation is safe in practice — that is why it ships enabled by default (`all`). Set `HCLOUD_SERVER_CACHE_MODE=off` to opt out.
 
-The server cache reduces calls to the Hetzner Cloud API made by the `InstancesV2` and routes controllers, which look up Servers by ID or name to reconcile Node and route state. The cache sits between the controllers and the Hetzner Cloud API; behavior is controlled by the environment variables below.
+The server cache reduces calls to the Hetzner Cloud API made by the nodes and routes controllers, which look up Servers by ID or name to reconcile Node and route state. The cache sits between the controllers and the Hetzner Cloud API; behavior is controlled by the environment variables below.
 
 ## Environment Variables
 

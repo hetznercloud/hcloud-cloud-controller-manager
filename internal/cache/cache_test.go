@@ -341,7 +341,7 @@ func TestCache_ModeOne(t *testing.T) {
 	})
 }
 
-func TestCache_ModeOne_WithTTLRefreshOpts(t *testing.T) {
+func TestCache_ModeOne_WithMaxAge(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		sc := newTestCache(ModeOne)
 
