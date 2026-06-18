@@ -146,7 +146,7 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
-	serverCache := cache.NewServerCache(client, cfg.ServerCache.Mode, cfg.ServerCache.TTL)
+	serverCache := cache.NewServerCache(client, cfg.ServerCache.Mode, cfg.ServerCache.MaxAge)
 
 	return &cloud{
 		client:      client,
@@ -223,6 +223,7 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 		c.cidr,
 		c.recorder,
 		c.nodeLister,
+		c.serverCache,
 	)
 	if err != nil {
 		klog.ErrorS(err, "create routes provider", "networkID", c.networkID)

@@ -27,7 +27,7 @@ func TestRead(t *testing.T) {
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -51,7 +51,7 @@ func TestRead(t *testing.T) {
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache:  ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache:  ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					NameOrID:             "foobar",
 					AttachedCheckEnabled: true,
@@ -89,7 +89,7 @@ func TestRead(t *testing.T) {
 				},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -146,7 +146,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -176,7 +176,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: false, Address: "127.0.0.1:9999"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -208,7 +208,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -241,7 +241,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -262,7 +262,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},
@@ -284,7 +284,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
 					PrivateIngressEnabled: true,
@@ -308,7 +308,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
 					PrivateIngressEnabled: true,
@@ -336,7 +336,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
 				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
-				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, TTL: 10 * time.Second},
+				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
 				},

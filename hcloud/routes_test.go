@@ -33,17 +33,15 @@ const DefaultClusterCIDR = "10.244.0.0/16"
 func TestRoutes_CreateRoute(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(schema.ServerListResponse{
-			Servers: []schema.Server{
-				{
-					ID:   1,
-					Name: "node15",
-					PrivateNet: []schema.ServerPrivateNet{
-						{
-							Network: 1,
-							IP:      "10.0.0.2",
-						},
+	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{
+				ID:   1,
+				Name: "node15",
+				PrivateNet: []schema.ServerPrivateNet{
+					{
+						Network: 1,
+						IP:      "10.0.0.2",
 					},
 				},
 			},
@@ -92,7 +90,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "node15"},
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -113,6 +111,8 @@ func TestRoutes_CreateRoute(t *testing.T) {
 func TestRoutes_ListRoutes(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
+	// ListRoutes resolves each route's gateway to a node by loading all servers via the
+	// cache, so it fetches the full server list rather than individual servers.
 	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.ServerListResponse{
 			Servers: []schema.Server{
@@ -144,7 +144,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -212,7 +212,7 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestRoutes_CreateRoute_RobotProviderID(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hrobot://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -260,15 +260,13 @@ func TestRoutes_CreateRoute_NodeNameDrift(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(schema.ServerListResponse{
-			Servers: []schema.Server{
-				{
-					ID:   42,
-					Name: "original-hostname", // intentionally differs from the k8s node name
-					PrivateNet: []schema.ServerPrivateNet{
-						{Network: 1, IP: "10.0.0.2"},
-					},
+	env.Mux.HandleFunc("/servers/42", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{
+				ID:   42,
+				Name: "original-hostname", // intentionally differs from the k8s node name
+				PrivateNet: []schema.ServerPrivateNet{
+					{Network: 1, IP: "10.0.0.2"},
 				},
 			},
 		})
@@ -297,7 +295,7 @@ func TestRoutes_CreateRoute_NodeNameDrift(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://42"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -354,7 +352,7 @@ func TestRoutes_CreateRoute_NoProviderID(t *testing.T) {
 		// ProviderID intentionally unset
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -373,11 +371,9 @@ func TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(schema.ServerListResponse{
-			Servers: []schema.Server{
-				{ID: 1, Name: "node15"}, // never attached to network 1
-			},
+	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{ID: 1, Name: "node15"}, // never attached to network 1
 		})
 	})
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
@@ -391,7 +387,7 @@ func TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -411,11 +407,9 @@ func TestRoutes_CreateRoute_ReplaceStaleRoute(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		err := json.NewEncoder(w).Encode(schema.ServerListResponse{
-			Servers: []schema.Server{
-				{ID: 1, Name: "node15", PrivateNet: []schema.ServerPrivateNet{{Network: 1, IP: "10.0.0.2"}}},
-			},
+	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
+		err := json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{ID: 1, Name: "node15", PrivateNet: []schema.ServerPrivateNet{{Network: 1, IP: "10.0.0.2"}}},
 		})
 		assert.NoError(t, err)
 	})
@@ -460,7 +454,7 @@ func TestRoutes_CreateRoute_ReplaceStaleRoute(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -479,11 +473,9 @@ func TestRoutes_CreateRoute_AlreadyExists(t *testing.T) {
 	env := newTestEnv()
 	defer env.Teardown()
 
-	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
-		json.NewEncoder(w).Encode(schema.ServerListResponse{
-			Servers: []schema.Server{
-				{ID: 1, Name: "node15", PrivateNet: []schema.ServerPrivateNet{{Network: 1, IP: "10.0.0.2"}}},
-			},
+	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.ServerGetResponse{
+			Server: schema.Server{ID: 1, Name: "node15", PrivateNet: []schema.ServerPrivateNet{{Network: 1, IP: "10.0.0.2"}}},
 		})
 	})
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
@@ -510,7 +502,7 @@ func TestRoutes_CreateRoute_AlreadyExists(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node))
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{

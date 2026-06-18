@@ -7,7 +7,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-func NewServerCache(client *hcloud.Client, defaultMode Mode, defaultTTL time.Duration) *Cache[hcloud.Server] {
+func NewServerCache(client *hcloud.Client, defaultMode Mode, defaultMaxAge time.Duration) *Cache[hcloud.Server] {
 	return newCache[hcloud.Server](
 		func(ctx context.Context, id int64) (*hcloud.Server, error) {
 			value, _, err := client.Server.GetByID(ctx, id)
@@ -24,6 +24,6 @@ func NewServerCache(client *hcloud.Client, defaultMode Mode, defaultTTL time.Dur
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
 		defaultMode,
-		defaultTTL,
+		defaultMaxAge,
 	)
 }
