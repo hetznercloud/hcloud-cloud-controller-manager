@@ -387,7 +387,7 @@ func TestCache_ModeOne_WithModeRefreshOpts(t *testing.T) {
 		assert.Equal(t, time.Now(), sc.byID[srv.ID].refreshedAt)
 
 		// Wait for expiration of Server ID 1 and 2
-		time.Sleep(sc.defaultMaxAge + 1)
+		time.Sleep(sc.defaultMaxAge + time.Second)
 
 		// Ensure we only call fetchAll
 		sc.fetchOneByID = nil
