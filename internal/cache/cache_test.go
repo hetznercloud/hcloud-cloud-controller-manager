@@ -300,8 +300,6 @@ func TestCache_ModeOne(t *testing.T) {
 			assertCacheLen(t, sc, 1)
 			assertCacheHasFreshServer(t, sc, srv)
 		}
-		// We evict only after ttl+hour, not after hour.
-		time.Sleep(sc.defaultMaxAge)
 		time.Sleep(time.Hour + time.Second)
 		{
 			// cache miss (by id), fetch one, not found
