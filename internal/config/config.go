@@ -197,13 +197,13 @@ func Read() (HCCMConfiguration, error) {
 		cfg.ServerCache.Mode = cache.Mode(mode)
 	}
 
-	if ttlStr, ok := os.LookupEnv(hcloudServerCacheMaxAge); ok {
+	if maxAgeStr, ok := os.LookupEnv(hcloudServerCacheMaxAge); ok {
 		klog.Warningf("Experimental: %s is experimental, breaking changes may occur within minor releases.", hcloudServerCacheMaxAge)
-		ttl, err := time.ParseDuration(ttlStr)
+		maxAge, err := time.ParseDuration(maxAgeStr)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("invalid value for %q: %w", hcloudServerCacheMaxAge, err))
 		} else {
-			cfg.ServerCache.MaxAge = ttl
+			cfg.ServerCache.MaxAge = maxAge
 		}
 	}
 
