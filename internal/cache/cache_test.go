@@ -65,14 +65,6 @@ func (c *testClient) CallCount() int {
 	return c.callCount
 }
 
-func (c *testClient) RequireCallCount(expected int) {
-	c.t.Helper()
-	require.Equal(c.t, expected, c.callCount, "expected call count to be %d, got %d", expected, c.callCount)
-
-	// /!\ Reset call count until next assertion
-	c.callCount = 0
-}
-
 func (c *testClient) FetchAllFunc(servers []*hcloud.Server, err error) func(context.Context) ([]*hcloud.Server, error) {
 	return func(context.Context) ([]*hcloud.Server, error) {
 		c.t.Helper()
