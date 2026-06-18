@@ -185,6 +185,9 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 		return nil, nil, fmt.Errorf("hcloud server for node %s not found", nodeName)
 	}
 
+	// CreateRoute may fail if the Server is not yet attached to the// CreateRoute may fail if the Server is not yet attached to the
+	// Private Network. In that case it returns an error and is retried;
+	// ListRoutes runs first and refreshes the cache.
 	privNet := server.PrivateNetFor(r.network)
 	if privNet == nil {
 		return nil, nil, fmt.Errorf("server %s (%d): network with id %d not attached to this server", server.Name, server.ID, r.network.ID)
