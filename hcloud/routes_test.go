@@ -253,6 +253,31 @@ func TestRoutes_CreateRoute_RobotProviderID(t *testing.T) {
 	assert.ErrorContains(t, err, "not a cloud server")
 }
 
+// TestRoutes_CreateRoute_IPv6 asserts that an IPv6 destination CIDR is rejected early with a
+// clear error.
+func TestRoutes_CreateRoute_IPv6(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+
+	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
+			Network: schema.Network{ID: 1, Name: "network-1", IPRange: "10.0.0.0/8"},
+		})
+	})
+
+	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
+	require.NoError(t, err)
+
+	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
+		TargetNode:      "node15",
+		DestinationCIDR: "2001:cafe:42::/64",
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "private networks do not support IPv6")
+	// The target node must be named in the error, not left blank (route.Name is unset here).
+	assert.ErrorContains(t, err, "node15")
+}
+
 // TestRoutes_CreateRoute_NodeNameDrift proves the routes controller still works when the
 // k8s node name differs from the hcloud server name — the core fix in this PR. The server is
 // resolved by its immutable ProviderID rather than by k8s node name.

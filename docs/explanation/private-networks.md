@@ -27,6 +27,8 @@ It is enabled by default, if a networking is enabled and a Private Network ID or
 
 To utilize this feature you need to use a CNI, which supports using the native routing capability of the infrastructure. As an example, Cilium can be set to use the [`routing-mode: native`](https://docs.cilium.io/en/stable/network/concepts/routing/#native-routing).
 
+Private Networks only support IPv4, so the route controller manages IPv4 routes exclusively. In a dual-stack cluster it will not create routes for IPv6 pod CIDRs; IPv6 connectivity must be handled separately (e.g. natively by your CNI).
+
 ### IP Range Considerations
 
 When using the route controller you need to make some considerations on the IP ranges for the cluster and service CIDR. By default, Kubernetes will allocate a `/24` subnet for each node. Depending on the amount of nodes you plan to add to the cluster you need to choose your cluster CIDR accordingly.
