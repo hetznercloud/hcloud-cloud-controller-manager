@@ -72,13 +72,10 @@ func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
 		klog.Fatalf("Cloud provider is nil")
 	}
 
-	if !cloud.HasClusterID() {
-		if config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
-			klog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
-		} else {
-			klog.Fatalf("no ClusterID found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
-		}
+	if !cloud.HasClusterID() && !config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
+		klog.Fatalf("no ClusterID found; the cloud provider requires a ClusterID to function. Set --allow-untagged-cloud=true to bypass this check")
 	}
+
 	return cloud
 }
 
