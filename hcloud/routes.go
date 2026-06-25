@@ -132,15 +132,15 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 	// Parse and return early if we detect IPv6 routes.
 	// Private Networks don't support IPv6, so we can save an API
 	// request by validating beforehand.
-	cidrIP, cidr, err := net.ParseCIDR(route.DestinationCIDR)
+	ip, ipNet, err := net.ParseCIDR(route.DestinationCIDR)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if cidrIP.To4() == nil {
+	if ip.To4() == nil {
 		return fmt.Errorf(
 			"%s: can't create route %q via node %q: private networks do not support IPv6",
 			op,
-			cidr.String(),
+			ipNet.String(),
 			route.TargetNode,
 		)
 	}
@@ -156,10 +156,10 @@ func (r *routes) CreateRoute(ctx context.Context, _ string, _ string, route *clo
 		return fmt.Errorf("%s: IP %s not part of routes target addresses", op, gateway.String())
 	}
 
-	r.warnCIDRMismatch(cidr, node)
+	r.warnCIDRMismatch(ipNet, node)
 
-	if err := r.upsertRoute(ctx, gateway, cidr, string(route.TargetNode)); err != nil {
-		return fmt.Errorf("error upserting route %q via %q: %w", cidr.String(), gateway.String(), err)
+	if err := r.upsertRoute(ctx, gateway, ipNet, string(route.TargetNode)); err != nil {
+		return fmt.Errorf("error upserting route %q via %q: %w", ipNet.String(), gateway.String(), err)
 	}
 
 	return nil
