@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: go.mod
 
@@ -33,7 +33,7 @@ jobs:
       - name: Run GoReleaser for snapshot
         # This does not actually publish anything, but makes sure that the images can be build
         if: "!startsWith(github.ref, 'refs/tags/')"
-        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
           version: "~> v2"
           args: release --snapshot --clean
@@ -49,7 +49,7 @@ jobs:
 
       - name: Run GoReleaser for tag
         if: "startsWith(github.ref, 'refs/tags/')"
-        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
           version: "~> v2"
           args: release --clean
