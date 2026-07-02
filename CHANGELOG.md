@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.33.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.33.1)
+
+### Bug Fixes
+
+- **routes**: reject IPv6 routes early (#1280)
+- drop warning for untagged clouds (#1281)
+
 ## [v1.33.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.33.0)
 
 ### Changed
