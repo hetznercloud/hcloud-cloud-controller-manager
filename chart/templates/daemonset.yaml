@@ -26,6 +26,10 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       serviceAccountName: {{ include "hcloud-cloud-controller-manager.name" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       dnsPolicy: Default
       tolerations:
         # Allow HCCM itself to schedule on nodes that have not yet been initialized by HCCM.
@@ -60,6 +64,10 @@ spec:
       {{- end }}
       containers:
         - name: hcloud-cloud-controller-manager
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           command:
             - "/bin/hcloud-cloud-controller-manager"
             {{- range $key, $value := $.Values.args }}
