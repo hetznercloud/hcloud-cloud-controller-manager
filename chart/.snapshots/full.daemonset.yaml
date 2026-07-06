@@ -5,7 +5,6 @@ kind: ServiceAccount
 metadata:
   name: hcloud-cloud-controller-manager
   namespace: kube-system
-
 ---
 # Source: hcloud-cloud-controller-manager/templates/clusterrole.yml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -71,7 +70,6 @@ rules:
       - list
       - watch
       - update
-
 ---
 # Source: hcloud-cloud-controller-manager/templates/clusterrolebinding.yaml
 kind: ClusterRoleBinding
@@ -88,7 +86,6 @@ subjects:
   - kind: ServiceAccount
     name: hcloud-cloud-controller-manager
     namespace: kube-system
-
 ---
 # Source: hcloud-cloud-controller-manager/templates/daemonset.yaml
 apiVersion: apps/v1
@@ -113,6 +110,7 @@ spec:
     spec:
       serviceAccountName: hcloud-cloud-controller-manager
       securityContext:
+        runAsGroup: 65532
         runAsNonRoot: true
         runAsUser: 65532
         seccompProfile:

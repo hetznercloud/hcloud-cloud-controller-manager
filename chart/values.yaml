@@ -121,19 +121,16 @@ resources:
     memory: 50Mi
 
 # Pod-level security context for the hccm Pod.
-# The defaults run the controller as a non-root user with a RuntimeDefault
-# seccomp profile, satisfying the Pod Security "restricted" profile.
-# Set to {} (or override individual fields) to relax these constraints.
+# See https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
+  runAsGroup: 65532
   seccompProfile:
     type: RuntimeDefault
 
 # Container-level security context for the hccm container.
-# The controller does not write to its root filesystem at runtime, so a
-# read-only root filesystem with all capabilities dropped is safe by default.
-# Set to {} (or override individual fields) to relax these constraints.
+# See https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 securityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
