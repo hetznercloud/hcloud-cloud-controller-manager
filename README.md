@@ -4,7 +4,7 @@
 [![Codecov](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/graph/badge.svg?token=Q7pbOoyVpj)](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/tree/main)
 
 > [!IMPORTANT]
-> If you are running hcloud-cloud-controller-manager in version <= v1.30.0, please update as soon as possible to at least [v1.30.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.1). The `server.datacenter` field was deprecated and has been removed from the API response ([see changelog](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters)). Deployments of hcloud-cloud-controller-manager that were not updated before the field was removed from the API will **panic** and crash.
+> If you are running hcloud-cloud-controller-manager in version <= v1.30.0, please update as soon as possible to at least [v1.30.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.1). The `server.datacenter` field was deprecated and has been removed from the API response since 2026-07-01 ([see changelog](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters)). Deployments of hcloud-cloud-controller-manager that were not updated before the field was removed from the API will **panic** and crash.
 >
 > On 2026-07-07 we deleted the `latest` image tag. It was broken and heavily outdated (last updated three years ago), so it should not be relied upon. Always pin your deployment to a specific released version instead. See the [releases](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases) for available versions.
 
