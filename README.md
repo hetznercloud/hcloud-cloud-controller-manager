@@ -3,8 +3,10 @@
 [![Tests](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test.yml)
 [![Codecov](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/graph/badge.svg?token=Q7pbOoyVpj)](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/tree/main)
 
-> [!CAUTION]
-> If you are running hcloud-cloud-controller-manager in version <= v1.30.0, please update as soon as possible to at least [v1.30.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.1). The `server.datacenter` field is deprecated and will be removed from the API response after July 2026 ([see changelog](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters)). Deployments of hcloud-cloud-controller-manager that are not updated when the field is removed from the API will **panic** and crash.
+> [!IMPORTANT]
+> If you are running hcloud-cloud-controller-manager in version <= v1.30.0, please update as soon as possible to at least [v1.30.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.30.1). The `server.datacenter` field was deprecated and has been removed from the API response ([see changelog](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters)). Deployments of hcloud-cloud-controller-manager that were not updated before the field was removed from the API will **panic** and crash.
+>
+> On 2026-07-07 we deleted the `latest` image tag. It was broken and heavily outdated (last updated three years ago), so it should not be relied upon. Always pin your deployment to a specific released version instead. See the [releases](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases) for available versions.
 
 The Hetzner Cloud [cloud-controller-manager](https://kubernetes.io/docs/concepts/architecture/cloud-controller/) integrates your Kubernetes cluster with the Hetzner Cloud & Robot APIs.
 
