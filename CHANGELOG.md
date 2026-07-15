@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.34.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.34.0)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.33.0...v1.34.0)
+
+### Features
+
+- **chart**: expose podSecurityContext and securityContext values (#1258) ([ebd8cd4](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/ebd8cd42b6bc5af0acc0c86035ae8cf1e66e604a))
+
+### Bug Fixes
+
+- **routes**: reject IPv6 routes early (#1280) ([0cba535](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/0cba53560b14ec8d1db986c8083232a142c0f104))
+- drop warning for untagged clouds (#1281) ([574262f](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/574262f1e7b47b60b3ebfebfa0ab928abc8891db))
+
 ## [v1.33.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.33.0)
 
 ### Changed
