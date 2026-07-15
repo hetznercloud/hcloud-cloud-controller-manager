@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: 3.x
 
-      - uses: yokawasa/action-setup-kube-tools@9d39563c24d4a419d1a8289c34d6da5a6171252c # v0.13.5
+      - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
         with:
           setup-tools: |
             helm

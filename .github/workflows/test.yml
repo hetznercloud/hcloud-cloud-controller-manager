@@ -66,7 +66,7 @@ jobs:
           tofu_version: v1.12.3 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@9d39563c24d4a419d1a8289c34d6da5a6171252c # v0.13.5
+      - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
         with:
           setup-tools: |
             helm
@@ -83,7 +83,7 @@ jobs:
           curl https://github.com/alexellis/k3sup/releases/download/$K3SUP_VERSION/k3sup -sSL -o /usr/local/bin/k3sup
           chmod +x /usr/local/bin/k3sup
 
-      - uses: hetznercloud/tps-action@dc6d67c5768ca43b840429b6c7409cda61cf4092 # main
+      - uses: hetznercloud/tps-action@5bfcef547f41c44aa626d0474c0491a1dbda792a # main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
 
@@ -184,7 +184,7 @@ jobs:
           tofu_version: v1.12.3 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@9d39563c24d4a419d1a8289c34d6da5a6171252c # v0.13.5
+      - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
         with:
           setup-tools: |
             helm
@@ -198,7 +198,7 @@ jobs:
         run: |
           curl -sLS https://get.k3sup.dev | sh
 
-      - uses: hetznercloud/tps-action@dc6d67c5768ca43b840429b6c7409cda61cf4092 # main
+      - uses: hetznercloud/tps-action@5bfcef547f41c44aa626d0474c0491a1dbda792a # main
         with:
           token: ${{ secrets.HCLOUD_TOKEN  }}
 
