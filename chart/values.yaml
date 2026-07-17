@@ -171,6 +171,11 @@ rbac:
   # Create a cluster role binding with admin access for the service account.
   create: true
 
+serviceAccount:
+  # Annotations to add to the service account.
+  # See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  annotations: {}
+
 podLabels: {}
 
 podAnnotations: {}

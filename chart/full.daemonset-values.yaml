@@ -1,5 +1,9 @@
 kind: DaemonSet
 
+serviceAccount:
+  annotations:
+    service-account-annotation: service-account-annotation
+
 monitoring:
   podMonitor:
     labels:
