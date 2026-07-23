@@ -1042,6 +1042,7 @@ type hclbServiceOptsBuilder struct {
 		Certificates   []*hcloud.Certificate
 		RedirectHTTP   *bool
 		StickySessions *bool
+		TimeoutIdle    *time.Duration
 	}
 	addHTTP         bool
 	healthCheckOpts struct {
@@ -1112,6 +1113,18 @@ func (b *hclbServiceOptsBuilder) extract() {
 		}
 		b.httpOpts.CookieLifetime = &lt
 		b.addHTTP = true
+		return nil
+	})
+
+	b.do(func() error {
+		timeout, err := annotation.LBSvcHTTPTimeoutIdle.DurationFromService(b.Service)
+		if errors.Is(err, annotation.ErrNotSet) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		b.httpOpts.TimeoutIdle = &timeout
 		return nil
 	})
 
@@ -1367,6 +1380,7 @@ func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddSe
 			Certificates:   b.httpOpts.Certificates,
 			RedirectHTTP:   b.httpOpts.RedirectHTTP,
 			StickySessions: b.httpOpts.StickySessions,
+			TimeoutIdle:    b.httpOpts.TimeoutIdle,
 		}
 	}
 	if b.addHealthCheck {
@@ -1421,6 +1435,7 @@ func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUp
 			RedirectHTTP:   b.httpOpts.RedirectHTTP,
 			Certificates:   b.httpOpts.Certificates,
 			StickySessions: b.httpOpts.StickySessions,
+			TimeoutIdle:    b.httpOpts.TimeoutIdle,
 		}
 	}
 	if b.addHealthCheck {
