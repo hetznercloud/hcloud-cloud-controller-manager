@@ -1125,6 +1125,7 @@ func (b *hclbServiceOptsBuilder) extract() {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		b.httpOpts.TimeoutIdle = &timeout
+		b.addHTTP = true
 		return nil
 	})
 
