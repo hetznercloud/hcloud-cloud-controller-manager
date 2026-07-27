@@ -98,7 +98,10 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 		opts = append(opts, hcloud.WithEndpoint(cfg.HCloudClient.Endpoint))
 	}
 	client := hcloud.NewClient(opts...)
-	metadataClient := metadata.NewClient()
+
+	metadataClient := metadata.NewClient(
+		metadata.WithApplication("hcloud-cloud-controller", providerVersion),
+	)
 
 	var robotClient hrobot.RobotClient
 	if cfg.Robot.Enabled && cfg.Robot.User != "" && cfg.Robot.Password != "" {
