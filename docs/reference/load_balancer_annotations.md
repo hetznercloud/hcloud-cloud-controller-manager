@@ -29,7 +29,7 @@ This page contains all annotations, which can be specified at a Service of type 
 | `load-balancer.hetzner.cloud/uses-proxyprotocol` | `bool` | `false` | `No` | Specifies if the Load Balancer services should use the proxy protocol. |
 | `load-balancer.hetzner.cloud/http-cookie-name` | `string` | `-` | `No` | Specifies the cookie name when using  HTTP or HTTPS as protocol. |
 | `load-balancer.hetzner.cloud/http-cookie-lifetime` | `int` | `-` | `No` | Specifies the lifetime of the HTTP cookie. |
-| `load-balancer.hetzner.cloud/http-timeout-idle` | `duration` | `-` | `No` | Specifies the idle timeout for the client and server side. |
+| `load-balancer.hetzner.cloud/http-timeout-idle` | `duration` | `-` | `No` | Specifies the idle timeout for the client and server side. Must be between 30s and 300s. |
 | `load-balancer.hetzner.cloud/certificate-type` | `uploaded \| managed` | `uploaded` | `No` | Defines the type of certificate the Load Balancer should use. |
 | `load-balancer.hetzner.cloud/http-certificates` | `string` | `-` | `No` | A comma separated list of IDs or Names of Certificates assigned to the service. |
 | `load-balancer.hetzner.cloud/http-managed-certificate-name` | `string` | `-` | `No` | Contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if `load-balancer.hetzner.cloud/certificate-type` is missing or set to "uploaded". |
