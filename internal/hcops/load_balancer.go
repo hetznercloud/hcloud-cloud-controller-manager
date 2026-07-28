@@ -179,7 +179,7 @@ func (l *LoadBalancerOps) Create(
 
 	result, _, err := l.LBClient.Create(ctx, opts)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 	if err := l.ActionClient.WaitFor(ctx, result.Action); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -302,7 +302,7 @@ func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBal
 
 	updated, _, err := l.LBClient.Update(ctx, lb, opts)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 	lb.Name = updated.Name
 	lb.Labels = updated.Labels
@@ -326,7 +326,7 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 
 	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv4.IP.String(), &rdns)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
@@ -351,7 +351,7 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 
 	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv6.IP.String(), &rdns)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
@@ -382,7 +382,7 @@ func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBa
 	opts := hcloud.LoadBalancerChangeAlgorithmOpts{Type: at}
 	action, _, err := l.LBClient.ChangeAlgorithm(ctx, lb, opts)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
@@ -409,7 +409,7 @@ func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalance
 	opts := hcloud.LoadBalancerChangeTypeOpts{LoadBalancerType: &hcloud.LoadBalancerType{Name: lt}}
 	action, _, err := l.LBClient.ChangeType(ctx, lb, opts)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 	err = l.ActionClient.WaitFor(ctx, action)
 	if err != nil {
@@ -515,7 +515,7 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		a, _, err = l.LBClient.AttachToNetwork(ctx, lb, opts)
 	}
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 
 	if err := l.ActionClient.WaitFor(ctx, a); err != nil {
@@ -954,7 +954,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 			}
 			action, _, err = l.LBClient.UpdateService(ctx, lb, b.listenPort, updOpts)
 			if err != nil {
-				return changed, fmt.Errorf("%s: %w", op, err)
+				return changed, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 			}
 		} else {
 			klog.InfoS("add service", "op", op, "port", portNo, "loadBalancerID", lb.ID)
@@ -965,7 +965,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 			}
 			action, _, err = l.LBClient.AddService(ctx, lb, addOpts)
 			if err != nil {
-				return changed, fmt.Errorf("%s: %w", op, err)
+				return changed, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 			}
 		}
 
