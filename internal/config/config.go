@@ -29,9 +29,10 @@ const (
 	robotRateLimitWaitTime  = "ROBOT_RATE_LIMIT_WAIT_TIME"
 	robotForwardInternalIPs = "ROBOT_FORWARD_INTERNAL_IPS"
 
-	hcloudInstancesAddressFamily = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
-	hcloudServerCacheMode        = "HCLOUD_SERVER_CACHE_MODE"
-	hcloudServerCacheMaxAge      = "HCLOUD_SERVER_CACHE_MAX_AGE"
+	hcloudInstancesZoneLabelEnabled = "HCLOUD_INSTANCES_ZONE_LABEL_ENABLED"
+	hcloudInstancesAddressFamily    = "HCLOUD_INSTANCES_ADDRESS_FAMILY"
+	hcloudServerCacheMode           = "HCLOUD_SERVER_CACHE_MODE"
+	hcloudServerCacheMaxAge         = "HCLOUD_SERVER_CACHE_MAX_AGE"
 
 	// Disable the "master/server is attached to the network" check against the metadata service.
 	hcloudNetworkDisableAttachedCheck = "HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK"
@@ -73,7 +74,8 @@ const (
 const ServerCacheDefaultMaxAge time.Duration = 10 * time.Second
 
 type InstanceConfiguration struct {
-	AddressFamily AddressFamily
+	AddressFamily    AddressFamily
+	ZoneLabelEnabled bool
 }
 
 type ServerCacheConfiguration struct {
@@ -183,6 +185,11 @@ func Read() (HCCMConfiguration, error) {
 	cfg.Instance.AddressFamily = AddressFamily(os.Getenv(hcloudInstancesAddressFamily))
 	if cfg.Instance.AddressFamily == "" {
 		cfg.Instance.AddressFamily = AddressFamilyIPv4
+	}
+
+	cfg.Instance.ZoneLabelEnabled, err = getEnvBool(hcloudInstancesZoneLabelEnabled, true)
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	// ---- Server Cache ----

@@ -74,6 +74,7 @@ func newTestEnv() testEnv {
 
 	cfg := config.HCCMConfiguration{}
 	cfg.Instance.AddressFamily = config.AddressFamilyIPv4
+	cfg.Instance.ZoneLabelEnabled = true
 
 	return testEnv{
 		Server:      server,

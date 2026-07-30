@@ -356,16 +356,23 @@ func (s hcloudServer) IsShutdown() (bool, error) {
 }
 
 func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
-	return &cloudprovider.InstanceMetadata{
+	metadata := &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromCloudServerID(s.ID),
 		InstanceType:  s.ServerType.Name,
 		NodeAddresses: hcloudNodeAddresses(networkID, s.Server, cfg),
-		Zone:          legacydatacenter.NameFromLocation(s.Location.Name),
 		Region:        s.Location.Name,
 		AdditionalLabels: map[string]string{
 			ProvidedBy: "cloud",
 		},
-	}, nil
+	}
+
+	// By default, we continue to configure a zone label. The user
+	// can configure this behavior. We can drop this entirely in a v2.
+	if cfg.Instance.ZoneLabelEnabled {
+		metadata.Zone = legacydatacenter.NameFromLocation(s.Location.Name)
+	}
+
+	return metadata, nil
 }
 
 type robotServer struct {
