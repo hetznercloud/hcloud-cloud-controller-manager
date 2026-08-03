@@ -1,5 +1,5 @@
 locals {
-  ansible_inventory = yamldecode(file("${path.module}/robot/inventory.yml"))
+  ansible_inventory = yamldecode(file("${path.root}/../robot/inventory.yml"))
   robot_ipv4        = local.ansible_inventory["all"]["hosts"]["hccm-test0"]["ansible_host"]
 }
 
@@ -8,7 +8,7 @@ resource "null_resource" "reset_robot" {
   triggers = {
     # Wait the control-plane to be initialized, and re-join the new cluster if the
     # control-plane server changed.
-    control_id = module.dev.control_server_ipv4
+    control_id = module.infra.control_server_ipv4
   }
 
   connection {
@@ -36,7 +36,7 @@ resource "null_resource" "reset_robot" {
       ssh-copy-id \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
-        -i ${module.dev.ssh_public_key_filename} \
+        -i ${module.infra.ssh_public_key_filename} \
         root@${local.robot_ipv4}
     EOT
   }
@@ -46,7 +46,7 @@ module "registry_robot" {
   count      = var.robot_enabled ? 1 : 0
   depends_on = [null_resource.reset_robot]
 
-  source = "github.com/hetznercloud/kubernetes-dev-env//k3s_registry?ref=v0.10.2"
+  source = "github.com/hetznercloud/kubernetes-dev-env//modules/infra/k3s_registry?ref=v0.11.0"
 
   server = { id = "0", ipv4_address = local.robot_ipv4 }
 }
@@ -58,7 +58,7 @@ resource "null_resource" "k3sup_robot" {
   triggers = {
     # Wait the control-plane to be initialized, and re-join the new cluster if the
     # control-plane server changed.
-    control_id = module.dev.control_server_ipv4
+    control_id = module.infra.control_server_ipv4
   }
 
   connection {
@@ -73,9 +73,9 @@ resource "null_resource" "k3sup_robot" {
     // filesystem is only kept in memory.
     command = <<-EOT
       k3sup join \
-        --ssh-key='${module.dev.ssh_private_key_filename}' \
+        --ssh-key='${module.infra.ssh_private_key_filename}' \
         --ip='${local.robot_ipv4}' \
-        --server-ip='${module.dev.control_server_ipv4}' \
+        --server-ip='${module.infra.control_server_ipv4}' \
         --k3s-channel='${var.k3s_channel}' \
         --k3s-extra-args="\
           --kubelet-arg='cloud-provider=external' \
@@ -83,23 +83,5 @@ resource "null_resource" "k3sup_robot" {
           --node-label instance.hetzner.cloud/is-root-server=true \
           --snapshotter=native" \
       EOT
-  }
-}
-
-provider "kubernetes" {
-  config_path = module.dev.kubeconfig_filename
-}
-
-resource "kubernetes_secret_v1" "robot_credentials" {
-  count = var.robot_enabled ? 1 : 0
-
-  metadata {
-    name      = "robot"
-    namespace = "kube-system"
-  }
-
-  data = {
-    robot-user     = var.robot_user
-    robot-password = var.robot_password
   }
 }
