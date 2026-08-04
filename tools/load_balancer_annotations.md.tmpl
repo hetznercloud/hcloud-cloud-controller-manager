@@ -4,5 +4,6 @@ This page contains all annotations, which can be specified at a Service of type 
 
 - Read-only annotations are set by the Cloud Controller Manager.
 - Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
+- The `duration` type is a Go duration string, i.e. a sequence of decimal numbers each with a unit suffix such as `300ms`, `30s`, `5m` or `1h` (see [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration)).
 
 {{.ConstTable}}

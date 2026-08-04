@@ -4,6 +4,7 @@ This page contains all annotations, which can be specified at a Service of type 
 
 - Read-only annotations are set by the Cloud Controller Manager.
 - Enums are depicted in the `Type` column and possible options are separated via the pipe symbol `|`.
+- The `duration` type is a Go duration string, i.e. a sequence of decimal numbers each with a unit suffix such as `300ms`, `30s`, `5m` or `1h` (see [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration)).
 
 | Name | Type | Default | Read-only | Description |
 | --- | --- | --- | --- | --- |
@@ -28,6 +29,7 @@ This page contains all annotations, which can be specified at a Service of type 
 | `load-balancer.hetzner.cloud/uses-proxyprotocol` | `bool` | `false` | `No` | Specifies if the Load Balancer services should use the proxy protocol. |
 | `load-balancer.hetzner.cloud/http-cookie-name` | `string` | `-` | `No` | Specifies the cookie name when using  HTTP or HTTPS as protocol. |
 | `load-balancer.hetzner.cloud/http-cookie-lifetime` | `int` | `-` | `No` | Specifies the lifetime of the HTTP cookie. |
+| `load-balancer.hetzner.cloud/http-timeout-idle` | `duration` | `-` | `No` | Specifies the idle timeout for the client and server side. Must be between 30s and 300s. |
 | `load-balancer.hetzner.cloud/certificate-type` | `uploaded \| managed` | `uploaded` | `No` | Defines the type of certificate the Load Balancer should use. |
 | `load-balancer.hetzner.cloud/http-certificates` | `string` | `-` | `No` | A comma separated list of IDs or Names of Certificates assigned to the service. |
 | `load-balancer.hetzner.cloud/http-managed-certificate-name` | `string` | `-` | `No` | Contains the name of the managed certificate to create by the Cloud Controller manager. Ignored if `load-balancer.hetzner.cloud/certificate-type` is missing or set to "uploaded". |

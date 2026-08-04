@@ -1750,6 +1750,45 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			},
 		},
 		{
+			name: "add service rejected by the API",
+			servicePorts: []corev1.ServicePort{
+				{Port: 80, NodePort: 8080},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 4,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				opts := hcloud.LoadBalancerAddServiceOpts{
+					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
+					ListenPort:      new(80),
+					DestinationPort: new(8080),
+					HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+						Protocol: hcloud.LoadBalancerServiceProtocolTCP,
+						Port:     new(8080),
+					},
+				}
+				tt.fx.MockAddService(opts, tt.initialLB, hcloud.Error{
+					Code:    hcloud.ErrorCodeInvalidInput,
+					Message: "invalid input in field 'http'",
+					Details: hcloud.ErrorDetailsInvalidInput{
+						Fields: []hcloud.ErrorDetailsInvalidInputField{
+							{Name: "http.timeout_idle", Messages: []string{"must be between 5 and 3600"}},
+						},
+					},
+				})
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.EqualError(t, err,
+					"hcops/LoadBalancerOps.ReconcileHCLBServices: invalid input in field 'http' (invalid_input): "+
+						"invalid fields: http.timeout_idle (must be between 5 and 3600)")
+				assert.False(t, changed)
+			},
+		},
+		{
 			name: "reference TLS certificate by id",
 			servicePorts: []corev1.ServicePort{
 				{Port: 443, NodePort: 8443},

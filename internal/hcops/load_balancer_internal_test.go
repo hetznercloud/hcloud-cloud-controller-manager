@@ -120,6 +120,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				annotation.LBSvcHTTPCertificates:   "1,3",
 				annotation.LBSvcRedirectHTTP:       "true",
 				annotation.LBSvcHTTPStickySessions: "true",
+				annotation.LBSvcHTTPTimeoutIdle:    "30s",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(82),
@@ -131,6 +132,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   new(true),
 					StickySessions: new(true),
+					TimeoutIdle:    hcloud.Ptr(30 * time.Second),
 				},
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
@@ -146,6 +148,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   new(true),
 					StickySessions: new(true),
+					TimeoutIdle:    hcloud.Ptr(30 * time.Second),
 				},
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,

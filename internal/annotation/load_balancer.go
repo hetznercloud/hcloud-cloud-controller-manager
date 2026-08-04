@@ -160,6 +160,12 @@ const (
 	// Type: int
 	LBSvcHTTPCookieLifetime Name = "load-balancer.hetzner.cloud/http-cookie-lifetime"
 
+	// LBSvcHTTPTimeoutIdle specifies the idle timeout for the client and
+	// server side. Must be between 30s and 300s.
+	//
+	// Type: duration
+	LBSvcHTTPTimeoutIdle Name = "load-balancer.hetzner.cloud/http-timeout-idle"
+
 	// LBSvcHTTPCertificateType defines the type of certificate the Load
 	// Balancer should use.
 	//

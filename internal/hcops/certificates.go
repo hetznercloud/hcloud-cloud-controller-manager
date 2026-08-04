@@ -77,7 +77,7 @@ func (co *CertificateOps) CreateManagedCertificate(
 		return fmt.Errorf("%s: %w", op, ErrAlreadyExists)
 	}
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
 
 	err = co.ActionClient.WaitFor(ctx, result.Action)
