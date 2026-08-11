@@ -15,18 +15,18 @@ import (
 func TestRead(t *testing.T) {
 	tests := []struct {
 		name    string
-		env     []string
+		env     map[string]string
 		files   map[string]string
 		want    HCCMConfiguration
 		wantErr error
 	}{
 		{
 			name: "minimal",
-			env:  []string{},
+			env:  map[string]string{},
 			want: HCCMConfiguration{
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -42,15 +42,15 @@ func TestRead(t *testing.T) {
 		{
 			// Matches the default env from deploy/ccm-networks.yaml
 			name: "default deployment",
-			env: []string{
-				"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
-				"HCLOUD_NETWORK", "foobar",
+			env: map[string]string{
+				"HCLOUD_TOKEN":   "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+				"HCLOUD_NETWORK": "foobar",
 			},
 			want: HCCMConfiguration{
 				HCloudClient: HCloudClientConfiguration{Token: "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq"},
 				Robot:        RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:      MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:     InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache:  ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					NameOrID:             "foobar",
@@ -67,10 +67,10 @@ func TestRead(t *testing.T) {
 		},
 		{
 			name: "secrets from file",
-			env: []string{
-				"HCLOUD_TOKEN_FILE", "/tmp/hetzner-token",
-				"ROBOT_USER_FILE", "/tmp/hetzner-user",
-				"ROBOT_PASSWORD_FILE", "/tmp/hetzner-password",
+			env: map[string]string{
+				"HCLOUD_TOKEN_FILE":   "/tmp/hetzner-token",
+				"ROBOT_USER_FILE":     "/tmp/hetzner-user",
+				"ROBOT_PASSWORD_FILE": "/tmp/hetzner-password",
 			},
 			files: map[string]string{
 				"hetzner-token":    "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
@@ -88,7 +88,7 @@ func TestRead(t *testing.T) {
 					ForwardInternalIPs: false,
 				},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -104,10 +104,10 @@ func TestRead(t *testing.T) {
 		},
 		{
 			name: "secrets from unknown file",
-			env: []string{
-				"HCLOUD_TOKEN_FILE", "/tmp/hetzner-token",
-				"ROBOT_USER_FILE", "/tmp/hetzner-user",
-				"ROBOT_PASSWORD_FILE", "/tmp/hetzner-password",
+			env: map[string]string{
+				"HCLOUD_TOKEN_FILE":   "/tmp/hetzner-token",
+				"ROBOT_USER_FILE":     "/tmp/hetzner-user",
+				"ROBOT_PASSWORD_FILE": "/tmp/hetzner-password",
 			},
 			files: map[string]string{}, // don't create files
 			want: HCCMConfiguration{
@@ -124,18 +124,18 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "client",
-			env: []string{
-				"HCLOUD_TOKEN", "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
-				"HCLOUD_ENDPOINT", "https://api.example.com",
-				"HCLOUD_DEBUG", "true",
-				"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE", "10.1.0.0/24",
-				"HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL", "true",
-				"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE", "least_connections",
-				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL", "30s",
-				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT", "5s",
-				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES", "5",
-				"HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK", "true",
-				"HCLOUD_LOAD_BALANCERS_TYPE", "lb21",
+			env: map[string]string{
+				"HCLOUD_TOKEN":    "jr5g7ZHpPptyhJzZyHw2Pqu4g9gTqDvEceYpngPf79jN_NOT_VALID_dzhepnahq",
+				"HCLOUD_ENDPOINT": "https://api.example.com",
+				"HCLOUD_DEBUG":    "true",
+				"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE": "10.1.0.0/24",
+				"HCLOUD_LOAD_BALANCERS_USES_PROXYPROTOCOL":      "true",
+				"HCLOUD_LOAD_BALANCERS_ALGORITHM_TYPE":          "least_connections",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL":   "30s",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT":    "5s",
+				"HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES":    "5",
+				"HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK":  "true",
+				"HCLOUD_LOAD_BALANCERS_TYPE":                    "lb21",
 			},
 			want: HCCMConfiguration{
 				HCloudClient: HCloudClientConfiguration{
@@ -145,7 +145,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 				},
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -168,14 +168,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "metrics",
-			env: []string{
-				"HCLOUD_METRICS_ENABLED", "false",
-				"HCLOUD_METRICS_ADDRESS", "127.0.0.1:9999",
+			env: map[string]string{
+				"HCLOUD_METRICS_ENABLED": "false",
+				"HCLOUD_METRICS_ADDRESS": "127.0.0.1:9999",
 			},
 			want: HCCMConfiguration{
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: false, Address: "127.0.0.1:9999"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -190,12 +190,12 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "robot",
-			env: []string{
-				"ROBOT_ENABLED", "true",
-				"ROBOT_USER", "foobar",
-				"ROBOT_PASSWORD", "secret-password",
-				"ROBOT_RATE_LIMIT_WAIT_TIME", "5m",
-				"ROBOT_CACHE_TIMEOUT", "1m",
+			env: map[string]string{
+				"ROBOT_ENABLED":              "true",
+				"ROBOT_USER":                 "foobar",
+				"ROBOT_PASSWORD":             "secret-password",
+				"ROBOT_RATE_LIMIT_WAIT_TIME": "5m",
+				"ROBOT_CACHE_TIMEOUT":        "1m",
 			},
 			want: HCCMConfiguration{
 				Robot: RobotConfiguration{
@@ -207,7 +207,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					ForwardInternalIPs: true,
 				},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -222,13 +222,13 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "robot disable forward internal ips",
-			env: []string{
-				"ROBOT_ENABLED", "true",
-				"ROBOT_USER", "foobar",
-				"ROBOT_PASSWORD", "secret-password",
-				"ROBOT_RATE_LIMIT_WAIT_TIME", "5m",
-				"ROBOT_CACHE_TIMEOUT", "1m",
-				"ROBOT_FORWARD_INTERNAL_IPS", "false",
+			env: map[string]string{
+				"ROBOT_ENABLED":              "true",
+				"ROBOT_USER":                 "foobar",
+				"ROBOT_PASSWORD":             "secret-password",
+				"ROBOT_RATE_LIMIT_WAIT_TIME": "5m",
+				"ROBOT_CACHE_TIMEOUT":        "1m",
+				"ROBOT_FORWARD_INTERNAL_IPS": "false",
 			},
 			want: HCCMConfiguration{
 				Robot: RobotConfiguration{
@@ -240,7 +240,7 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 					ForwardInternalIPs: false,
 				},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -255,13 +255,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "instance",
-			env: []string{
-				"HCLOUD_INSTANCES_ADDRESS_FAMILY", "ipv6",
+			env: map[string]string{
+				"HCLOUD_INSTANCES_ADDRESS_FAMILY":     "ipv6",
+				"HCLOUD_INSTANCES_ZONE_LABEL_ENABLED": "false",
 			},
 			want: HCCMConfiguration{
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv6},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv6, ZoneLabelEnabled: false},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -276,14 +277,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "network",
-			env: []string{
-				"HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "true",
-				"HCLOUD_NETWORK", "foobar",
+			env: map[string]string{
+				"HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK": "true",
+				"HCLOUD_NETWORK":                        "foobar",
 			},
 			want: HCCMConfiguration{
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
@@ -300,14 +301,14 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "route",
-			env: []string{
-				"HCLOUD_NETWORK", "foobar",
-				"HCLOUD_NETWORK_ROUTES_ENABLED", "false",
+			env: map[string]string{
+				"HCLOUD_NETWORK":                "foobar",
+				"HCLOUD_NETWORK_ROUTES_ENABLED": "false",
 			},
 			want: HCCMConfiguration{
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				LoadBalancer: LoadBalancerConfiguration{
 					Enabled:               true,
@@ -324,18 +325,18 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "load balancer",
-			env: []string{
-				"HCLOUD_LOAD_BALANCERS_ENABLED", "false",
-				"HCLOUD_LOAD_BALANCERS_LOCATION", "nbg1",
-				"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE", "eu-central",
-				"HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS", "true",
-				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP", "true",
-				"HCLOUD_LOAD_BALANCERS_DISABLE_IPV6", "true",
+			env: map[string]string{
+				"HCLOUD_LOAD_BALANCERS_ENABLED":                 "false",
+				"HCLOUD_LOAD_BALANCERS_LOCATION":                "nbg1",
+				"HCLOUD_LOAD_BALANCERS_NETWORK_ZONE":            "eu-central",
+				"HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS": "true",
+				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP":          "true",
+				"HCLOUD_LOAD_BALANCERS_DISABLE_IPV6":            "true",
 			},
 			want: HCCMConfiguration{
 				Robot:       RobotConfiguration{CacheTimeout: 5 * time.Minute},
 				Metrics:     MetricsConfiguration{Enabled: true, Address: ":8233"},
-				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4},
+				Instance:    InstanceConfiguration{AddressFamily: AddressFamilyIPv4, ZoneLabelEnabled: true},
 				ServerCache: ServerCacheConfiguration{Mode: cache.ModeAll, MaxAge: 10 * time.Second},
 				Network: NetworkConfiguration{
 					AttachedCheckEnabled: true,
@@ -353,35 +354,16 @@ failed to read ROBOT_PASSWORD_FILE: open /tmp/hetzner-password: no such file or 
 		},
 		{
 			name: "error parsing bool values",
-			env: []string{
-				// Required to parse HCLOUD_NETWORK_ROUTES_ENABLED
-				"HCLOUD_NETWORK", "foobar",
-
-				"ROBOT_ENABLED", "no",
-				"HCLOUD_DEBUG", "foo",
-				"HCLOUD_METRICS_ENABLED", "bar",
-				"HCLOUD_LOAD_BALANCERS_ENABLED", "nej",
-				"HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS", "nyet",
-				"HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP", "nein",
-				"HCLOUD_LOAD_BALANCERS_DISABLE_IPV6", "ja",
-				"HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK", "oui",
-				"HCLOUD_NETWORK_ROUTES_ENABLED", "si",
+			env: map[string]string{
+				"HCLOUD_DEBUG": "foo",
 			},
-			wantErr: errors.New(`failed to parse HCLOUD_DEBUG: strconv.ParseBool: parsing "foo": invalid syntax
-failed to parse ROBOT_ENABLED: strconv.ParseBool: parsing "no": invalid syntax
-failed to parse HCLOUD_METRICS_ENABLED: strconv.ParseBool: parsing "bar": invalid syntax
-failed to parse HCLOUD_LOAD_BALANCERS_ENABLED: strconv.ParseBool: parsing "nej": invalid syntax
-failed to parse HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS: strconv.ParseBool: parsing "nyet": invalid syntax
-failed to parse HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP: strconv.ParseBool: parsing "nein": invalid syntax
-failed to parse HCLOUD_LOAD_BALANCERS_DISABLE_IPV6: strconv.ParseBool: parsing "ja": invalid syntax
-failed to parse HCLOUD_NETWORK_DISABLE_ATTACHED_CHECK: strconv.ParseBool: parsing "oui": invalid syntax
-failed to parse HCLOUD_NETWORK_ROUTES_ENABLED: strconv.ParseBool: parsing "si": invalid syntax`),
+			wantErr: errors.New(`failed to parse HCLOUD_DEBUG: strconv.ParseBool: parsing "foo": invalid syntax`),
 		},
 		{
 			name: "error parsing duration values",
-			env: []string{
-				"ROBOT_CACHE_TIMEOUT", "biweekly",
-				"ROBOT_RATE_LIMIT_WAIT_TIME", "42fortnights",
+			env: map[string]string{
+				"ROBOT_CACHE_TIMEOUT":        "biweekly",
+				"ROBOT_RATE_LIMIT_WAIT_TIME": "42fortnights",
 			},
 			wantErr: errors.New(`failed to parse ROBOT_CACHE_TIMEOUT: time: invalid duration "biweekly"
 failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in duration "42fortnights"`),
@@ -390,8 +372,10 @@ failed to parse ROBOT_RATE_LIMIT_WAIT_TIME: time: unknown unit "fortnights" in d
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resetEnv := testsupport.Setenv(t, tt.env...)
-			defer resetEnv()
+			for key, env := range tt.env {
+				t.Setenv(key, env)
+			}
+
 			resetFiles := testsupport.SetFiles(t, tt.files)
 			defer resetFiles()
 
