@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.35.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.35.0)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.34.0...v1.35.0)
+
+### Zone Label
+
+The `datacenter` property was removed from the Server object (see [changelog](https://docs.hetzner.cloud/changelog#2026-07-01-removing-datacenters). For backwards compatibility, we statically compute the datacenter from the location to fill the `topology.kubernetes.io/zone` and `failure-domain.beta.kubernetes.io/zone` labels. In the next major release we will stop setting these values. To stop setting these values now, you can set the environment variable `HCLOUD_INSTANCES_ZONE_LABEL_ENABLED=false`. See [here](docs/guides/zone-label.md) for more details.
+
+### Features
+
+- **helm**: allow annotations on the service account (#1295) ([f4bf0d3](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f4bf0d32a33e2d166ae7e83c6fb963077332eefe))
+- **load-balancer**: support http timeout-idle annotation (#1301) ([926a08a](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/926a08a6bec9c0e1c577a97f56783e60e3aefe62))
+- **load-balancer**: improve error logs on invalid input (#1301) ([926a08a](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/926a08a6bec9c0e1c577a97f56783e60e3aefe62))
+- **node**: make the zone label configurable (#1311) ([8c2952e](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/8c2952e3c18af0593f7ea20fb5bf09bbd51e768a))
+
 ## [v1.34.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.34.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.33.0...v1.34.0)
