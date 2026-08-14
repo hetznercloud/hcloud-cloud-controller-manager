@@ -21,6 +21,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/deprecationutil"
 )
 
 const (
@@ -150,17 +151,13 @@ func (l *LoadBalancerOps) getType(ctx context.Context, svc *corev1.Service) (*hc
 		return nil, unset, fmt.Errorf("load balancer type not found: %s", lbTypeName)
 	}
 
-	if lbType.IsDeprecated() {
-		if time.Now().After(lbType.Deprecation.Announced) {
-			utils.WarnEventLogf(
-				l.Recorder,
-				svc,
-				"LoadBalancerTypeDeprecated",
-				"load balancer type %q is deprecated and will be removed after %s.",
-				lbTypeName,
-				lbType.Deprecation.Announced.Format(time.RFC3339),
-			)
-		}
+	if msg, _ := deprecationutil.LoadBalancerTypeMessage(lbType); msg != "" {
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"LoadBalancerTypeDeprecated",
+			"%s", msg,
+		)
 	}
 
 	return lbType, unset, nil
