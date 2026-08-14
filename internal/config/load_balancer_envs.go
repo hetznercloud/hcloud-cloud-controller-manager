@@ -81,11 +81,11 @@ const (
 	// Type: string
 	hcloudLoadBalancersPrivateSubnetIPRange = "HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE"
 
-	// hcloudLoadBalancersType configures the default Load Balancer type this Load Balancer should be created with.
+	// HcloudLoadBalancersType configures the default Load Balancer type this Load Balancer should be created with.
 	//
 	// Type: string
 	// Default: lb11
-	hcloudLoadBalancersType = "HCLOUD_LOAD_BALANCERS_TYPE"
+	HcloudLoadBalancersType = "HCLOUD_LOAD_BALANCERS_TYPE"
 
 	// hcloudLoadBalancersUsesProxyProtocol enables the proxyprotocol for a Load Balancer service by default.
 	//

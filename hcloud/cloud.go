@@ -43,8 +43,10 @@ import (
 )
 
 const (
-	providerName     = "hcloud"
-	apiClientTimeout = 15 * time.Second
+	providerName           = "hcloud"
+	apiClientTimeout       = 15 * time.Second
+	lbTypeCacheMaxAge      = time.Hour
+	lbTypeCacheDefaultMode = cache.ModeAll
 )
 
 // providerVersion is set by the build process using -ldflags -X.
@@ -54,6 +56,7 @@ type cloud struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
 	serverCache *cache.Cache[hcloud.Server]
+	lbTypeCache *cache.Cache[hcloud.LoadBalancerType]
 	cfg         config.HCCMConfiguration
 	recorder    record.EventRecorder
 	networkID   int64
@@ -150,11 +153,13 @@ func NewCloud(cidr string, nodeLister corelisters.NodeLister) (cloudprovider.Int
 	klog.Infof("Hetzner Cloud k8s cloud controller %s started\n", providerVersion)
 
 	serverCache := cache.NewServerCache(client, cfg.ServerCache.Mode, cfg.ServerCache.MaxAge)
+	lbTypeCache := cache.NewLoadBalancerTypeCache(client, lbTypeCacheDefaultMode, lbTypeCacheMaxAge)
 
 	return &cloud{
 		client:      client,
 		robotClient: robotClient,
 		serverCache: serverCache,
+		lbTypeCache: lbTypeCache,
 		cfg:         cfg,
 		networkID:   networkID,
 		cidr:        cidr,
@@ -202,6 +207,7 @@ func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 		CertOps:       &hcops.CertificateOps{ActionClient: &c.client.Action, CertClient: &c.client.Certificate},
 		ActionClient:  &c.client.Action,
 		NetworkClient: &c.client.Network,
+		LBTypeCache:   c.lbTypeCache,
 		NetworkID:     c.networkID,
 		Cfg:           c.cfg,
 		Recorder:      c.recorder,
