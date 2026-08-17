@@ -15,15 +15,23 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/deprecationutil"
 )
 
-// LabelServiceUID is a label added to the Hetzner Cloud backend to uniquely
-// identify a load balancer managed by Hetzner Cloud Cloud Controller Manager.
-const LabelServiceUID = "hcloud-ccm/service-uid"
+const (
+	// LabelServiceUID is a label added to the Hetzner Cloud backend to uniquely
+	// identify a load balancer managed by Hetzner Cloud Cloud Controller Manager.
+	LabelServiceUID = "hcloud-ccm/service-uid"
+
+	defaultLoadBalancerType = "lb11"
+	loadBalancerSubsystem   = "load_balancer"
+)
 
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
 type LoadBalancerOps struct {
@@ -31,6 +39,7 @@ type LoadBalancerOps struct {
 	ActionClient  hcloud.IActionClient
 	NetworkClient hcloud.INetworkClient
 	RobotClient   hrobot.RobotClient
+	LBTypeCache   *cache.Cache[hcloud.LoadBalancerType]
 	CertOps       *CertificateOps
 	RetryDelay    time.Duration
 	NetworkID     int64
@@ -109,6 +118,57 @@ func (l *LoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBa
 	return lb, nil
 }
 
+func (l *LoadBalancerOps) getType(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancerType, bool, error) {
+	ctx = cache.SetSubsystem(ctx, loadBalancerSubsystem)
+	var lbTypeName string
+	var unset bool
+
+	if l.Cfg.LoadBalancer.Type != "" {
+		lbTypeName = l.Cfg.LoadBalancer.Type
+	}
+
+	if v, ok := annotation.LBType.StringFromService(svc); ok {
+		lbTypeName = v
+	}
+
+	if lbTypeName == "" {
+		lbTypeName = defaultLoadBalancerType
+		unset = true
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"LoadBalancerTypeUnconfigured",
+			"Load Balancer Type unconfigured: this will be required in the future, set it with the annotation %q or cluster-wide with the environment variable %q",
+			annotation.LBType,
+			config.HcloudLoadBalancersType,
+		)
+	}
+
+	lbType, err := l.LBTypeCache.ByName(ctx, lbTypeName)
+	if err != nil {
+		return nil, unset, err
+	}
+
+	if lbType == nil {
+		return nil, unset, fmt.Errorf("load balancer type not found: %s", lbTypeName)
+	}
+
+	msg, unavailable := deprecationutil.LoadBalancerTypeMessage(lbType)
+	if unavailable {
+		return nil, false, errors.New(msg)
+	}
+	if msg != "" {
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"LoadBalancerTypeDeprecated",
+			"%s", msg,
+		)
+	}
+
+	return lbType, unset, nil
+}
+
 // Create creates a new Load Balancer using the Hetzner Cloud API.
 //
 // It adds annotations identifying the HC Load Balancer to svc.
@@ -125,11 +185,13 @@ func (l *LoadBalancerOps) Create(
 			LabelServiceUID: string(svc.ObjectMeta.UID),
 		},
 	}
-	if v, ok := annotation.LBType.StringFromService(svc); ok {
-		opts.LoadBalancerType.Name = v
-	} else if l.Cfg.LoadBalancer.Type != "" {
-		opts.LoadBalancerType.Name = l.Cfg.LoadBalancer.Type
+
+	lbType, _, err := l.getType(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("error getting load balancer type: %w", err)
 	}
+	opts.LoadBalancerType = lbType
+
 	if l.Cfg.LoadBalancer.Location != "" {
 		opts.Location = &hcloud.Location{Name: l.Cfg.LoadBalancer.Location}
 	}
@@ -395,18 +457,25 @@ func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalance
 	const op = "hcops/LoadBalancerOps.changeType"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	lt, ok := annotation.LBType.StringFromService(svc)
-	if !ok {
-		if l.Cfg.LoadBalancer.Type == "" {
-			return false, nil
-		}
-		lt = l.Cfg.LoadBalancer.Type
+	opts := hcloud.LoadBalancerChangeTypeOpts{}
+
+	lbType, unset, err := l.getType(ctx, svc)
+	if err != nil {
+		return false, fmt.Errorf("error getting load balancer type: %w", err)
 	}
-	if lt == lb.LoadBalancerType.Name {
+
+	// If the user removes the annotation, we do not downgrade the Load Balancer
+	// back to its default value. This could be changed in a next major release.
+	if unset {
 		return false, nil
 	}
 
-	opts := hcloud.LoadBalancerChangeTypeOpts{LoadBalancerType: &hcloud.LoadBalancerType{Name: lt}}
+	opts.LoadBalancerType = lbType
+
+	if lb.LoadBalancerType.Name == lbType.Name {
+		return false, nil
+	}
+
 	action, _, err := l.LBClient.ChangeType(ctx, lb, opts)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))

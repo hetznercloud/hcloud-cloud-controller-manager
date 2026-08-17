@@ -4,14 +4,29 @@ import (
 	"context"
 	"math/rand"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
+
+// LBTypesResponse is served by the fixtures Load Balancer type API. Tests that expect a
+// Load Balancer type to be looked up have to use one of these types.
+const LBTypesResponse = `{
+	"load_balancer_types": [
+		{"id": 1, "name": "lb11"},
+		{"id": 2, "name": "lb21"},
+		{"id": 3, "name": "lb31"}
+	],
+	"meta": {"pagination": {"page": 1, "per_page": 50, "previous_page": null, "next_page": null, "last_page": 1, "total_entries": 3}}
+}`
 
 type LoadBalancerOpsFixture struct {
 	Name          string
@@ -50,10 +65,26 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 		ActionClient:  fx.ActionClient,
 		NetworkClient: fx.NetworkClient,
 		RobotClient:   fx.RobotClient,
+		LBTypeCache:   newLBTypeCacheFixture(t),
 		Recorder:      &record.FakeRecorder{},
 	}
 
 	return fx
+}
+
+// newLBTypeCacheFixture returns a Load Balancer type cache backed by a test server that
+// always serves [LBTypesResponse].
+func newLBTypeCacheFixture(t *testing.T) *cache.Cache[hcloud.LoadBalancerType] {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write([]byte(LBTypesResponse)); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	client := hcloud.NewClient(hcloud.WithEndpoint(server.URL))
+	return cache.NewLoadBalancerTypeCache(client, cache.ModeAll, time.Minute)
 }
 
 func (fx *LoadBalancerOpsFixture) MockGetByID(lb *hcloud.LoadBalancer, err error) {

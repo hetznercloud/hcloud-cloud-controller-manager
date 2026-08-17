@@ -273,7 +273,7 @@ func Read() (HCCMConfiguration, error) {
 		errs = append(errs, err)
 	}
 
-	cfg.LoadBalancer.Type = os.Getenv(hcloudLoadBalancersType)
+	cfg.LoadBalancer.Type = os.Getenv(HcloudLoadBalancersType)
 
 	cfg.Network.NameOrID = os.Getenv(hcloudNetwork)
 	disableAttachedCheck, err := getEnvBool(hcloudNetworkDisableAttachedCheck, false)
