@@ -30,6 +30,7 @@ const (
 	LabelServiceUID = "hcloud-ccm/service-uid"
 
 	defaultLoadBalancerType = "lb11"
+	loadBalancerSubsystem   = "load_balancer"
 )
 
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
@@ -118,6 +119,7 @@ func (l *LoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBa
 }
 
 func (l *LoadBalancerOps) getType(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancerType, bool, error) {
+	ctx = cache.SetSubsystem(ctx, loadBalancerSubsystem)
 	var lbTypeName string
 	var unset bool
 
