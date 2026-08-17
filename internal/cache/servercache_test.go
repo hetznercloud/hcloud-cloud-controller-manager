@@ -51,6 +51,7 @@ func TestNewServerCache(t *testing.T) {
 			require.NotNil(t, cache.fetchAll)
 			require.NotNil(t, cache.getID)
 			require.NotNil(t, cache.getName)
+			require.NotNil(t, cache.metric)
 
 			ctx := t.Context()
 

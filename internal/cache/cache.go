@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog/v2"
-
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 )
 
 type Mode string
@@ -63,9 +62,9 @@ type Cache[T any] struct {
 	fetchAll       func(ctx context.Context) ([]*T, error)
 	getID          func(value *T) int64
 	getName        func(value *T) string
-
-	defaultMaxAge time.Duration
-	defaultMode   Mode
+	metric         *prometheus.CounterVec
+	defaultMaxAge  time.Duration
+	defaultMode    Mode
 
 	byID   map[int64]*entry[T]
 	byName map[string]*entry[T]
@@ -79,6 +78,7 @@ func newCache[T any](
 	fetchAll func(ctx context.Context) ([]*T, error),
 	getID func(value *T) int64,
 	getName func(value *T) string,
+	metric *prometheus.CounterVec,
 	defaultMode Mode,
 	defaultMaxAge time.Duration,
 ) *Cache[T] {
@@ -88,6 +88,7 @@ func newCache[T any](
 		fetchAll:       fetchAll,
 		getID:          getID,
 		getName:        getName,
+		metric:         metric,
 
 		defaultMode:   defaultMode,
 		defaultMaxAge: defaultMaxAge,
@@ -140,12 +141,12 @@ func (c *Cache[T]) All(ctx context.Context, opts ...RefreshOption) ([]*T, error)
 	}
 
 	if now.Sub(refreshedAllAt) > refreshOpts.maxAge {
-		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
+		c.metric.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
 		if err := c.refreshAll(ctx); err != nil {
 			return nil, err
 		}
 	} else {
-		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
+		c.metric.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
 	}
 
 	values := make([]*T, 0, len(c.byID))
@@ -166,7 +167,7 @@ func (c *Cache[T]) getFromCache(
 	refreshOpts := newCacheRefreshOpts(c, opts...)
 
 	if refreshOpts.mode == ModeOff {
-		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
+		c.metric.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
 		klog.V(4).InfoS("cache mode is off: fetching entry from api", "subsystem", subsystem)
 		return fetch()
 	}
@@ -177,7 +178,7 @@ func (c *Cache[T]) getFromCache(
 	now := time.Now()
 
 	if e := lookup(); e != nil && now.Sub(e.refreshedAt) <= refreshOpts.maxAge {
-		metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
+		c.metric.WithLabelValues(subsystem, string(refreshOpts.mode), "hit").Inc()
 		klog.V(4).InfoS(
 			"cache hit",
 			"subsystem", subsystem,
@@ -201,7 +202,7 @@ func (c *Cache[T]) getFromCache(
 		// Handled above through early return
 	}
 
-	metrics.CacheRequests.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
+	c.metric.WithLabelValues(subsystem, string(refreshOpts.mode), "miss").Inc()
 
 	// When the value is not found in the API, the entry is not removed from the cache.
 	// Expired entries are only evicted after an hour and when a value is found.

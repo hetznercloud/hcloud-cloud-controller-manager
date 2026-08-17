@@ -32,20 +32,13 @@ const (
 	writeTimeout   = 20 * time.Second
 )
 
-var (
-	OperationCalled = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "cloud_controller_manager_operations_total",
-		Help: "The total number of operation was called",
-	}, []string{"op"})
-
-	CacheRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "cloud_controller_manager_server_cache_requests_total",
-		Help: "Total cache requests partitioned by subsystem, mode and result.",
-	}, []string{"subsystem", "mode", "result"})
-)
+var OperationCalled = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "cloud_controller_manager_operations_total",
+	Help: "The total number of operation was called",
+}, []string{"op"})
 
 func init() {
-	GetRegistry().MustRegister(OperationCalled, CacheRequests)
+	GetRegistry().MustRegister(OperationCalled)
 }
 
 func GetRegistry() prometheus.Registerer {
