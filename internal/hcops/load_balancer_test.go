@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand"
 	"net"
 	"testing"
@@ -243,7 +244,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 	type testCase struct {
 		name               string
 		cfg                config.HCCMConfiguration
-		serviceAnnotations map[annotation.Name]string
+		serviceAnnotations map[string]string
 		createOpts         hcloud.LoadBalancerCreateOpts
 		mock               func(t *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture)
 		lb                 *hcloud.LoadBalancer
@@ -257,8 +258,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Location: "hel1",
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation: "fsn1",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):     "some-lb",
+				string(annotation.LBLocation): "fsn1",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "some-lb",
@@ -279,8 +281,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					NetworkZone: "eu-central",
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBNetworkZone: "eu-central",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):        "another-lb",
+				string(annotation.LBNetworkZone): "eu-central",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "another-lb",
@@ -298,6 +301,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancer: config.LoadBalancerConfiguration{
 					Location: "fsn1",
 				},
+			},
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName): "some-lb",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "some-lb",
@@ -318,6 +324,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					NetworkZone: "eu-central",
 				},
 			},
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName): "some-lb",
+			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "some-lb",
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
@@ -335,9 +344,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Location: "hel1",
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation:    "",
-				annotation.LBNetworkZone: "eu-central",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):        "another-lb",
+				string(annotation.LBLocation):    "",
+				string(annotation.LBNetworkZone): "eu-central",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "another-lb",
@@ -356,9 +366,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					NetworkZone: "eu-central",
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation:    "fsn1",
-				annotation.LBNetworkZone: "",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):        "another-lb",
+				string(annotation.LBLocation):    "fsn1",
+				string(annotation.LBNetworkZone): "",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "another-lb",
@@ -373,16 +384,34 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			lb: &hcloud.LoadBalancer{ID: 2},
 		},
 		{
+			name: "create derives the name from the service uid",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBLocation): "fsn1",
+			},
+			createOpts: hcloud.LoadBalancerCreateOpts{
+				Name:             "asomelbuid",
+				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
+				Location: &hcloud.Location{
+					Name: "fsn1",
+				},
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "some-lb-uid",
+				},
+			},
+			lb: &hcloud.LoadBalancer{ID: 1},
+		},
+		{
 			name:               "fails if location and network zone missing",
-			serviceAnnotations: map[annotation.Name]string{},
+			serviceAnnotations: map[string]string{},
 			err: fmt.Errorf("hcops/LoadBalancerOps.Create: neither %s nor %s set",
 				annotation.LBLocation, annotation.LBNetworkZone),
 		},
 		{
 			name: "gives preference to location name",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation:    "nbg1",
-				annotation.LBNetworkZone: "eu-central",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):        "another-lb",
+				string(annotation.LBLocation):    "nbg1",
+				string(annotation.LBNetworkZone): "eu-central",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "another-lb",
@@ -396,9 +425,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "set Load Balancer type name",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBType:     "lb21",
-				annotation.LBLocation: "nbg1",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):     "another-lb",
+				string(annotation.LBType):     "lb21",
+				string(annotation.LBLocation): "nbg1",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "another-lb",
@@ -412,9 +442,10 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "set Load Balancer algorithm type",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation:      "nbg1",
-				annotation.LBAlgorithmType: "least_connections",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):          "another-lb",
+				string(annotation.LBLocation):      "nbg1",
+				string(annotation.LBAlgorithmType): "least_connections",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "another-lb",
@@ -435,6 +466,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Type:     "lb21",
 				},
 			},
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName): "lb-default-type",
+			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "lb-default-type",
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 2, Name: "lb21"},
@@ -453,6 +487,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					DisablePublicNetwork: new(true),
 				},
 			},
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName): "lb-disable-public",
+			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "lb-disable-public",
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
@@ -466,17 +503,19 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		},
 		{
 			name: "fail on invalid Load Balancer algorithm type",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation:      "nbg1",
-				annotation.LBAlgorithmType: "invalidType",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBLocation):      "nbg1",
+				string(annotation.LBAlgorithmType): "invalidType",
 			},
-			err: fmt.Errorf("hcops/LoadBalancerOps.Create: annotation/Name.LBAlgorithmTypeFromService: annotation/validateAlgorithmType: invalid: invalidtype"),
+			err: fmt.Errorf("hcops/LoadBalancerOps.Create: invalid Load Balancer annotations: " +
+				"load-balancer.hetzner.cloud/algorithm-type: invalid: invalidType"),
 		},
 		{
 			name: "disable public interface",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBLocation:             "nbg1",
-				annotation.LBDisablePublicNetwork: "true",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName):                 "lb-with-priv",
+				string(annotation.LBLocation):             "nbg1",
+				string(annotation.LBDisablePublicNetwork): "true",
 			},
 			createOpts: hcloud.LoadBalancerCreateOpts{
 				Name:             "lb-with-priv",
@@ -520,11 +559,9 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 			}
-			for k, v := range tt.serviceAnnotations {
-				service.Annotations[string(k)] = v
-			}
+			maps.Copy(service.Annotations, tt.serviceAnnotations)
 
-			lb, err := fx.LBOps.Create(fx.Ctx, tt.createOpts.Name, service)
+			lb, err := fx.LBOps.Create(fx.Ctx, service)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -578,7 +615,7 @@ type LBReconcilementTestCase struct {
 	name               string
 	cfg                config.HCCMConfiguration
 	serviceUID         string
-	serviceAnnotations map[annotation.Name]string
+	serviceAnnotations map[string]string
 	servicePorts       []corev1.ServicePort
 	k8sNodes           []*corev1.Node
 	initialLB          *hcloud.LoadBalancer
@@ -606,9 +643,7 @@ func (tt *LBReconcilementTestCase) run(t *testing.T) {
 			},
 		}
 	}
-	for k, v := range tt.serviceAnnotations {
-		tt.service.Annotations[string(k)] = v
-	}
+	maps.Copy(tt.service.Annotations, tt.serviceAnnotations)
 	if tt.mock != nil {
 		tt.mock(t, tt)
 	}
@@ -620,8 +655,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 	tests := []LBReconcilementTestCase{
 		{
 			name: "update algorithm",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBAlgorithmType: string(hcloud.LoadBalancerAlgorithmTypeLeastConnections),
+			serviceAnnotations: map[string]string{
+				string(annotation.LBAlgorithmType): string(hcloud.LoadBalancerAlgorithmTypeLeastConnections),
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
@@ -649,8 +684,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "update to invalid algorithm",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBAlgorithmType: "invalidType",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBAlgorithmType): "invalidType",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 2,
@@ -664,14 +699,15 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
 				assert.EqualError(t, err,
-					"hcops/LoadBalancerOps.ReconcileHCLB: hcops/LoadBalancerOps.changeAlgorithm: annotation/Name.LBAlgorithmTypeFromService: annotation/validateAlgorithmType: invalid: invalidtype")
+					"hcops/LoadBalancerOps.ReconcileHCLB: invalid Load Balancer annotations: "+
+						"load-balancer.hetzner.cloud/algorithm-type: invalid: invalidType")
 				assert.False(t, changed)
 			},
 		},
 		{
 			name: "don't update unchanged algorithm",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBAlgorithmType: string(hcloud.LoadBalancerAlgorithmTypeRoundRobin),
+			serviceAnnotations: map[string]string{
+				string(annotation.LBAlgorithmType): string(hcloud.LoadBalancerAlgorithmTypeRoundRobin),
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
@@ -690,8 +726,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "update type",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBType: "lb21",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBType): "lb21",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
@@ -754,8 +790,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "don't update unchanged type",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBType: "lb21",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBType): "lb21",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 1,
@@ -774,8 +810,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "don't update correct IPv4 RNDS",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBPublicIPv4RDNS: "lb.example.com",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBPublicIPv4RDNS): "lb.example.com",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 6,
@@ -794,8 +830,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "update incorrect IPv4 RNDS",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBPublicIPv4RDNS: "new-name-lb.example.com",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBPublicIPv4RDNS): "new-name-lb.example.com",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 6,
@@ -821,8 +857,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "don't update correct IPv6 RNDS",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBPublicIPv6RDNS: "lb.example.com",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBPublicIPv6RDNS): "lb.example.com",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 6,
@@ -841,8 +877,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "update incorrect IPv6 RNDS",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBPublicIPv6RDNS: "new-name-lb.example.com",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBPublicIPv6RDNS): "new-name-lb.example.com",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 6,
@@ -907,8 +943,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Enabled: true,
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBPrivateIPv4: "10.10.10.2",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBPrivateIPv4): "10.10.10.2",
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 14, Name: "some-network"}
@@ -993,8 +1029,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Enabled: true,
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBPrivateIPv4: "10.10.10.2",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBPrivateIPv4): "10.10.10.2",
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				nw := &hcloud.Network{ID: 15, Name: "some-network"}
@@ -1105,8 +1141,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "disable enabled public network",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBDisablePublicNetwork: "true",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBDisablePublicNetwork): "true",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 6,
@@ -1155,8 +1191,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "keep disabled public interface",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBDisablePublicNetwork: "true",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBDisablePublicNetwork): "true",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 7,
@@ -1172,8 +1208,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "enable disabled public interface",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBDisablePublicNetwork: "false",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBDisablePublicNetwork): "false",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 8,
@@ -1196,8 +1232,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		},
 		{
 			name: "keep enabled public interface",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBDisablePublicNetwork: "false",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBDisablePublicNetwork): "false",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 9,
@@ -1250,8 +1286,8 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 		{
 			name:       "rename load balancer",
 			serviceUID: "11",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "new-name",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBName): "new-name",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID:   11,
@@ -1513,8 +1549,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://2"}},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBUsePrivateIP: "true",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBUsePrivateIP): "true",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 3,
@@ -1553,8 +1589,8 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 			k8sNodes: []*corev1.Node{
 				{Spec: corev1.NodeSpec{ProviderID: "hcloud://1"}},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBUsePrivateIP: "false",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBUsePrivateIP): "false",
 			},
 			initialLB: &hcloud.LoadBalancer{
 				ID: 4,
@@ -1799,8 +1835,8 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcHTTPCertificates: "1",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcHTTPCertificates): "1",
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				opts := hcloud.LoadBalancerAddServiceOpts{
@@ -1837,8 +1873,8 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 					MaxTargets: 25,
 				},
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcHTTPCertificates: "some-cert",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcHTTPCertificates): "some-cert",
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				cert := &hcloud.Certificate{ID: 1}
@@ -1871,9 +1907,9 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 			name:         "create managed certificate",
 			servicePorts: []corev1.ServicePort{{Port: 443, NodePort: 8443}},
 			initialLB:    &hcloud.LoadBalancer{ID: 11},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcHTTPCertificateType:           string(hcloud.CertificateTypeManaged),
-				annotation.LBSvcHTTPManagedCertificateDomains: "example.com,*.example.com",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcHTTPCertificateType):           string(hcloud.CertificateTypeManaged),
+				string(annotation.LBSvcHTTPManagedCertificateDomains): "example.com,*.example.com",
 			},
 			serviceUID: "some service uid",
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
@@ -1922,8 +1958,8 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 		},
 		{
 			name: "replace hc Load Balancer services",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProtocol: string(hcloud.LoadBalancerServiceProtocolHTTP),
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProtocol): string(hcloud.LoadBalancerServiceProtocolHTTP),
 			},
 			servicePorts: []corev1.ServicePort{
 				{Port: 81, NodePort: 8081},

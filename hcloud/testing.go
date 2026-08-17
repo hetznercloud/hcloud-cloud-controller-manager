@@ -2,13 +2,13 @@ package hcloud
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
@@ -22,7 +22,7 @@ type LoadBalancerTestCase struct {
 	ClusterName              string
 	NetworkID                int
 	ServiceUID               string
-	ServiceAnnotations       map[annotation.Name]string
+	ServiceAnnotations       map[string]string
 	UsePrivateIngressDefault *bool
 	UseIPv6Default           *bool
 	Nodes                    []*corev1.Node
@@ -68,9 +68,7 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 			Annotations: map[string]string{},
 		},
 	}
-	for k, v := range tt.ServiceAnnotations {
-		tt.Service.Annotations[string(k)] = v
-	}
+	maps.Copy(tt.Service.Annotations, tt.ServiceAnnotations)
 	if tt.Ctx == nil {
 		tt.Ctx = context.Background()
 	}

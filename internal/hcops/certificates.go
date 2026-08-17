@@ -55,23 +55,16 @@ func (co *CertificateOps) GetCertificateByLabel(ctx context.Context, label strin
 	return certs[0], nil
 }
 
-// CreateManagedCertificate creates a managed certificate for domains labeled
-// with label.
+// CreateManagedCertificate creates the managed certificate described by opts.
 //
 // CreateManagedCertificate returns a wrapped ErrAlreadyExists if the
 // certificate already exists.
 func (co *CertificateOps) CreateManagedCertificate(
-	ctx context.Context, name string, domains []string, labels map[string]string,
+	ctx context.Context, opts hcloud.CertificateCreateOpts,
 ) error {
 	const op = "hcops/CertificateOps.CreateManagedCertificate"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	opts := hcloud.CertificateCreateOpts{
-		Name:        name,
-		Type:        hcloud.CertificateTypeManaged,
-		DomainNames: domains,
-		Labels:      labels,
-	}
 	result, _, err := co.CertClient.CreateCertificate(ctx, opts)
 	if hcloud.IsError(err, hcloud.ErrorCodeUniquenessError) {
 		return fmt.Errorf("%s: %w", op, ErrAlreadyExists)

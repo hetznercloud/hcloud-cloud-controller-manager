@@ -1,28 +1,35 @@
 package hcops
 
 import (
+	"context"
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-func TestHCLBServiceOptsBuilder(t *testing.T) {
+// TestBuildServiceOpts covers the path from the annotations of a Service to the
+// options sent to the API: [lbspec.Resolve], the certificate lookups and the
+// two opts builders.
+func TestBuildServiceOpts(t *testing.T) {
 	type testCase struct {
 		name               string
 		servicePort        corev1.ServicePort
 		serviceUID         string
-		serviceAnnotations map[annotation.Name]string
+		serviceAnnotations map[string]string
 		cfg                config.LoadBalancerConfiguration
 		expectedAddOpts    hcloud.LoadBalancerAddServiceOpts
 		expectedUpdateOpts hcloud.LoadBalancerUpdateServiceOpts
@@ -58,8 +65,8 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "enable proxy protocol",
 			servicePort: corev1.ServicePort{Port: 81, NodePort: 8081},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProxyProtocol: "true",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProxyProtocol): "true",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(81),
@@ -87,8 +94,8 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			cfg: config.LoadBalancerConfiguration{
 				ProxyProtocolEnabled: new(true),
 			},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProxyProtocol: "false",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProxyProtocol): "false",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(86),
@@ -113,14 +120,14 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "select HTTP protocol",
 			servicePort: corev1.ServicePort{Port: 82, NodePort: 8082},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProtocol:           string(hcloud.LoadBalancerServiceProtocolHTTP),
-				annotation.LBSvcHTTPCookieName:     "my-cookie",
-				annotation.LBSvcHTTPCookieLifetime: "1h",
-				annotation.LBSvcHTTPCertificates:   "1,3",
-				annotation.LBSvcRedirectHTTP:       "true",
-				annotation.LBSvcHTTPStickySessions: "true",
-				annotation.LBSvcHTTPTimeoutIdle:    "30s",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProtocol):           string(hcloud.LoadBalancerServiceProtocolHTTP),
+				string(annotation.LBSvcHTTPCookieName):     "my-cookie",
+				string(annotation.LBSvcHTTPCookieLifetime): "1h",
+				string(annotation.LBSvcHTTPCertificates):   "1,3",
+				string(annotation.LBSvcRedirectHTTP):       "true",
+				string(annotation.LBSvcHTTPStickySessions): "true",
+				string(annotation.LBSvcHTTPTimeoutIdle):    "30s",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(82),
@@ -159,9 +166,9 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "add certificates by name",
 			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProtocol:         string(hcloud.LoadBalancerServiceProtocolHTTPS),
-				annotation.LBSvcHTTPCertificates: "cert-1,cert-2",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProtocol):         string(hcloud.LoadBalancerServiceProtocolHTTPS),
+				string(annotation.LBSvcHTTPCertificates): "cert-1,cert-2",
 			},
 			mock: func(_ *testing.T, tt *testCase) {
 				tt.certClient.
@@ -231,10 +238,10 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 			name:        "add managed certificate by service uid label",
 			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
 			serviceUID:  "some-service-uid",
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProtocol:                      string(hcloud.LoadBalancerServiceProtocolHTTPS),
-				annotation.LBSvcHTTPCertificateType:           "managed",
-				annotation.LBSvcHTTPManagedCertificateDomains: "*.example.com,example.com",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProtocol):                      string(hcloud.LoadBalancerServiceProtocolHTTPS),
+				string(annotation.LBSvcHTTPCertificateType):           "managed",
+				string(annotation.LBSvcHTTPManagedCertificateDomains): "*.example.com,example.com",
 			},
 			mock: func(_ *testing.T, tt *testCase) {
 				tt.certClient.
@@ -272,9 +279,9 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "add health check with default protocol",
 			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcProtocol:        string(hcloud.LoadBalancerServiceProtocolTCP),
-				annotation.LBSvcHealthCheckPort: "8084",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcProtocol):        string(hcloud.LoadBalancerServiceProtocolTCP),
+				string(annotation.LBSvcHealthCheckPort): "8084",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(83),
@@ -297,12 +304,12 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "add TCP health check",
 			servicePort: corev1.ServicePort{Port: 83, NodePort: 8083},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcHealthCheckProtocol: string(hcloud.LoadBalancerServiceProtocolTCP),
-				annotation.LBSvcHealthCheckPort:     "8084",
-				annotation.LBSvcHealthCheckInterval: "1h",
-				annotation.LBSvcHealthCheckTimeout:  "30s",
-				annotation.LBSvcHealthCheckRetries:  "5",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcHealthCheckProtocol): string(hcloud.LoadBalancerServiceProtocolTCP),
+				string(annotation.LBSvcHealthCheckPort):     "8084",
+				string(annotation.LBSvcHealthCheckInterval): "1h",
+				string(annotation.LBSvcHealthCheckTimeout):  "30s",
+				string(annotation.LBSvcHealthCheckRetries):  "5",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(83),
@@ -331,16 +338,16 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "add HTTP health check",
 			servicePort: corev1.ServicePort{Port: 84, NodePort: 8084},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcHealthCheckProtocol:                string(hcloud.LoadBalancerServiceProtocolHTTP),
-				annotation.LBSvcHealthCheckPort:                    "8085",
-				annotation.LBSvcHealthCheckInterval:                "1h",
-				annotation.LBSvcHealthCheckTimeout:                 "30s",
-				annotation.LBSvcHealthCheckRetries:                 "5",
-				annotation.LBSvcHealthCheckHTTPDomain:              "example.com",
-				annotation.LBSvcHealthCheckHTTPPath:                "/internal/health",
-				annotation.LBSvcHealthCheckHTTPValidateCertificate: "true",
-				annotation.LBSvcHealthCheckHTTPStatusCodes:         "200,202",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcHealthCheckProtocol):                string(hcloud.LoadBalancerServiceProtocolHTTP),
+				string(annotation.LBSvcHealthCheckPort):                    "8085",
+				string(annotation.LBSvcHealthCheckInterval):                "1h",
+				string(annotation.LBSvcHealthCheckTimeout):                 "30s",
+				string(annotation.LBSvcHealthCheckRetries):                 "5",
+				string(annotation.LBSvcHealthCheckHTTPDomain):              "example.com",
+				string(annotation.LBSvcHealthCheckHTTPPath):                "/internal/health",
+				string(annotation.LBSvcHealthCheckHTTPValidateCertificate): "true",
+				string(annotation.LBSvcHealthCheckHTTPStatusCodes):         "200,202",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(84),
@@ -381,15 +388,15 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 		{
 			name:        "health check port defaults to node port/destination Port if not specified",
 			servicePort: corev1.ServicePort{Port: 84, NodePort: 8084},
-			serviceAnnotations: map[annotation.Name]string{
-				annotation.LBSvcHealthCheckProtocol:                string(hcloud.LoadBalancerServiceProtocolHTTP),
-				annotation.LBSvcHealthCheckInterval:                "1h",
-				annotation.LBSvcHealthCheckTimeout:                 "30s",
-				annotation.LBSvcHealthCheckRetries:                 "5",
-				annotation.LBSvcHealthCheckHTTPDomain:              "example.com",
-				annotation.LBSvcHealthCheckHTTPPath:                "/internal/health",
-				annotation.LBSvcHealthCheckHTTPValidateCertificate: "true",
-				annotation.LBSvcHealthCheckHTTPStatusCodes:         "200,202",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBSvcHealthCheckProtocol):                string(hcloud.LoadBalancerServiceProtocolHTTP),
+				string(annotation.LBSvcHealthCheckInterval):                "1h",
+				string(annotation.LBSvcHealthCheckTimeout):                 "30s",
+				string(annotation.LBSvcHealthCheckRetries):                 "5",
+				string(annotation.LBSvcHealthCheckHTTPDomain):              "example.com",
+				string(annotation.LBSvcHealthCheckHTTPPath):                "/internal/health",
+				string(annotation.LBSvcHealthCheckHTTPValidateCertificate): "true",
+				string(annotation.LBSvcHealthCheckHTTPStatusCodes):         "200,202",
 			},
 			expectedAddOpts: hcloud.LoadBalancerAddServiceOpts{
 				ListenPort:      new(84),
@@ -440,26 +447,27 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				tt.mock(t, &tt)
 			}
 
-			builder := &hclbServiceOptsBuilder{
-				Port: tt.servicePort,
-				Service: &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						UID:         types.UID(tt.serviceUID),
-						Annotations: map[string]string{},
-					},
+			svc := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					UID:         types.UID(tt.serviceUID),
+					Annotations: map[string]string{},
 				},
+			}
+			maps.Copy(svc.Annotations, tt.serviceAnnotations)
+
+			spec, err := lbspec.Resolve(svc, tt.cfg)
+			require.NoError(t, err)
+
+			lbOps := &LoadBalancerOps{
 				CertOps: &CertificateOps{ActionClient: tt.actionClient, CertClient: tt.certClient},
-				cfg:     tt.cfg,
 			}
-			for k, v := range tt.serviceAnnotations {
-				builder.Service.Annotations[string(k)] = v
-			}
-			addOpts, err := builder.buildAddServiceOpts()
-			assert.NoError(t, err)
+			certificates, err := lbOps.resolveCertificates(context.Background(), svc, spec)
+			require.NoError(t, err)
+
+			addOpts := spec.Service.AddServiceOpts(tt.servicePort, certificates)
 			assert.Equal(t, tt.expectedAddOpts, addOpts)
 
-			updateOpts, err := builder.buildUpdateServiceOpts()
-			assert.NoError(t, err)
+			updateOpts := spec.Service.UpdateServiceOpts(tt.servicePort, certificates)
 			assert.Equal(t, tt.expectedUpdateOpts, updateOpts)
 		})
 	}
