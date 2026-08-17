@@ -136,7 +136,7 @@ func (l *LoadBalancerOps) getType(ctx context.Context, svc *corev1.Service) (*hc
 			l.Recorder,
 			svc,
 			"LoadBalancerTypeUnconfigured",
-			"load balancer type unconfigured: this will be required in the future, set it with the annotation %q or cluster-wide with the environment variable %q",
+			"Load Balancer Type unconfigured: this will be required in the future, set it with the annotation %q or cluster-wide with the environment variable %q",
 			annotation.LBType,
 			config.HcloudLoadBalancersType,
 		)
@@ -151,7 +151,11 @@ func (l *LoadBalancerOps) getType(ctx context.Context, svc *corev1.Service) (*hc
 		return nil, unset, fmt.Errorf("load balancer type not found: %s", lbTypeName)
 	}
 
-	if msg, _ := deprecationutil.LoadBalancerTypeMessage(lbType); msg != "" {
+	msg, unavailable := deprecationutil.LoadBalancerTypeMessage(lbType)
+	if unavailable {
+		return nil, false, errors.New(msg)
+	}
+	if msg != "" {
 		utils.WarnEventLogf(
 			l.Recorder,
 			svc,
