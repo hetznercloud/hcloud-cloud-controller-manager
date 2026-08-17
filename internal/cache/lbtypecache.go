@@ -11,7 +11,9 @@ import (
 )
 
 var lbTypeCacheRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "cloud_controller_manager_load_balancer_type_cache_requests_total",
+	Namespace: "cloud_controller_manager",
+	Subsystem: "load_balancer_type",
+	Name: "cache_requests_total",
 	Help: "Total cache requests to the Load Balancer Types API partitioned by subsystem, mode and result.",
 }, []string{"subsystem", "mode", "result"})
 
