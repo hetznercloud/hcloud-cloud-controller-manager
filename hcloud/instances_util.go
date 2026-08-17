@@ -25,6 +25,8 @@ import (
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 )
 
 type MockEventRecorder struct{}
@@ -88,9 +90,9 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 	// the name in the Robot API is updated. As the node no longer exists in the cluster with the old name,
 	// we need to return nil here.
 	if server.Name != node.Name {
-		i.recorder.Eventf(
+		utils.WarnEventLogf(
+			i.recorder,
 			node,
-			corev1.EventTypeWarning,
 			"PossibleNodeDeletion",
 			"Might be deleted by node-lifecycle-manager due to name mismatch; Node name %q differs from Robot name %q",
 			node.ObjectMeta.Name,
