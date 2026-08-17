@@ -18,6 +18,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -324,12 +325,13 @@ func (r *routes) warnCIDRMismatch(cidr *net.IPNet, node *corev1.Node) {
 	destPrefixLen, _ := cidr.Mask.Size()
 
 	if !r.clusterCIDR.Contains(cidr.IP) || destPrefixLen < clusterPrefixLen {
-		warnMsg := fmt.Sprintf(
+		utils.WarnEventLogf(
+			r.recorder,
+			node,
+			"ClusterCIDRMisconfigured",
 			"route CIDR %s is not contained within cluster CIDR %s",
 			cidr.String(),
 			r.clusterCIDR.String(),
 		)
-		klog.Warning(warnMsg)
-		r.recorder.Event(node, corev1.EventTypeWarning, "ClusterCIDRMisconfigured", warnMsg)
 	}
 }

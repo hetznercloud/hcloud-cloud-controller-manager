@@ -34,6 +34,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -135,9 +136,9 @@ func (i *instances) lookupServer(
 	}
 
 	if cloudServer != nil && hrobotServer != nil {
-		i.recorder.Eventf(
+		utils.WarnEventLogf(
+			i.recorder,
 			node,
-			corev1.EventTypeWarning,
 			"InstanceLookupFailed",
 			"Node %s could not be uniquely associated with a Cloud or Robot server, as a server with this name exists in both APIs",
 			node.Name,
@@ -314,19 +315,19 @@ func robotNodeAddresses(
 			}
 
 			if warnMsg != "" {
-				recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
-				klog.Warning(warnMsg)
+				utils.WarnEventLogf(recorder, node, MisconfiguredInternalIP, "%s", warnMsg)
 				continue
 			}
 
 			for _, address := range addresses {
 				if currentAddress.Address == address.Address {
-					warnMsg := fmt.Sprintf(
+					utils.WarnEventLogf(
+						recorder,
+						node,
+						MisconfiguredInternalIP,
 						"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
 						currentAddress.Address,
 					)
-					recorder.Event(node, corev1.EventTypeWarning, MisconfiguredInternalIP, warnMsg)
-					klog.Warning(warnMsg)
 					continue OUTER
 				}
 			}

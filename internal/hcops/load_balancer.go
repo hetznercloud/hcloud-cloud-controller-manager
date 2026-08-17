@@ -681,9 +681,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if errors.As(err, new(*providerid.UnkownPrefixError)) {
 				// ProviderID has unknown prefix, cluster might have non-hccm nodes that can not be added to the
 				// Load Balancer. Emitting an event and ignoring that Node in this reconciliation loop.
-				l.Recorder.Eventf(
+				utils.WarnEventLogf(
+					l.Recorder,
 					node,
-					corev1.EventTypeWarning,
 					"UnknownProviderIDPrefix",
 					"Node could not be added to Load Balancer for service %s because the provider ID does not match any known format",
 					svc.Name,
@@ -731,14 +731,15 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			// Check if InternalIP is set at Node object
 			internalIP := getNodeInternalIP(node)
 			if internalIP == "" {
-				warnMsg := fmt.Sprintf(
+				utils.WarnEventLogf(
+					l.Recorder,
+					svc,
+					"InternalIPNotConfigured",
 					"%s: load balancer %s has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
 					op,
 					svc.Name,
 					node.Name,
 				)
-				klog.Warning(warnMsg)
-				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", "%s", warnMsg)
 				continue
 			}
 
@@ -761,13 +762,14 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 			internalIP := getNodeInternalIP(node)
 			if internalIP == "" {
-				warnMsg := fmt.Sprintf(
+				utils.WarnEventLogf(
+					l.Recorder,
+					svc,
+					"InternalIPNotConfigured",
 					"no InternalIP found for Robot node %s (id=%d), cannot add as LB target without Robot credentials; skipping",
 					node.Name,
 					id,
 				)
-				klog.Warning(warnMsg)
-				l.Recorder.Eventf(svc, corev1.EventTypeWarning, "InternalIPNotConfigured", "%s", warnMsg)
 				continue
 			}
 
@@ -989,18 +991,14 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		)
 
 		if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
-			warnMsg := fmt.Sprintf(
+			utils.WarnEventLogf(
+				l.Recorder,
+				svc,
+				"UnsupportedProtocolConfigured",
 				"configured unsupported Hetzner Cloud load balancer protocol %s for service with name %s",
 				port.Protocol,
 				svc.Name,
 			)
-			l.Recorder.Event(
-				svc,
-				corev1.EventTypeWarning,
-				"UnsupportedProtocolConfigured",
-				warnMsg,
-			)
-			klog.Warning(warnMsg)
 			continue
 		}
 
