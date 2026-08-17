@@ -7,6 +7,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,6 +35,10 @@ func newTestCache(mode Mode) *Cache[hcloud.Server] {
 		nil,
 		func(value *hcloud.Server) int64 { return value.ID },
 		func(value *hcloud.Server) string { return value.Name },
+		prometheus.NewCounterVec(
+			prometheus.CounterOpts{Name: "test_cache_requests_total"},
+			[]string{"subsystem", "mode", "result"},
+		),
 		mode,
 		10*time.Second,
 	)
