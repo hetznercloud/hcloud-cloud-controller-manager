@@ -140,12 +140,12 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 					Return(nil, nil, errors.New("test error"))
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
-				err := tt.CertOps.CreateManagedCertificate(
-					tt.Ctx,
-					"test-cert",
-					[]string{"example.com", "*.example.com"},
-					map[string]string{"key": "value"},
-				)
+				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, hcloud.CertificateCreateOpts{
+					Name:        "test-cert",
+					Type:        hcloud.CertificateTypeManaged,
+					DomainNames: []string{"example.com", "*.example.com"},
+					Labels:      map[string]string{"key": "value"},
+				})
 				assert.Error(t, err)
 				assert.True(t, strings.HasSuffix(err.Error(), "test error"))
 			},
@@ -159,12 +159,12 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 					Return(nil, nil, err)
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
-				err := tt.CertOps.CreateManagedCertificate(
-					tt.Ctx,
-					"test-cert",
-					[]string{"example.com", "*.example.com"},
-					map[string]string{"key": "value"},
-				)
+				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, hcloud.CertificateCreateOpts{
+					Name:        "test-cert",
+					Type:        hcloud.CertificateTypeManaged,
+					DomainNames: []string{"example.com", "*.example.com"},
+					Labels:      map[string]string{"key": "value"},
+				})
 				assert.ErrorIs(t, err, hcops.ErrAlreadyExists)
 			},
 		},
@@ -183,12 +183,12 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 				tt.ActionClient.On("WaitFor", tt.Ctx, &hcloud.Action{ID: 2}).Return(nil)
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
-				err := tt.CertOps.CreateManagedCertificate(
-					tt.Ctx,
-					"test-cert",
-					[]string{"example.com", "*.example.com"},
-					map[string]string{"key": "value"},
-				)
+				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, hcloud.CertificateCreateOpts{
+					Name:        "test-cert",
+					Type:        hcloud.CertificateTypeManaged,
+					DomainNames: []string{"example.com", "*.example.com"},
+					Labels:      map[string]string{"key": "value"},
+				})
 				assert.NoError(t, err)
 			},
 		},
