@@ -1248,6 +1248,50 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			},
 		},
 		{
+			name:       "replace stale service UID label",
+			serviceUID: "12",
+			initialLB: &hcloud.LoadBalancer{
+				ID: 12,
+				Labels: map[string]string{
+					hcops.LabelServiceUID: "stale-uid",
+					"some-label":          "some-value",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				updated := *tt.initialLB
+				updated.Labels = map[string]string{
+					hcops.LabelServiceUID: tt.serviceUID,
+					"some-label":          "some-value",
+				}
+				opts := hcloud.LoadBalancerUpdateOpts{
+					Labels: map[string]string{
+						hcops.LabelServiceUID: tt.serviceUID,
+						"some-label":          "some-value",
+					},
+				}
+				tt.fx.LBClient.
+					On("Update", tt.fx.Ctx, tt.initialLB, opts).
+					Return(&updated, nil, nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+				assert.Equal(t, tt.serviceUID, tt.initialLB.Labels[hcops.LabelServiceUID])
+				assert.Equal(t, "some-value", tt.initialLB.Labels["some-label"])
+
+				// The stale label must actually be replaced, otherwise every
+				// reconcile issues the same update again.
+				changed, err = tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+				tt.fx.LBClient.AssertNumberOfCalls(t, "Update", 1)
+			},
+		},
+		{
 			name:       "rename load balancer",
 			serviceUID: "11",
 			serviceAnnotations: map[annotation.Name]string{

@@ -345,10 +345,11 @@ func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBal
 
 	if lb.Labels[LabelServiceUID] != string(svc.ObjectMeta.UID) {
 		// Make a defensive copy of labels. This way we do not modify lb unless
-		// updating is really successful.
+		// updating is really successful. The service UID is set after copying,
+		// so that it replaces a stale value instead of being overwritten by it.
 		labels := make(map[string]string, len(lb.Labels)+1)
-		labels[LabelServiceUID] = string(svc.ObjectMeta.UID)
 		maps.Copy(labels, lb.Labels)
+		labels[LabelServiceUID] = string(svc.ObjectMeta.UID)
 		opts.Labels = labels
 		update = true
 	}
