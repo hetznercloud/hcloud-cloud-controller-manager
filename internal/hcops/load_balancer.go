@@ -1084,7 +1084,12 @@ func (l *LoadBalancerOps) reconcileManagedCertificate(ctx context.Context, svc *
 	if ok, _ := annotation.LBSvcHTTPManagedCertificateUseACMEStaging.BoolFromService(svc); ok {
 		labels["HC-Use-Staging-CA"] = "true"
 	}
-	err = l.CertOps.CreateManagedCertificate(ctx, name, domains, labels)
+	err = l.CertOps.CreateManagedCertificate(ctx, hcloud.CertificateCreateOpts{
+		Name:        name,
+		Type:        hcloud.CertificateTypeManaged,
+		DomainNames: domains,
+		Labels:      labels,
+	})
 	if errors.Is(err, ErrAlreadyExists) {
 		return nil
 	}
