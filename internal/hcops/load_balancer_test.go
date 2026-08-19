@@ -471,7 +471,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				string(annotation.LBLocation):      "nbg1",
 				string(annotation.LBAlgorithmType): "invalidType",
 			},
-			err: fmt.Errorf("hcops/LoadBalancerOps.Create: annotation/Name.LBAlgorithmTypeFromService: annotation/validateAlgorithmType: invalid: invalidtype"),
+			err: fmt.Errorf("hcops/LoadBalancerOps.Create: load-balancer.hetzner.cloud/algorithm-type: invalid: invalidType"),
 		},
 		{
 			name: "disable public interface",
@@ -661,7 +661,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
 				assert.EqualError(t, err,
-					"hcops/LoadBalancerOps.ReconcileHCLB: hcops/LoadBalancerOps.changeAlgorithm: annotation/Name.LBAlgorithmTypeFromService: annotation/validateAlgorithmType: invalid: invalidtype")
+					"hcops/LoadBalancerOps.ReconcileHCLB: hcops/LoadBalancerOps.changeAlgorithm: load-balancer.hetzner.cloud/algorithm-type: invalid: invalidType")
 				assert.False(t, changed)
 			},
 		},

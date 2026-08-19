@@ -28,7 +28,7 @@ This page contains all annotations, which can be specified at a Service of type 
 | `load-balancer.hetzner.cloud/node-selector` | `string` | `-` | `No` | Can be set to restrict which Nodes are added as targets to the Load Balancer. It accepts a Kubernetes label selector string, using either the set-based or equality-based formats. If the selector can not be parsed, the targets in the Load Balancer are not updated and an Event is created with the error message. Format: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors |
 | `load-balancer.hetzner.cloud/uses-proxyprotocol` | `bool` | `false` | `No` | Specifies if the Load Balancer services should use the proxy protocol. |
 | `load-balancer.hetzner.cloud/http-cookie-name` | `string` | `-` | `No` | Specifies the cookie name when using  HTTP or HTTPS as protocol. |
-| `load-balancer.hetzner.cloud/http-cookie-lifetime` | `int` | `-` | `No` | Specifies the lifetime of the HTTP cookie. |
+| `load-balancer.hetzner.cloud/http-cookie-lifetime` | `duration` | `-` | `No` | Specifies the lifetime of the HTTP cookie. |
 | `load-balancer.hetzner.cloud/http-timeout-idle` | `duration` | `-` | `No` | Specifies the idle timeout for the client and server side. Must be between 30s and 300s. |
 | `load-balancer.hetzner.cloud/certificate-type` | `uploaded \| managed` | `uploaded` | `No` | Defines the type of certificate the Load Balancer should use. |
 | `load-balancer.hetzner.cloud/http-certificates` | `string` | `-` | `No` | A comma separated list of IDs or Names of Certificates assigned to the service. |
@@ -38,8 +38,8 @@ This page contains all annotations, which can be specified at a Service of type 
 | `load-balancer.hetzner.cloud/http-sticky-sessions` | `bool` | `false` | `No` | Enables the sticky sessions feature of Hetzner Cloud HTTP Load Balancers. |
 | `load-balancer.hetzner.cloud/health-check-protocol` | `tcp \| http \| https` | `tcp` | `No` | Sets the protocol the health check should be performed over. |
 | `load-balancer.hetzner.cloud/health-check-port` | `int` | `-` | `No` | Specifies the port the health check is be performed on. |
-| `load-balancer.hetzner.cloud/health-check-interval` | `int` | `-` | `No` | Specifies the interval in which time we perform a health check in seconds. |
-| `load-balancer.hetzner.cloud/health-check-timeout` | `int` | `-` | `No` | Specifies the timeout of a single health check. |
+| `load-balancer.hetzner.cloud/health-check-interval` | `duration` | `-` | `No` | Specifies the interval in which we perform a health check. |
+| `load-balancer.hetzner.cloud/health-check-timeout` | `duration` | `-` | `No` | Specifies the timeout of a single health check. |
 | `load-balancer.hetzner.cloud/health-check-retries` | `int` | `-` | `No` | Specifies the number of time a health check is retried until a target is marked as unhealthy. |
 | `load-balancer.hetzner.cloud/health-check-http-domain` | `string` | `-` | `No` | Specifies the domain we try to access when performing the health check. |
 | `load-balancer.hetzner.cloud/health-check-http-path` | `string` | `-` | `No` | Specifies the path we try to access when performing the health check. |

@@ -16,6 +16,20 @@ type TemplateData struct {
 	ConstTable string
 }
 
+// docTypes maps the type an annotation is declared with to the type shown in
+// the reference documentation.
+var docTypes = map[string]string{
+	"String":        "string",
+	"Bool":          "bool",
+	"Int":           "int",
+	"Duration":      "duration",
+	"Strings":       "string",
+	"IP":            "string",
+	"Protocol":      "tcp | http | https",
+	"AlgorithmType": "round_robin | least_connections",
+	"Certificates":  "string",
+}
+
 type ConstantDocTable struct {
 	entries map[string]*DocEntry
 }
@@ -23,6 +37,7 @@ type ConstantDocTable struct {
 type DocEntry struct {
 	rawCommentLines []string
 	constName       string
+	declaredType    string
 	pos             int
 
 	Description string
@@ -38,10 +53,11 @@ func NewDocTable() *ConstantDocTable {
 	}
 }
 
-func (t *ConstantDocTable) AddEntry(constValue, constName string, pos int) {
+func (t *ConstantDocTable) AddEntry(constValue, constName, declaredType string, pos int) {
 	t.entries[constValue] = &DocEntry{
 		rawCommentLines: make([]string, 0),
 		constName:       constName,
+		declaredType:    declaredType,
 		pos:             pos,
 	}
 }
@@ -61,6 +77,14 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 
 	for constValue, entry := range t.entries {
 		commentBuilder := strings.Builder{}
+
+		if entry.declaredType != "" {
+			docType, ok := docTypes[entry.declaredType]
+			if !ok {
+				return nil, fmt.Errorf("unknown type %s for %s", entry.declaredType, constValue)
+			}
+			entry.Type = docType
+		}
 
 		for i, line := range entry.rawCommentLines {
 			if val := parseMetadataValue(line, "Type: "); val != "" {
@@ -198,7 +222,12 @@ func (t *ConstantDocTable) visitFunc() func(n ast.Node) bool {
 			constName := valueSpec.Names[0].Name
 			value := strings.ReplaceAll(literal.Value, "\"", "")
 
-			t.AddEntry(value, constName, pos)
+			var declaredType string
+			if ident, ok := valueSpec.Type.(*ast.Ident); ok {
+				declaredType = ident.Name
+			}
+
+			t.AddEntry(value, constName, declaredType, pos)
 
 			for _, comment := range valueSpec.Doc.List {
 				t.AppendComment(value, comment.Text)
