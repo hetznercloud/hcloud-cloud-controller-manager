@@ -54,11 +54,11 @@ const (
 	// Default: false
 	hcloudLoadBalancersDisablePublicNetwork = "HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK"
 
-	// hcloudLoadBalancersHealthCheckInterval configures the default time interval in seconds
+	// hcloudLoadBalancersHealthCheckInterval configures the default time interval
 	// in which health checks are performed.
 	//
-	// Type: int
-	// Default: 10
+	// Type: duration
+	// Default: 10s
 	hcloudLoadBalancersHealthCheckInterval = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_INTERVAL"
 
 	// hcloudLoadBalancersHealthCheckRetries configures the default amount of unsuccessful retries
@@ -68,11 +68,11 @@ const (
 	// Default: 3
 	hcloudLoadBalancersHealthCheckRetries = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_RETRIES"
 
-	// hcloudLoadBalancersHealthCheckTimeout configures the default time in seconds after an attempt is
+	// hcloudLoadBalancersHealthCheckTimeout configures the default time after an attempt is
 	// considered a timeout.
 	//
-	// Type: int
-	// Default: 15
+	// Type: duration
+	// Default: 15s
 	hcloudLoadBalancersHealthCheckTimeout = "HCLOUD_LOAD_BALANCERS_HEALTH_CHECK_TIMEOUT"
 
 	// hcloudLoadBalancersPrivateSubnetIPRange configures the default IP range in CIDR block notation of
