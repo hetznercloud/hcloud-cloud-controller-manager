@@ -29,8 +29,8 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 		{
 			Name:       "get load balancer without host name IPv6 disabled",
 			ServiceUID: "1",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBIPv6Disabled: "true",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBIPv6Disabled): "true",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:   1,
@@ -94,8 +94,8 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
 			},
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBHostname: "hostname",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBHostname): "hostname",
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
@@ -264,9 +264,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 		{
 			Name:       "public network only no ipv6",
 			ServiceUID: "2",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName:         "pub-net-only-no-ipv6",
-				annotation.LBIPv6Disabled: "true",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName):         "pub-net-only-no-ipv6",
+				string(annotation.LBIPv6Disabled): "true",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -295,8 +295,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 		{
 			Name:       "public network only",
 			ServiceUID: "2",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "pub-net-only",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "pub-net-only",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -328,8 +328,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Name:       "attach Load Balancer to public and private network",
 			NetworkID:  4711,
 			ServiceUID: "3",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "with-priv-net",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "with-priv-net",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -371,8 +371,8 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Name:       "disable private ingress via default",
 			NetworkID:  4711,
 			ServiceUID: "5",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "with-priv-net-no-priv-ingress",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "with-priv-net-no-priv-ingress",
 			},
 			UsePrivateIngressDefault: new(false),
 			LB: &hcloud.LoadBalancer{
@@ -414,9 +414,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Name:       "disable private ingress via annotation",
 			NetworkID:  4711,
 			ServiceUID: "5",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName:                  "with-priv-net-no-priv-ingress",
-				annotation.LBDisablePrivateIngress: "true",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName):                  "with-priv-net-no-priv-ingress",
+				string(annotation.LBDisablePrivateIngress): "true",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -457,9 +457,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Name:       "attach Load Balancer to private network only",
 			NetworkID:  4711,
 			ServiceUID: "6",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName:                 "priv-net-only",
-				annotation.LBDisablePublicNetwork: "true",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName):                 "priv-net-only",
+				string(annotation.LBDisablePublicNetwork): "true",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -511,9 +511,9 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			Name:       "attach Load Balancer to public and private network (with proxy protocol)",
 			NetworkID:  4711,
 			ServiceUID: "3",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName:             "with-priv-net",
-				annotation.LBSvcProxyProtocol: "true",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName):             "with-priv-net",
+				string(annotation.LBSvcProxyProtocol): "true",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -561,8 +561,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "Load balancer unchanged",
 			ServiceUID: "1",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "test-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "test-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -583,8 +583,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "Load balancer changed",
 			ServiceUID: "2",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "test-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "test-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               2,
@@ -606,8 +606,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "Load balancer targets changed",
 			ServiceUID: "3",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "test-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "test-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               3,
@@ -629,8 +629,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "Load balancer services changed",
 			ServiceUID: "4",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "test-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "test-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               4,
@@ -652,8 +652,8 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "fall back to load balancer name",
 			ServiceUID: "5",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "pre-existing-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "pre-existing-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               5,
@@ -684,8 +684,8 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "Load Balancer not found",
 			ServiceUID: "1",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "test-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "test-lb",
 			},
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
@@ -699,8 +699,8 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "calls all reconcilement ops",
 			ServiceUID: "2",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "test-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "test-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               1,
@@ -721,8 +721,8 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 		{
 			Name:       "fall back to load balancer name",
 			ServiceUID: "3",
-			ServiceAnnotations: map[annotation.Name]string{
-				annotation.LBName: "previously-created-lb",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBName): "previously-created-lb",
 			},
 			LB: &hcloud.LoadBalancer{
 				ID:               3,

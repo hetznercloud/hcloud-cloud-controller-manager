@@ -41,14 +41,14 @@ const (
 // lbCreateTimeoutFor returns the timeout to use when waiting for the given
 // Load Balancer service to become ready.
 func lbCreateTimeoutFor(svc *corev1.Service) time.Duration {
-	certAnnotations := []annotation.Name{
-		annotation.LBSvcHTTPCertificates,
-		annotation.LBSvcHTTPCertificateType,
-		annotation.LBSvcHTTPManagedCertificateName,
-		annotation.LBSvcHTTPManagedCertificateDomains,
+	certAnnotations := []string{
+		string(annotation.LBSvcHTTPCertificates),
+		string(annotation.LBSvcHTTPCertificateType),
+		string(annotation.LBSvcHTTPManagedCertificateName),
+		string(annotation.LBSvcHTTPManagedCertificateDomains),
 	}
 	for _, a := range certAnnotations {
-		if _, ok := svc.Annotations[string(a)]; ok {
+		if _, ok := svc.Annotations[a]; ok {
 			return lbCreateTimeoutCert
 		}
 	}
