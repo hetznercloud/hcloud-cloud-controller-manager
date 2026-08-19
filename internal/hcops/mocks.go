@@ -25,9 +25,9 @@ func (m *MockLoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.Lo
 }
 
 func (m *MockLoadBalancerOps) Create(
-	ctx context.Context, lbName string, service *corev1.Service,
+	ctx context.Context, service *corev1.Service,
 ) (*hcloud.LoadBalancer, error) {
-	args := m.Called(ctx, lbName, service)
+	args := m.Called(ctx, service)
 	return mocks.GetLoadBalancerPtr(args, 0), args.Error(1)
 }
 
