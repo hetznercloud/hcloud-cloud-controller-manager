@@ -61,6 +61,24 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 			},
 		},
 		{
+			Name:       "report a missing load balancer despite an invalid annotation",
+			ServiceUID: "1",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBSvcHealthCheckInterval): "10",
+			},
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.False(t, exists)
+				assert.Nil(t, status)
+			},
+		},
+		{
 			Name:       "get load balancer without host name",
 			ServiceUID: "1",
 			LB: &hcloud.LoadBalancer{

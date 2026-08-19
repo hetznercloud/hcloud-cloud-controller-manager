@@ -49,16 +49,22 @@ func (l *loadBalancers) GetLoadBalancer(
 	const op = "hcloud/loadBalancers.GetLoadBalancer"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	spec, err := lbspec.Resolve(service, *l.cfg)
-	if err != nil {
-		return nil, false, fmt.Errorf("%s: %w", op, err)
-	}
-
+	// The lookup comes before resolving the annotations on purpose. The service
+	// controller calls us before deleting a Load Balancer and only removes its
+	// finalizer once we returned without an error, so reporting that a Load
+	// Balancer does not exist must not depend on the annotations being valid.
+	// Otherwise a Service that never got a Load Balancer because one of its
+	// annotations is invalid could not be deleted either.
 	lb, err := l.lbOps.GetByK8SServiceUID(ctx, service)
 	if err != nil {
 		if errors.Is(err, hcops.ErrNotFound) {
 			return nil, false, nil
 		}
+		return nil, false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	spec, err := lbspec.Resolve(service, *l.cfg)
+	if err != nil {
 		return nil, false, fmt.Errorf("%s: %w", op, err)
 	}
 
