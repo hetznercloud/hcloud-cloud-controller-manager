@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -70,10 +71,23 @@ func Resolve(svc *corev1.Service, cfg config.LoadBalancerConfiguration) (Spec, e
 	spec.ManagedCertificate = resolveManagedCertificate(&errs, svc)
 	spec.Service = resolveService(&errs, svc, cfg, spec.ManagedCertificate != nil)
 
-	if len(errs) > 0 {
-		return spec, fmt.Errorf("invalid Load Balancer annotations: %w", errors.Join(errs...))
+	if len(errs) == 0 {
+		return spec, nil
 	}
-	return spec, nil
+
+	if len(errs) == 1 {
+		return spec, fmt.Errorf("invalid Load Balancer annotation: %w", errs[0])
+	}
+
+	// Joining errors creates an error message which is hard to read in the
+	// logs and the Kubernetes events. Log each annotation error separately and
+	// provide details to check the pod logs, if the user only inspects the
+	// Kubernetes event.
+	for _, err := range errs {
+		klog.ErrorS(err, "invalid Load Balancer annotation", "service", klog.KObj(svc))
+	}
+
+	return spec, fmt.Errorf("%d Load Balancer annotation(s) are invalid, see the hcloud-cloud-controller-manager logs for details", len(errs))
 }
 
 func resolveNodeSelector(errs *[]error, svc *corev1.Service) labels.Selector {

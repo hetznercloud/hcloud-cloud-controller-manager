@@ -15,6 +15,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -347,15 +348,21 @@ func TestResolveReportsEveryInvalidAnnotation(t *testing.T) {
 		string(annotation.PrivateSubnetIPRange):    "not-a-cidr",
 	})
 
+	logs := testsupport.CaptureKlog(t)
+
 	_, err := lbspec.Resolve(svc, config.LoadBalancerConfiguration{})
 
-	require.Error(t, err)
+	// The error only counts the invalid annotations, so that the Kubernetes
+	// event stays readable.
+	require.EqualError(t, err,
+		"5 Load Balancer annotation(s) are invalid, see the hcloud-cloud-controller-manager logs for details")
+
 	// One reconcile tells the user about all of their typos, not just the first.
-	assert.ErrorContains(t, err, "sideways")
-	assert.ErrorContains(t, err, "maybe")
-	assert.ErrorContains(t, err, "many")
-	assert.ErrorContains(t, err, "not-an-ip")
-	assert.ErrorContains(t, err, "not-a-cidr")
+	assert.Contains(t, logs.String(), "sideways")
+	assert.Contains(t, logs.String(), "maybe")
+	assert.Contains(t, logs.String(), "many")
+	assert.Contains(t, logs.String(), "not-an-ip")
+	assert.Contains(t, logs.String(), "not-a-cidr")
 }
 
 func TestResolveErrors(t *testing.T) {
@@ -398,7 +405,7 @@ func TestResolveErrors(t *testing.T) {
 			_, err := lbspec.Resolve(service("some-uid", tt.annotations), config.LoadBalancerConfiguration{})
 
 			require.Error(t, err)
-			assert.ErrorContains(t, err, "invalid Load Balancer annotations")
+			assert.ErrorContains(t, err, "invalid Load Balancer annotation:")
 			assert.ErrorContains(t, err, tt.wantErr)
 		})
 	}
