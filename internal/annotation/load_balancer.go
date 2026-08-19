@@ -56,7 +56,7 @@ const (
 
 	// LBPrivateIPv4 specifies the IPv4 address to assign to the load balancer in the
 	// private network that it's attached to.
-	LBPrivateIPv4 String = "load-balancer.hetzner.cloud/private-ipv4"
+	LBPrivateIPv4 IP = "load-balancer.hetzner.cloud/private-ipv4"
 
 	// PrivateSubnetIPRange specifies an existing subnet to which the load balancer will be attached.
 	// The value must be in the CIDR notation. The subnet must belong to the network defined

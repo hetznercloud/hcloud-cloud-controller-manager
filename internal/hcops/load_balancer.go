@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"net"
-	"sync"
 	"time"
 
 	hrobot "github.com/syself/hrobot-go"
@@ -17,6 +15,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
@@ -24,14 +23,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/deprecationutil"
 )
 
-const (
-	// LabelServiceUID is a label added to the Hetzner Cloud backend to uniquely
-	// identify a load balancer managed by Hetzner Cloud Cloud Controller Manager.
-	LabelServiceUID = "hcloud-ccm/service-uid"
-
-	defaultLoadBalancerType = "lb11"
-	loadBalancerSubsystem   = "load_balancer"
-)
+const loadBalancerSubsystem = "load_balancer"
 
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
 type LoadBalancerOps struct {
@@ -59,7 +51,7 @@ func (l *LoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *corev1.Se
 
 	opts := hcloud.LoadBalancerListOpts{
 		ListOpts: hcloud.ListOpts{
-			LabelSelector: fmt.Sprintf("%s=%s", LabelServiceUID, svc.ObjectMeta.UID),
+			LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID),
 		},
 	}
 	lbs, err := l.LBClient.AllWithOpts(ctx, opts)
@@ -118,128 +110,27 @@ func (l *LoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBa
 	return lb, nil
 }
 
-func (l *LoadBalancerOps) getType(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancerType, bool, error) {
-	ctx = cache.SetSubsystem(ctx, loadBalancerSubsystem)
-	var lbTypeName string
-	var unset bool
-
-	if l.Cfg.LoadBalancer.Type != "" {
-		lbTypeName = l.Cfg.LoadBalancer.Type
-	}
-
-	if v, err := annotation.LBType.FromService(svc); err == nil {
-		lbTypeName = v
-	}
-
-	if lbTypeName == "" {
-		lbTypeName = defaultLoadBalancerType
-		unset = true
-		utils.WarnEventLogf(
-			l.Recorder,
-			svc,
-			"LoadBalancerTypeUnconfigured",
-			"Load Balancer Type unconfigured: this will be required in the future, set it with the annotation %q or cluster-wide with the environment variable %q",
-			annotation.LBType,
-			config.HcloudLoadBalancersType,
-		)
-	}
-
-	lbType, err := l.LBTypeCache.ByName(ctx, lbTypeName)
-	if err != nil {
-		return nil, unset, err
-	}
-
-	if lbType == nil {
-		return nil, unset, fmt.Errorf("load balancer type not found: %s", lbTypeName)
-	}
-
-	msg, unavailable := deprecationutil.LoadBalancerTypeMessage(lbType)
-	if unavailable {
-		return nil, false, errors.New(msg)
-	}
-	if msg != "" {
-		utils.WarnEventLogf(
-			l.Recorder,
-			svc,
-			"LoadBalancerTypeDeprecated",
-			"%s", msg,
-		)
-	}
-
-	return lbType, unset, nil
-}
-
 // Create creates a new Load Balancer using the Hetzner Cloud API.
 //
 // It adds annotations identifying the HC Load Balancer to svc.
-func (l *LoadBalancerOps) Create(
-	ctx context.Context, lbName string, svc *corev1.Service,
-) (*hcloud.LoadBalancer, error) {
+func (l *LoadBalancerOps) Create(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.Create"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	opts := hcloud.LoadBalancerCreateOpts{
-		Name:             lbName,
-		LoadBalancerType: &hcloud.LoadBalancerType{Name: "lb11"},
-		Labels: map[string]string{
-			LabelServiceUID: string(svc.ObjectMeta.UID),
-		},
+	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if spec.Location == "" && spec.NetworkZone == "" {
+		return nil, fmt.Errorf("%s: neither %s nor %s set", op, annotation.LBLocation, annotation.LBNetworkZone)
 	}
 
-	lbType, _, err := l.getType(ctx, svc)
+	lbType, err := l.verifyType(ctx, svc, spec)
 	if err != nil {
 		return nil, fmt.Errorf("error getting load balancer type: %w", err)
 	}
-	opts.LoadBalancerType = lbType
 
-	if l.Cfg.LoadBalancer.Location != "" {
-		opts.Location = &hcloud.Location{Name: l.Cfg.LoadBalancer.Location}
-	}
-	if v, err := annotation.LBLocation.FromService(svc); err == nil {
-		if v == "" {
-			// Allow resetting the location in case someone wants to specify a network zone in an annotation
-			// and a location as default.
-			opts.Location = nil
-		} else {
-			opts.Location = &hcloud.Location{Name: v}
-		}
-	}
-	opts.NetworkZone = hcloud.NetworkZone(l.Cfg.LoadBalancer.NetworkZone)
-	if v, err := annotation.LBNetworkZone.FromService(svc); err == nil {
-		opts.NetworkZone = hcloud.NetworkZone(v)
-	}
-	if opts.Location == nil && opts.NetworkZone == "" {
-		return nil, fmt.Errorf("%s: neither %s nor %s set", op, annotation.LBLocation, annotation.LBNetworkZone)
-	}
-	if opts.Location != nil && opts.NetworkZone != "" {
-		opts.NetworkZone = ""
-	}
-
-	algType, err := annotation.LBAlgorithmType.FromService(svc)
-	switch {
-	case err == nil:
-		opts.Algorithm = &hcloud.LoadBalancerAlgorithm{Type: algType}
-	case errors.Is(err, annotation.ErrNotSet):
-		if l.Cfg.LoadBalancer.AlgorithmType != "" {
-			opts.Algorithm = &hcloud.LoadBalancerAlgorithm{Type: l.Cfg.LoadBalancer.AlgorithmType}
-		}
-	default:
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	disablePubIface, err := annotation.LBDisablePublicNetwork.FromService(svc)
-	switch {
-	case err == nil:
-		opts.PublicInterface = new(!disablePubIface)
-	case errors.Is(err, annotation.ErrNotSet):
-		if l.Cfg.LoadBalancer.DisablePublicNetwork != nil {
-			opts.PublicInterface = new(!*l.Cfg.LoadBalancer.DisablePublicNetwork)
-		}
-	default:
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	result, _, err := l.LBClient.Create(ctx, opts)
+	result, _, err := l.LBClient.Create(ctx, spec.CreateOpts(lbType))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
@@ -251,6 +142,7 @@ func (l *LoadBalancerOps) Create(
 	if err != nil {
 		return nil, fmt.Errorf("%s: get Load Balancer: %d: %w", op, result.LoadBalancer.ID, err)
 	}
+
 	return lb, nil
 }
 
@@ -277,49 +169,54 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 
 	var changed bool
 
-	labelSet, err := l.changeHCLBInfo(ctx, lb, svc)
+	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	if err != nil {
+		return changed, fmt.Errorf("%s: %w", op, err)
+	}
+
+	labelSet, err := l.changeHCLBInfo(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || labelSet
 
-	ipv4RDNSChanged, err := l.changeIPv4RDNS(ctx, lb, svc)
+	ipv4RDNSChanged, err := l.changeIPv4RDNS(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || ipv4RDNSChanged
 
-	ipv6RDNSChanged, err := l.changeIPv6RDNS(ctx, lb, svc)
+	ipv6RDNSChanged, err := l.changeIPv6RDNS(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || ipv6RDNSChanged
 
-	algorithmChanged, err := l.changeAlgorithm(ctx, lb, svc)
+	algorithmChanged, err := l.changeAlgorithm(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || algorithmChanged
 
-	typeChanged, err := l.changeType(ctx, lb, svc)
+	typeChanged, err := l.changeType(ctx, lb, svc, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || typeChanged
 
-	networkDetached, err := l.detachFromNetwork(ctx, lb, svc)
+	networkDetached, err := l.detachFromNetwork(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || networkDetached
 
-	networkAttached, err := l.attachToNetwork(ctx, lb, svc)
+	networkAttached, err := l.attachToNetwork(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
 	changed = changed || networkAttached
 
-	pubIfaceToggled, err := l.togglePublicInterface(ctx, lb, svc)
+	pubIfaceToggled, err := l.togglePublicInterface(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
@@ -334,31 +231,13 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 // This is implemented in one method as both changes need to be made using
 // hcloud.LoadBalancerUpdateOpts. Using one method reduces the number of API
 // requests should more than one change be necessary.
-func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) changeHCLBInfo(
+	ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec,
+) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeHCLBInfo"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	var (
-		update bool
-		opts   hcloud.LoadBalancerUpdateOpts
-	)
-
-	if lb.Labels[LabelServiceUID] != string(svc.ObjectMeta.UID) {
-		// Make a defensive copy of labels. This way we do not modify lb unless
-		// updating is really successful. The service UID is set after copying,
-		// so that it replaces a stale value instead of being overwritten by it.
-		labels := make(map[string]string, len(lb.Labels)+1)
-		maps.Copy(labels, lb.Labels)
-		labels[LabelServiceUID] = string(svc.ObjectMeta.UID)
-		opts.Labels = labels
-		update = true
-	}
-
-	if lbName, err := annotation.LBName.FromService(svc); err == nil && lbName != lb.Name {
-		opts.Name = lbName
-		update = true
-	}
-
+	opts, update := spec.UpdateOpts(lb)
 	if !update {
 		return false, nil
 	}
@@ -373,18 +252,15 @@ func (l *LoadBalancerOps) changeHCLBInfo(ctx context.Context, lb *hcloud.LoadBal
 	return true, nil
 }
 
-func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeIPv4RDNS"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	rdns, err := annotation.LBPublicIPv4RDNS.FromService(svc)
 	// If the annotation is not set, no changes are needed
-	if errors.Is(err, annotation.ErrNotSet) {
+	if spec.IPv4RDNS == nil {
 		return false, nil
 	}
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
+	rdns := *spec.IPv4RDNS
 	// If the annotation and the actual value match, no changes are needed
 	if rdns == lb.PublicNet.IPv4.DNSPtr {
 		return false, nil
@@ -401,18 +277,15 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 	return true, nil
 }
 
-func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeIPv6RDNS"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	rdns, err := annotation.LBPublicIPv6RDNS.FromService(svc)
 	// If the annotation is not set, no changes are needed
-	if errors.Is(err, annotation.ErrNotSet) {
+	if spec.IPv6RDNS == nil {
 		return false, nil
 	}
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
+	rdns := *spec.IPv6RDNS
 	// If the annotation and the actual value match, no changes are needed
 	if rdns == lb.PublicNet.IPv6.DNSPtr {
 		return false, nil
@@ -429,26 +302,16 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 	return true, nil
 }
 
-func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeAlgorithm"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	at, err := annotation.LBAlgorithmType.FromService(svc)
-	if err != nil {
-		if errors.Is(err, annotation.ErrNotSet) {
-			if l.Cfg.LoadBalancer.AlgorithmType == "" {
-				return false, nil
-			}
-			at = l.Cfg.LoadBalancer.AlgorithmType
-		} else {
-			return false, fmt.Errorf("%s: %w", op, err)
-		}
-	}
-	if at == lb.Algorithm.Type {
+	// An unconfigured algorithm is left alone.
+	if spec.Algorithm == "" || spec.Algorithm == lb.Algorithm.Type {
 		return false, nil
 	}
 
-	opts := hcloud.LoadBalancerChangeAlgorithmOpts{Type: at}
+	opts := spec.ChangeAlgorithmOpts()
 	action, _, err := l.LBClient.ChangeAlgorithm(ctx, lb, opts)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
@@ -460,20 +323,22 @@ func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBa
 	return true, nil
 }
 
-func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) changeType(
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec,
+) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeType"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	opts := hcloud.LoadBalancerChangeTypeOpts{}
 
-	lbType, unset, err := l.getType(ctx, svc)
+	lbType, err := l.verifyType(ctx, svc, spec)
 	if err != nil {
 		return false, fmt.Errorf("error getting load balancer type: %w", err)
 	}
 
 	// If the user removes the annotation, we do not downgrade the Load Balancer
 	// back to its default value. This could be changed in a next major release.
-	if unset {
+	if spec.TypeUnset {
 		return false, nil
 	}
 
@@ -494,19 +359,17 @@ func (l *LoadBalancerOps) changeType(ctx context.Context, lb *hcloud.LoadBalance
 	return true, nil
 }
 
-func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec) (bool, error) {
 	const op = "hcops/LoadBalancerOps.detachFromNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var changed bool
 
-	privateIPv4, err := annotation.LBPrivateIPv4.FromService(svc)
-	privateIPv4configured := err == nil
 	for _, lbpn := range lb.PrivateNet {
 		// Don't detach the Load Balancer from the network it is supposed to
 		// be attached to and the current private IP of the load balancer matches
 		// the one configured by the user, if one is configured.
-		if l.NetworkID == lbpn.Network.ID && (!privateIPv4configured || privateIPv4 == lbpn.IP.String()) {
+		if l.NetworkID == lbpn.Network.ID && (spec.PrivateIPv4 == nil || spec.PrivateIPv4.Equal(lbpn.IP)) {
 			continue
 		}
 		klog.InfoS("detach from network", "op", op, "loadBalancerID", lb.ID, "networkID", lbpn.Network.ID, "privateIPv4", lbpn.IP.String())
@@ -524,42 +387,18 @@ func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.Load
 	return changed, nil
 }
 
-func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec) (bool, error) {
 	const op = "hcops/LoadBalancerOps.attachToNetwork"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	privateIPv4String, err := annotation.LBPrivateIPv4.FromService(svc)
-	privateIPv4configured := err == nil
-	subnetString, err := annotation.PrivateSubnetIPRange.FromService(svc)
-	subnetConfigured := err == nil
-	if !subnetConfigured && l.Cfg.LoadBalancer.PrivateSubnetIPRange != "" {
-		subnetString = l.Cfg.LoadBalancer.PrivateSubnetIPRange
-		subnetConfigured = true
-	}
 	// Don't attach the Load Balancer if network is not set, or the load
 	// balancer is already attached.
-	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID, privateIPv4String) {
+	if l.NetworkID == 0 || lbAttached(lb, l.NetworkID, spec.PrivateIPv4) {
 		return false, nil
 	}
 
-	var privateIPv4 net.IP
-	if privateIPv4configured {
-		privateIPv4 = net.ParseIP(privateIPv4String)
-		if privateIPv4 == nil {
-			return false, fmt.Errorf("%s: %w", op, fmt.Errorf("could not parse private IPv4 '%s'", privateIPv4))
-		}
-	}
-
-	var subnet *net.IPNet
-	if subnetConfigured {
-		_, subnet, err = net.ParseCIDR(subnetString)
-		if err != nil {
-			return false, fmt.Errorf("%s: could not parse private subnet IP range '%s'", op, subnetString)
-		}
-	}
-
-	if privateIPv4 != nil {
-		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID, "privateIP", privateIPv4)
+	if spec.PrivateIPv4 != nil {
+		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID, "privateIP", spec.PrivateIPv4)
 	} else {
 		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID)
 	}
@@ -576,13 +415,7 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	if retryDelay == 0 {
 		retryDelay = time.Second
 	}
-	opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw}
-	if privateIPv4 != nil {
-		opts.IP = privateIPv4
-	}
-	if subnet != nil {
-		opts.IPRange = subnet
-	}
+	opts := spec.AttachToNetworkOpts(nw)
 	a, _, err := l.LBClient.AttachToNetwork(ctx, lb, opts)
 	if hcloud.IsError(err, hcloud.ErrorCodeConflict, hcloud.ErrorCodeLocked) {
 		klog.InfoS("retry due to conflict or lock",
@@ -602,35 +435,22 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 	return true, nil
 }
 
-func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec) (bool, error) {
 	const op = "hcops/LoadBalancerOps.togglePublicInterface"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var a *hcloud.Action
+	var err error
 
-	disable, err := annotation.LBDisablePublicNetwork.FromService(svc)
-	var desiredDisable *bool
-	switch {
-	case err == nil:
-		desiredDisable = new(disable)
-	case errors.Is(err, annotation.ErrNotSet):
-		desiredDisable = l.Cfg.LoadBalancer.DisablePublicNetwork
-	default:
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
-	if desiredDisable == nil {
+	// An unconfigured public interface is left alone.
+	if spec.PublicInterface == nil || *spec.PublicInterface == lb.PublicNet.Enabled {
 		return false, nil
 	}
 
-	if *desiredDisable == !lb.PublicNet.Enabled {
-		return false, nil
-	}
-
-	if *desiredDisable {
-		a, _, err = l.LBClient.DisablePublicInterface(ctx, lb)
-	} else {
+	if *spec.PublicInterface {
 		a, _, err = l.LBClient.EnablePublicInterface(ctx, lb)
+	} else {
+		a, _, err = l.LBClient.DisablePublicInterface(ctx, lb)
 	}
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -674,10 +494,12 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		changed bool
 	)
 
-	privateIPEnabled, err := l.getPrivateIPEnabled(svc)
+	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
+
+	privateIPEnabled := spec.UsePrivateIP
 	if privateIPEnabled && l.NetworkID == 0 {
 		return changed, fmt.Errorf("%s: use private ip: missing network id", op)
 	}
@@ -882,10 +704,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		}
 
 		klog.InfoS("add target", "op", op, "service", svc.ObjectMeta.Name, "targetName", node.Name)
-		opts := hcloud.LoadBalancerAddServerTargetOpts{
-			Server:       &hcloud.Server{ID: id},
-			UsePrivateIP: &privateIPEnabled,
-		}
+		opts := spec.AddServerTargetOpts(id)
 		a, _, err := l.LBClient.AddServerTarget(ctx, lb, opts)
 		if err != nil {
 			if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
@@ -956,17 +775,6 @@ func (l *LoadBalancerOps) emitMaxTargetsReachedError(node *corev1.Node, svc *cor
 	klog.InfoS("cannot add server target because max number of targets have been reached", "op", op, "service", svc.ObjectMeta.Name, "targetName", node.Name)
 }
 
-func (l *LoadBalancerOps) getPrivateIPEnabled(svc *corev1.Service) (bool, error) {
-	usePrivateIP, err := annotation.LBUsePrivateIP.FromService(svc)
-	if err != nil {
-		if errors.Is(err, annotation.ErrNotSet) {
-			return l.Cfg.LoadBalancer.PrivateIPEnabled, nil
-		}
-		return false, err
-	}
-	return usePrivateIP, nil
-}
-
 // ReconcileHCLBServices synchronizes services exposed by the Hetzner Cloud
 // Load Balancer with the kubernetes cluster.
 func (l *LoadBalancerOps) ReconcileHCLBServices(
@@ -977,7 +785,19 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 
 	var changed bool
 
-	if err := l.reconcileManagedCertificate(ctx, svc); err != nil {
+	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := l.reconcileManagedCertificate(ctx, spec); err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// Resolved once for the whole Service, as every port uses the same
+	// certificates.
+	certificates, err := l.resolveCertificates(ctx, svc, spec)
+	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -990,13 +810,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	// balancer. Remove the ports from the set of HC Load Balancer listen
 	// ports.
 	for _, port := range svc.Spec.Ports {
-		var (
-			addOpts hcloud.LoadBalancerAddServiceOpts
-			updOpts hcloud.LoadBalancerUpdateServiceOpts
-			action  *hcloud.Action
-
-			err error
-		)
+		var action *hcloud.Action
 
 		if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
 			utils.WarnEventLogf(
@@ -1014,31 +828,19 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		portExists := hclbListenPorts[portNo]
 		delete(hclbListenPorts, portNo)
 
-		b := &hclbServiceOptsBuilder{
-			Port:    port,
-			Service: svc,
-			CertOps: l.CertOps,
-			cfg:     l.Cfg.LoadBalancer,
-		}
 		if portExists {
 			klog.InfoS("update service", "op", op, "port", portNo, "loadBalancerID", lb.ID)
 
-			updOpts, err = b.buildUpdateServiceOpts()
-			if err != nil {
-				return changed, fmt.Errorf("%s: %w", op, err)
-			}
-			action, _, err = l.LBClient.UpdateService(ctx, lb, b.listenPort, updOpts)
+			opts := spec.Service.UpdateServiceOpts(port, certificates)
+			action, _, err = l.LBClient.UpdateService(ctx, lb, portNo, opts)
 			if err != nil {
 				return changed, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 			}
 		} else {
 			klog.InfoS("add service", "op", op, "port", portNo, "loadBalancerID", lb.ID)
 
-			addOpts, err = b.buildAddServiceOpts()
-			if err != nil {
-				return changed, fmt.Errorf("%s: %w", op, err)
-			}
-			action, _, err = l.LBClient.AddService(ctx, lb, addOpts)
+			opts := spec.Service.AddServiceOpts(port, certificates)
+			action, _, err = l.LBClient.AddService(ctx, lb, opts)
 			if err != nil {
 				return changed, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 			}
@@ -1067,38 +869,17 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	return changed, nil
 }
 
-func (l *LoadBalancerOps) reconcileManagedCertificate(ctx context.Context, svc *corev1.Service) error {
+func (l *LoadBalancerOps) reconcileManagedCertificate(
+	ctx context.Context, spec lbspec.Spec,
+) error {
 	const op = "hcops/LoadBalancerOps.reconcileManagedCertificate"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	// Compared as a raw string: only the exact value selects managed
-	// certificates, and an unset annotation reads as the empty string.
-	if typ, _ := annotation.LBSvcHTTPCertificateType.FromService(svc); typ != string(hcloud.CertificateTypeManaged) {
+	if spec.ManagedCertificate == nil {
 		return nil
 	}
-	name, _ := annotation.LBSvcHTTPManagedCertificateName.FromService(svc)
-	if name == "" {
-		name = fmt.Sprintf("ccm-managed-certificate-%s", svc.ObjectMeta.UID)
-	}
-	domains, err := annotation.LBSvcHTTPManagedCertificateDomains.FromService(svc)
-	if errors.Is(err, annotation.ErrNotSet) {
-		return fmt.Errorf("%s: no domains for managed certificate", op)
-	}
-	labels := map[string]string{
-		LabelServiceUID: string(svc.ObjectMeta.UID),
-	}
-	// It's ok to ignore the error here. We are only interested if the
-	// annotation is set and parseable as a truthy boolean. Anything else tells
-	// us we do not want to use ACME staging.
-	if ok, _ := annotation.LBSvcHTTPManagedCertificateUseACMEStaging.FromService(svc); ok {
-		labels["HC-Use-Staging-CA"] = "true"
-	}
-	err = l.CertOps.CreateManagedCertificate(ctx, hcloud.CertificateCreateOpts{
-		Name:        name,
-		Type:        hcloud.CertificateTypeManaged,
-		DomainNames: domains,
-		Labels:      labels,
-	})
+
+	err := l.CertOps.CreateManagedCertificate(ctx, spec.ManagedCertificate.CreateOpts())
 	if errors.Is(err, ErrAlreadyExists) {
 		return nil
 	}
@@ -1108,454 +889,91 @@ func (l *LoadBalancerOps) reconcileManagedCertificate(ctx context.Context, svc *
 	return nil
 }
 
-type hclbServiceOptsBuilder struct {
-	Port    corev1.ServicePort
-	Service *corev1.Service
-	CertOps *CertificateOps
-	cfg     config.LoadBalancerConfiguration
-
-	listenPort      int
-	destinationPort int
-	proxyProtocol   *bool
-	protocol        hcloud.LoadBalancerServiceProtocol
-	httpOpts        struct {
-		CookieName     *string
-		CookieLifetime *time.Duration
-		Certificates   []*hcloud.Certificate
-		RedirectHTTP   *bool
-		StickySessions *bool
-		TimeoutIdle    *time.Duration
-	}
-	addHTTP         bool
-	healthCheckOpts struct {
-		Protocol hcloud.LoadBalancerServiceProtocol
-		Port     *int
-		Interval *time.Duration
-		Timeout  *time.Duration
-		Retries  *int
-		httpOpts struct {
-			Domain      *string
-			Path        *string
-			Response    *string
-			StatusCodes []string
-			TLS         *bool
-		}
-	}
-	addHealthCheck bool
-
-	once sync.Once
-	err  error
-}
-
-func (b *hclbServiceOptsBuilder) extract() {
-	const op = "hcops/hclbServiceOptsBuilder.extract"
+// resolveCertificates turns the certificate references of the Service into
+// references the API accepts, which means looking up certificates referenced by
+// name. A managed certificate is looked up by the label it was created with.
+//
+// It returns nil when the Service has no certificates configured.
+func (l *LoadBalancerOps) resolveCertificates(
+	ctx context.Context, svc *corev1.Service, spec lbspec.Spec,
+) ([]*hcloud.Certificate, error) {
+	const op = "hcops/LoadBalancerOps.resolveCertificates"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	b.listenPort = int(b.Port.Port)
-	b.destinationPort = int(b.Port.NodePort)
-
-	b.do(func() error {
-		pp, err := annotation.LBSvcProxyProtocol.FromService(b.Service)
-		if err == nil {
-			b.proxyProtocol = new(pp)
-			return nil
-		}
-		if errors.Is(err, annotation.ErrNotSet) {
-			b.proxyProtocol = b.cfg.ProxyProtocolEnabled
-			return nil
-		}
-		return fmt.Errorf("%s: %w", op, err)
-	})
-
-	b.protocol = hcloud.LoadBalancerServiceProtocolTCP
-	b.do(func() error {
-		p, err := annotation.LBSvcProtocol.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
+	if spec.ManagedCertificate != nil {
+		cert, err := l.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID))
 		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		b.protocol = p
-		return nil
-	})
-
-	if v, err := annotation.LBSvcHTTPCookieName.FromService(b.Service); err == nil {
-		b.httpOpts.CookieName = &v
-		b.addHTTP = true
+		return []*hcloud.Certificate{{ID: cert.ID}}, nil
 	}
 
-	b.do(func() error {
-		lt, err := annotation.LBSvcHTTPCookieLifetime.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.httpOpts.CookieLifetime = &lt
-		b.addHTTP = true
-		return nil
-	})
+	if spec.Service.HTTP == nil || len(spec.Service.HTTP.Certificates) == 0 {
+		return nil, nil
+	}
 
-	b.do(func() error {
-		timeout, err := annotation.LBSvcHTTPTimeoutIdle.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.httpOpts.TimeoutIdle = &timeout
-		b.addHTTP = true
-		return nil
-	})
-
-	b.do(func() error {
-		certtyp, _ := annotation.LBSvcHTTPCertificateType.FromService(b.Service)
-		if certtyp == string(hcloud.CertificateTypeManaged) {
-			// Continue with managed certificates below
-			return nil
-		}
-
-		certs, err := annotation.LBSvcHTTPCertificates.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		certs, err = b.resolveCertsByNameOrID(ctx, certs)
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.httpOpts.Certificates = certs
-		b.addHTTP = true
-		return nil
-	})
-
-	b.do(func() error {
-		certtyp, _ := annotation.LBSvcHTTPCertificateType.FromService(b.Service)
-		if certtyp != string(hcloud.CertificateTypeManaged) {
-			// Not a a managed certificate.
-			return nil
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		svcUID := b.Service.ObjectMeta.UID
-		cert, err := b.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", LabelServiceUID, svcUID))
-		if err != nil {
-			return err
-		}
-		b.httpOpts.Certificates = []*hcloud.Certificate{{ID: cert.ID}}
-		b.addHTTP = true
-		return nil
-	})
-
-	b.do(func() error {
-		redirectHTTP, err := annotation.LBSvcRedirectHTTP.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.httpOpts.RedirectHTTP = &redirectHTTP
-		b.addHTTP = true
-		return nil
-	})
-
-	b.do(func() error {
-		stickySessions, err := annotation.LBSvcHTTPStickySessions.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.httpOpts.StickySessions = &stickySessions
-		b.addHTTP = true
-		return nil
-	})
-
-	b.extractHealthCheck()
-}
-
-func (b *hclbServiceOptsBuilder) resolveCertsByNameOrID(ctx context.Context, cs []*hcloud.Certificate) ([]*hcloud.Certificate, error) {
-	const op = "hcops/hclbServiceOptsBuilder.resolveCertsByNameOrID"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	resolved := make([]*hcloud.Certificate, len(cs))
-	for i, c := range cs {
+	resolved := make([]*hcloud.Certificate, len(spec.Service.HTTP.Certificates))
+	for i, c := range spec.Service.HTTP.Certificates {
 		if c.ID != 0 {
 			resolved[i] = c
 			continue
 		}
 
-		c, err := b.CertOps.GetCertificateByNameOrID(ctx, c.Name)
+		cert, err := l.CertOps.GetCertificateByNameOrID(ctx, c.Name)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		resolved[i] = &hcloud.Certificate{ID: c.ID}
+		resolved[i] = &hcloud.Certificate{ID: cert.ID}
 	}
 	return resolved, nil
 }
 
-func (b *hclbServiceOptsBuilder) extractHealthCheck() {
-	const op = "hcops/hclbServiceOptsBuilder.extractHealthCheck"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
+// verifyType looks up the Load Balancer type requested by spec and warns about a
+// type that is unconfigured, deprecated or unavailable.
+func (l *LoadBalancerOps) verifyType(
+	ctx context.Context, svc *corev1.Service, spec lbspec.Spec,
+) (*hcloud.LoadBalancerType, error) {
+	ctx = cache.SetSubsystem(ctx, loadBalancerSubsystem)
 
-	b.do(func() error {
-		p, err := annotation.LBSvcHealthCheckProtocol.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			// Set the service protocol but do not set the addHealthCheck flag.
-			// This way the health check is configured using the service
-			// protocol only if at least one health check annotation is
-			// present.
-			b.healthCheckOpts.Protocol = b.protocol
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.healthCheckOpts.Protocol = p
-		b.addHealthCheck = true
-		return nil
-	})
-
-	b.do(func() error {
-		hcPort, err := annotation.LBSvcHealthCheckPort.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.healthCheckOpts.Port = new(hcPort)
-		b.addHealthCheck = true
-		return nil
-	})
-
-	b.do(func() error {
-		hcInterval, err := annotation.LBSvcHealthCheckInterval.FromService(b.Service)
-		if err == nil {
-			b.healthCheckOpts.Interval = &hcInterval
-			b.addHealthCheck = true
-			return nil
-		}
-		if errors.Is(err, annotation.ErrNotSet) {
-			if b.cfg.HealthCheckInterval != 0 {
-				b.healthCheckOpts.Interval = &b.cfg.HealthCheckInterval
-				b.addHealthCheck = true
-			}
-			return nil
-		}
-		return fmt.Errorf("%s: %w", op, err)
-	})
-
-	b.do(func() error {
-		t, err := annotation.LBSvcHealthCheckTimeout.FromService(b.Service)
-		if err == nil {
-			b.healthCheckOpts.Timeout = &t
-			b.addHealthCheck = true
-			return nil
-		}
-		if errors.Is(err, annotation.ErrNotSet) {
-			if b.cfg.HealthCheckTimeout != 0 {
-				b.healthCheckOpts.Timeout = &b.cfg.HealthCheckTimeout
-				b.addHealthCheck = true
-			}
-			return nil
-		}
-		return fmt.Errorf("%s: %w", op, err)
-	})
-
-	b.do(func() error {
-		v, err := annotation.LBSvcHealthCheckRetries.FromService(b.Service)
-		if err == nil {
-			b.healthCheckOpts.Retries = &v
-			b.addHealthCheck = true
-			return nil
-		}
-		if errors.Is(err, annotation.ErrNotSet) {
-			if b.cfg.HealthCheckRetries != 0 {
-				b.healthCheckOpts.Retries = &b.cfg.HealthCheckRetries
-				b.addHealthCheck = true
-			}
-			return nil
-		}
-		return fmt.Errorf("%s: %w", op, err)
-	})
-
-	if b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolTCP {
-		return
+	if spec.TypeUnset {
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"LoadBalancerTypeUnconfigured",
+			"Load Balancer Type unconfigured: this will be required in the future, set it with the annotation %q or cluster-wide with the environment variable %q",
+			annotation.LBType,
+			config.HcloudLoadBalancersType,
+		)
 	}
 
-	if v, err := annotation.LBSvcHealthCheckHTTPDomain.FromService(b.Service); err == nil {
-		b.healthCheckOpts.httpOpts.Domain = &v
+	lbType, err := l.LBTypeCache.ByName(ctx, spec.Type)
+	if err != nil {
+		return nil, err
 	}
 
-	if v, err := annotation.LBSvcHealthCheckHTTPPath.FromService(b.Service); err == nil {
-		b.healthCheckOpts.httpOpts.Path = &v
+	if lbType == nil {
+		return nil, fmt.Errorf("load balancer type not found: %s", spec.Type)
 	}
 
-	b.do(func() error {
-		tls, err := annotation.LBSvcHealthCheckHTTPValidateCertificate.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.healthCheckOpts.httpOpts.TLS = &tls
-		return nil
-	})
+	msg, unavailable := deprecationutil.LoadBalancerTypeMessage(lbType)
+	if unavailable {
+		return nil, errors.New(msg)
+	}
+	if msg != "" {
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"LoadBalancerTypeDeprecated",
+			"%s", msg,
+		)
+	}
 
-	b.do(func() error {
-		scs, err := annotation.LBSvcHealthCheckHTTPStatusCodes.FromService(b.Service)
-		if errors.Is(err, annotation.ErrNotSet) {
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		b.healthCheckOpts.httpOpts.StatusCodes = scs
-		return nil
-	})
+	return lbType, nil
 }
 
-func (b *hclbServiceOptsBuilder) initialize() error {
-	b.once.Do(b.extract)
-	return b.err
-}
-
-func (b *hclbServiceOptsBuilder) do(f func() error) {
-	if b.err != nil {
-		return
-	}
-	b.err = f()
-}
-
-func (b *hclbServiceOptsBuilder) buildAddServiceOpts() (hcloud.LoadBalancerAddServiceOpts, error) {
-	const op = "hcops/hclbServiceOptsBuilder.buildAddServiceOpts"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	if err := b.initialize(); err != nil {
-		return hcloud.LoadBalancerAddServiceOpts{}, fmt.Errorf("%s: %w", op, err)
-	}
-
-	opts := hcloud.LoadBalancerAddServiceOpts{
-		ListenPort:      new(b.listenPort),
-		DestinationPort: new(b.destinationPort),
-		Protocol:        b.protocol,
-		Proxyprotocol:   b.proxyProtocol,
-	}
-	if b.addHTTP {
-		opts.HTTP = &hcloud.LoadBalancerAddServiceOptsHTTP{
-			CookieName:     b.httpOpts.CookieName,
-			CookieLifetime: b.httpOpts.CookieLifetime,
-			Certificates:   b.httpOpts.Certificates,
-			RedirectHTTP:   b.httpOpts.RedirectHTTP,
-			StickySessions: b.httpOpts.StickySessions,
-			TimeoutIdle:    b.httpOpts.TimeoutIdle,
-		}
-	}
-	if b.addHealthCheck {
-		port := b.healthCheckOpts.Port
-		if port == nil {
-			port = new(b.destinationPort)
-		}
-		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
-			Protocol: b.healthCheckOpts.Protocol,
-			Interval: b.healthCheckOpts.Interval,
-			Port:     port,
-			Retries:  b.healthCheckOpts.Retries,
-			Timeout:  b.healthCheckOpts.Timeout,
-		}
-		if b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTP ||
-			b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTPS {
-			opts.HealthCheck.HTTP = &hcloud.LoadBalancerAddServiceOptsHealthCheckHTTP{
-				Domain:      b.healthCheckOpts.httpOpts.Domain,
-				Path:        b.healthCheckOpts.httpOpts.Path,
-				Response:    b.healthCheckOpts.httpOpts.Response,
-				StatusCodes: b.healthCheckOpts.httpOpts.StatusCodes,
-				TLS:         b.healthCheckOpts.httpOpts.TLS,
-			}
-		}
-	} else {
-		opts.HealthCheck = &hcloud.LoadBalancerAddServiceOptsHealthCheck{
-			Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-			Port:     new(b.destinationPort),
-		}
-	}
-
-	return opts, nil
-}
-
-func (b *hclbServiceOptsBuilder) buildUpdateServiceOpts() (hcloud.LoadBalancerUpdateServiceOpts, error) {
-	const op = "hcops/hclbServiceOptsBuilder.buildUpdateServiceOpts"
-	metrics.OperationCalled.WithLabelValues(op).Inc()
-
-	if err := b.initialize(); err != nil {
-		return hcloud.LoadBalancerUpdateServiceOpts{}, fmt.Errorf("%s: %w", op, err)
-	}
-
-	opts := hcloud.LoadBalancerUpdateServiceOpts{
-		DestinationPort: new(b.destinationPort),
-		Protocol:        b.protocol,
-		Proxyprotocol:   b.proxyProtocol,
-	}
-	if b.addHTTP {
-		opts.HTTP = &hcloud.LoadBalancerUpdateServiceOptsHTTP{
-			CookieName:     b.httpOpts.CookieName,
-			CookieLifetime: b.httpOpts.CookieLifetime,
-			RedirectHTTP:   b.httpOpts.RedirectHTTP,
-			Certificates:   b.httpOpts.Certificates,
-			StickySessions: b.httpOpts.StickySessions,
-			TimeoutIdle:    b.httpOpts.TimeoutIdle,
-		}
-	}
-	if b.addHealthCheck {
-		port := b.healthCheckOpts.Port
-		if port == nil {
-			port = new(b.destinationPort)
-		}
-		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
-			Protocol: b.healthCheckOpts.Protocol,
-			Interval: b.healthCheckOpts.Interval,
-			Port:     port,
-			Retries:  b.healthCheckOpts.Retries,
-			Timeout:  b.healthCheckOpts.Timeout,
-		}
-		if b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTP ||
-			b.healthCheckOpts.Protocol == hcloud.LoadBalancerServiceProtocolHTTPS {
-			opts.HealthCheck.HTTP = &hcloud.LoadBalancerUpdateServiceOptsHealthCheckHTTP{
-				Domain:      b.healthCheckOpts.httpOpts.Domain,
-				Path:        b.healthCheckOpts.httpOpts.Path,
-				Response:    b.healthCheckOpts.httpOpts.Response,
-				StatusCodes: b.healthCheckOpts.httpOpts.StatusCodes,
-				TLS:         b.healthCheckOpts.httpOpts.TLS,
-			}
-		}
-	} else {
-		opts.HealthCheck = &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
-			Protocol: hcloud.LoadBalancerServiceProtocolTCP,
-			Port:     new(b.destinationPort),
-		}
-	}
-
-	return opts, nil
-}
-
-func lbAttached(lb *hcloud.LoadBalancer, nwID int64, privateIPv4 string) bool {
+func lbAttached(lb *hcloud.LoadBalancer, nwID int64, privateIPv4 net.IP) bool {
 	for _, nw := range lb.PrivateNet {
-		if nw.Network.ID == nwID && (privateIPv4 == "" || privateIPv4 == nw.IP.String()) {
+		if nw.Network.ID == nwID && (privateIPv4 == nil || privateIPv4.Equal(nw.IP)) {
 			return true
 		}
 	}
