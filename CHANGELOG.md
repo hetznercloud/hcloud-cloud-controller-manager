@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.36.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.36.0)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.35.0...v1.36.0)
+
+### Features
+
+- **load-balancer**: warn on deprecated Load Balancer Type ([b16f780](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/b16f780262446714c423d335396f960125a221bf))
+- **load-balancer**: warn on unconfigured Load Balancer Type ([b16f780](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/b16f780262446714c423d335396f960125a221bf))
+
+### Bug Fixes
+
+- **load-balancer**: apply the service UID label to existing Load Balancers (#1325) ([ec2103a](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/ec2103afa51166f33670e65b11e9fcf024b5adc1))
+
 ## [v1.35.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.35.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.34.0...v1.35.0)
