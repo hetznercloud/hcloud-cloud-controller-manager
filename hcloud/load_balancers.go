@@ -43,17 +43,15 @@ func newLoadBalancers(lbOps LoadBalancerOps, lbCfg *config.LoadBalancerConfigura
 }
 
 func matchNodeSelector(svc *corev1.Service, nodes []*corev1.Node) ([]*corev1.Node, error) {
-	var (
-		err           error
-		selectedNodes []*corev1.Node
-	)
+	var selectedNodes []*corev1.Node
 
 	selector := labels.Everything()
-	if v, ok := annotation.LBNodeSelector.StringFromService(svc); ok {
-		selector, err = labels.Parse(v)
+	if v, err := annotation.LBNodeSelector.FromService(svc); err == nil {
+		parsed, err := labels.Parse(v)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse the node-selector annotation: %w", err)
 		}
+		selector = parsed
 	}
 
 	for _, n := range nodes {
@@ -79,7 +77,7 @@ func (l *loadBalancers) GetLoadBalancer(
 		return nil, false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if v, ok := annotation.LBHostname.StringFromService(service); ok {
+	if v, err := annotation.LBHostname.FromService(service); err == nil {
 		return &corev1.LoadBalancerStatus{
 			Ingress: []corev1.LoadBalancerIngress{{Hostname: v}},
 		}, true, nil
@@ -94,7 +92,7 @@ func (l *loadBalancers) GetLoadBalancer(
 }
 
 func (l *loadBalancers) GetLoadBalancerName(_ context.Context, _ string, service *corev1.Service) string {
-	if v, ok := annotation.LBName.StringFromService(service); ok {
+	if v, err := annotation.LBName.FromService(service); err == nil {
 		return v
 	}
 	return cloudprovider.DefaultLoadBalancerName(service)
@@ -196,7 +194,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 
 	// Either set the Hostname or the IPs (below).
 	// See: https://github.com/kubernetes/kubernetes/issues/66607
-	if v, ok := annotation.LBHostname.StringFromService(svc); ok {
+	if v, err := annotation.LBHostname.FromService(svc); err == nil {
 		return &corev1.LoadBalancerStatus{
 			Ingress: []corev1.LoadBalancerIngress{{Hostname: v}},
 		}, nil
@@ -262,7 +260,7 @@ func (l *loadBalancers) buildLoadBalancerStatusIngress(lb *hcloud.LoadBalancer, 
 }
 
 func (l *loadBalancers) getPrivateIngressEnabled(svc *corev1.Service) (bool, error) {
-	disable, err := annotation.LBDisablePrivateIngress.BoolFromService(svc)
+	disable, err := annotation.LBDisablePrivateIngress.FromService(svc)
 	if err == nil {
 		return !disable, nil
 	}
@@ -273,7 +271,7 @@ func (l *loadBalancers) getPrivateIngressEnabled(svc *corev1.Service) (bool, err
 }
 
 func (l *loadBalancers) getProxyProtocolEnabled(svc *corev1.Service) (bool, error) {
-	enable, err := annotation.LBSvcProxyProtocol.BoolFromService(svc)
+	enable, err := annotation.LBSvcProxyProtocol.FromService(svc)
 	if err == nil {
 		return enable, nil
 	}
@@ -287,7 +285,7 @@ func (l *loadBalancers) getProxyProtocolEnabled(svc *corev1.Service) (bool, erro
 }
 
 func (l *loadBalancers) getIPv6Enabled(svc *corev1.Service) (bool, error) {
-	disable, err := annotation.LBIPv6Disabled.BoolFromService(svc)
+	disable, err := annotation.LBIPv6Disabled.FromService(svc)
 	if err == nil {
 		return !disable, nil
 	}
