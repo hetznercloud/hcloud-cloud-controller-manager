@@ -288,7 +288,11 @@ func (l *loadBalancers) EnsureLoadBalancerDeleted(ctx context.Context, _ string,
 }
 
 func filterNodes(selector labels.Selector, nodes []*corev1.Node) []*corev1.Node {
-	return slices.DeleteFunc(nodes, func(n *corev1.Node) bool {
+	if selector.Empty() {
+		return nodes
+	}
+
+	return slices.DeleteFunc(slices.Clone(nodes), func(n *corev1.Node) bool {
 		return !selector.Matches(labels.Set(n.GetLabels()))
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -934,6 +935,21 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 			},
 		},
 		{
+			name: "single node selector to select none",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(annotation.LBNodeSelector): "environment=production",
+					},
+				},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "staging"}),
+				newNodeSelectorNode("node2", map[string]string{"environment": "staging"}),
+			},
+			expected: []*corev1.Node{},
+		},
+		{
 			name: "multiple node selector to select all",
 			service: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
@@ -959,10 +975,18 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// The service controller keeps a reference to the Nodes it hands
+			// us, so filtering must leave them untouched.
+			unfiltered := slices.Clone(c.k8sNodes)
+
 			nodes := filterNodes(spec.NodeSelector, c.k8sNodes)
 
 			if !reflect.DeepEqual(nodes, c.expected) {
 				t.Errorf("expected: %+v got %+v", c.expected, nodes)
+			}
+
+			if !reflect.DeepEqual(c.k8sNodes, unfiltered) {
+				t.Errorf("filterNodes modified the Nodes passed to it: %+v", c.k8sNodes)
 			}
 		})
 	}
