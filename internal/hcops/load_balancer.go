@@ -23,13 +23,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/deprecationutil"
 )
 
-const (
-	// LabelServiceUID is a label added to the Hetzner Cloud backend to uniquely
-	// identify a load balancer managed by Hetzner Cloud Cloud Controller Manager.
-	LabelServiceUID = "hcloud-ccm/service-uid"
-
-	loadBalancerSubsystem = "load_balancer"
-)
+const loadBalancerSubsystem = "load_balancer"
 
 // LoadBalancerOps implements all operations regarding Hetzner Cloud Load Balancers.
 type LoadBalancerOps struct {
@@ -57,7 +51,7 @@ func (l *LoadBalancerOps) GetByK8SServiceUID(ctx context.Context, svc *corev1.Se
 
 	opts := hcloud.LoadBalancerListOpts{
 		ListOpts: hcloud.ListOpts{
-			LabelSelector: fmt.Sprintf("%s=%s", LabelServiceUID, svc.ObjectMeta.UID),
+			LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID),
 		},
 	}
 	lbs, err := l.LBClient.AllWithOpts(ctx, opts)
@@ -907,7 +901,7 @@ func (l *LoadBalancerOps) resolveCertificates(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if spec.ManagedCertificate != nil {
-		cert, err := l.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", LabelServiceUID, svc.ObjectMeta.UID))
+		cert, err := l.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

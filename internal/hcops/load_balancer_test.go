@@ -19,6 +19,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -205,7 +206,7 @@ func TestGetByK8SServiceUID(t *testing.T) {
 
 			opts := hcloud.LoadBalancerListOpts{
 				ListOpts: hcloud.ListOpts{
-					LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, tt.uid),
+					LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, tt.uid),
 				},
 			}
 			fx.LBClient.
@@ -269,7 +270,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Name: "fsn1",
 				},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "some-lb-uid",
+					lbspec.LabelServiceUID: "some-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 1},
@@ -290,7 +291,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "another-lb-uid",
+					lbspec.LabelServiceUID: "another-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
@@ -312,7 +313,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Name: "fsn1",
 				},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "some-lb-uid",
+					lbspec.LabelServiceUID: "some-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 3},
@@ -332,7 +333,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "some-lb-uid",
+					lbspec.LabelServiceUID: "some-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 4},
@@ -354,7 +355,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
 				NetworkZone:      hcloud.NetworkZoneEUCentral,
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "another-lb-uid",
+					lbspec.LabelServiceUID: "another-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
@@ -378,7 +379,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Name: "fsn1",
 				},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "another-lb-uid",
+					lbspec.LabelServiceUID: "another-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
@@ -395,7 +396,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 					Name: "fsn1",
 				},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "some-lb-uid",
+					lbspec.LabelServiceUID: "some-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 1},
@@ -418,7 +419,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 1, Name: "lb11"},
 				Location:         &hcloud.Location{Name: "nbg1"},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "another-lb-uid",
+					lbspec.LabelServiceUID: "another-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 2},
@@ -435,7 +436,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 2, Name: "lb21"},
 				Location:         &hcloud.Location{Name: "nbg1"},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "another-lb-uid",
+					lbspec.LabelServiceUID: "another-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 3},
@@ -453,7 +454,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1"},
 				Algorithm:        &hcloud.LoadBalancerAlgorithm{Type: hcloud.LoadBalancerAlgorithmTypeLeastConnections},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "another-lb-uid",
+					lbspec.LabelServiceUID: "another-lb-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 4},
@@ -474,7 +475,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				LoadBalancerType: &hcloud.LoadBalancerType{ID: 2, Name: "lb21"},
 				Location:         &hcloud.Location{Name: "nbg1"},
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "lb-default-type-uid",
+					lbspec.LabelServiceUID: "lb-default-type-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 7},
@@ -496,7 +497,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1"},
 				PublicInterface:  new(false),
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "lb-disable-public-uid",
+					lbspec.LabelServiceUID: "lb-disable-public-uid",
 				},
 			},
 			lb: &hcloud.LoadBalancer{ID: 8},
@@ -523,7 +524,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 				Location:         &hcloud.Location{Name: "nbg1"},
 				PublicInterface:  new(false),
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "lb-with-priv-uid",
+					lbspec.LabelServiceUID: "lb-with-priv-uid",
 				},
 			},
 			mock: func(_ *testing.T, tt *testCase, fx *hcops.LoadBalancerOpsFixture) {
@@ -555,7 +556,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 
 			service := &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					UID:         types.UID(tt.createOpts.Labels[hcops.LabelServiceUID]),
+					UID:         types.UID(tt.createOpts.Labels[lbspec.LabelServiceUID]),
 					Annotations: map[string]string{},
 				},
 			}
@@ -1262,13 +1263,13 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
 				updated := *tt.initialLB
 				updated.Labels = map[string]string{
-					hcops.LabelServiceUID: tt.serviceUID,
-					"some-label":          "some-value",
+					lbspec.LabelServiceUID: tt.serviceUID,
+					"some-label":           "some-value",
 				}
 				opts := hcloud.LoadBalancerUpdateOpts{
 					Labels: map[string]string{
-						hcops.LabelServiceUID: tt.serviceUID,
-						"some-label":          "some-value",
+						lbspec.LabelServiceUID: tt.serviceUID,
+						"some-label":           "some-value",
 					},
 				}
 				tt.fx.LBClient.
@@ -1279,7 +1280,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
 				assert.NoError(t, err)
 				assert.True(t, changed)
-				assert.Equal(t, tt.serviceUID, tt.initialLB.Labels[hcops.LabelServiceUID])
+				assert.Equal(t, tt.serviceUID, tt.initialLB.Labels[lbspec.LabelServiceUID])
 				assert.Equal(t, "some-value", tt.initialLB.Labels["some-label"])
 			},
 		},
@@ -1293,7 +1294,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				ID:   11,
 				Name: "old-name",
 				Labels: map[string]string{
-					hcops.LabelServiceUID: "11",
+					lbspec.LabelServiceUID: "11",
 				},
 				PublicNet: hcloud.LoadBalancerPublicNet{
 					Enabled: true,
@@ -1920,7 +1921,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 						Name:        "ccm-managed-certificate-some service uid",
 						Type:        hcloud.CertificateTypeManaged,
 						DomainNames: []string{"example.com", "*.example.com"},
-						Labels:      map[string]string{hcops.LabelServiceUID: tt.serviceUID},
+						Labels:      map[string]string{lbspec.LabelServiceUID: tt.serviceUID},
 					}).
 					Return(hcloud.CertificateCreateResult{Certificate: cert}, nil, nil)
 
@@ -1930,7 +1931,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 						mock.Anything,
 						hcloud.CertificateListOpts{
 							ListOpts: hcloud.ListOpts{
-								LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, tt.serviceUID),
+								LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, tt.serviceUID),
 							},
 						}).
 					Return([]*hcloud.Certificate{cert}, nil, nil)

@@ -173,13 +173,12 @@ func resolveService(
 		httpConfigured = true
 	}
 
-	switch {
-	case hasManagedCertificate:
+	if hasManagedCertificate {
 		// The managed certificate replaces the uploaded certificate list, so
 		// that annotation is not read at all. The caller fills in the
 		// certificate it looked up by label.
 		httpConfigured = true
-	default:
+	} else {
 		certs := resolve(errs, svc, annotation.LBSvcHTTPCertificates, nil)
 		if len(certs) > 0 {
 			http.Certificates = certs

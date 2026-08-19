@@ -247,7 +247,7 @@ func TestBuildServiceOpts(t *testing.T) {
 				tt.certClient.
 					On("AllWithOpts", mock.Anything, hcloud.CertificateListOpts{
 						ListOpts: hcloud.ListOpts{
-							LabelSelector: fmt.Sprintf("%s=%s", LabelServiceUID, "some-service-uid"),
+							LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, "some-service-uid"),
 						},
 					}).
 					Return([]*hcloud.Certificate{{ID: 1}}, nil, nil)
