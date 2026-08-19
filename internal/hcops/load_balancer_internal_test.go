@@ -1,6 +1,7 @@
 package hcops
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"testing"
@@ -8,17 +9,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-func TestHCLBServiceOptsBuilder(t *testing.T) {
+// TestBuildServiceOpts covers the path from the annotations of a Service to the
+// options sent to the API: [lbspec.Resolve], the certificate lookups and the
+// two opts builders.
+func TestBuildServiceOpts(t *testing.T) {
 	type testCase struct {
 		name               string
 		servicePort        corev1.ServicePort
@@ -241,7 +247,7 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				tt.certClient.
 					On("AllWithOpts", mock.Anything, hcloud.CertificateListOpts{
 						ListOpts: hcloud.ListOpts{
-							LabelSelector: fmt.Sprintf("%s=%s", LabelServiceUID, "some-service-uid"),
+							LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, "some-service-uid"),
 						},
 					}).
 					Return([]*hcloud.Certificate{{ID: 1}}, nil, nil)
@@ -441,24 +447,27 @@ func TestHCLBServiceOptsBuilder(t *testing.T) {
 				tt.mock(t, &tt)
 			}
 
-			builder := &hclbServiceOptsBuilder{
-				Port: tt.servicePort,
-				Service: &corev1.Service{
-					ObjectMeta: metav1.ObjectMeta{
-						UID:         types.UID(tt.serviceUID),
-						Annotations: map[string]string{},
-					},
+			svc := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					UID:         types.UID(tt.serviceUID),
+					Annotations: map[string]string{},
 				},
-				CertOps: &CertificateOps{ActionClient: tt.actionClient, CertClient: tt.certClient},
-				cfg:     tt.cfg,
 			}
-			maps.Copy(builder.Service.Annotations, tt.serviceAnnotations)
-			addOpts, err := builder.buildAddServiceOpts()
-			assert.NoError(t, err)
+			maps.Copy(svc.Annotations, tt.serviceAnnotations)
+
+			spec, err := lbspec.Resolve(svc, tt.cfg)
+			require.NoError(t, err)
+
+			lbOps := &LoadBalancerOps{
+				CertOps: &CertificateOps{ActionClient: tt.actionClient, CertClient: tt.certClient},
+			}
+			certificates, err := lbOps.resolveCertificates(context.Background(), svc, spec)
+			require.NoError(t, err)
+
+			addOpts := spec.Service.AddServiceOpts(tt.servicePort, certificates)
 			assert.Equal(t, tt.expectedAddOpts, addOpts)
 
-			updateOpts, err := builder.buildUpdateServiceOpts()
-			assert.NoError(t, err)
+			updateOpts := spec.Service.UpdateServiceOpts(tt.servicePort, certificates)
 			assert.Equal(t, tt.expectedUpdateOpts, updateOpts)
 		})
 	}

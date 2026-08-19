@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -55,6 +58,24 @@ func TestLoadBalancers_GetLoadBalancer(t *testing.T) {
 					return
 				}
 				assert.Equal(t, tt.LB.PublicNet.IPv4.IP.String(), status.Ingress[0].IP)
+			},
+		},
+		{
+			Name:       "report a missing load balancer despite an invalid annotation",
+			ServiceUID: "1",
+			ServiceAnnotations: map[string]string{
+				string(annotation.LBSvcHealthCheckInterval): "10",
+			},
+			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
+				tt.LBOps.
+					On("GetByK8SServiceUID", tt.Ctx, tt.Service).
+					Return(nil, hcops.ErrNotFound)
+			},
+			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
+				status, exists, err := tt.LoadBalancers.GetLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service)
+				assert.NoError(t, err)
+				assert.False(t, exists)
+				assert.Nil(t, status)
 			},
 		},
 		{
@@ -231,7 +252,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			On("GetByName", tt.Ctx, lbName).
 			Return(nil, hcops.ErrNotFound)
 		tt.LBOps.
-			On("Create", tt.Ctx, tt.LB.Name, tt.Service).
+			On("Create", tt.Ctx, tt.Service).
 			Return(tt.LB, nil)
 		tt.LBOps.
 			On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
@@ -484,7 +505,7 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					On("GetByName", tt.Ctx, "priv-net-only").
 					Return(nil, hcops.ErrNotFound)
 				tt.LBOps.
-					On("Create", tt.Ctx, tt.LB.Name, tt.Service).
+					On("Create", tt.Ctx, tt.Service).
 					Return(tt.LB, nil)
 				tt.LBOps.
 					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
@@ -932,6 +953,21 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 			},
 		},
 		{
+			name: "single node selector to select none",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(annotation.LBNodeSelector): "environment=production",
+					},
+				},
+			},
+			k8sNodes: []*corev1.Node{
+				newNodeSelectorNode("node1", map[string]string{"environment": "staging"}),
+				newNodeSelectorNode("node2", map[string]string{"environment": "staging"}),
+			},
+			expected: []*corev1.Node{},
+		},
+		{
 			name: "multiple node selector to select all",
 			service: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
@@ -952,13 +988,23 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			nodes, err := matchNodeSelector(c.service, c.k8sNodes)
+			spec, err := lbspec.Resolve(c.service, config.LoadBalancerConfiguration{})
 			if err != nil {
 				t.Fatal(err)
 			}
 
+			// The service controller keeps a reference to the Nodes it hands
+			// us, so filtering must leave them untouched.
+			unfiltered := slices.Clone(c.k8sNodes)
+
+			nodes := filterNodes(spec.NodeSelector, c.k8sNodes)
+
 			if !reflect.DeepEqual(nodes, c.expected) {
 				t.Errorf("expected: %+v got %+v", c.expected, nodes)
+			}
+
+			if !reflect.DeepEqual(c.k8sNodes, unfiltered) {
+				t.Errorf("filterNodes modified the Nodes passed to it: %+v", c.k8sNodes)
 			}
 		})
 	}
