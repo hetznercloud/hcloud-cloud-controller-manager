@@ -1,28 +1,15 @@
 package utils
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
+
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 )
-
-func captureKlog(t *testing.T) *bytes.Buffer {
-	t.Helper()
-
-	state := klog.CaptureState()
-	t.Cleanup(state.Restore)
-
-	var buf bytes.Buffer
-	klog.LogToStderr(false)
-	klog.SetOutput(&buf)
-
-	return &buf
-}
 
 func TestWarnEventLogf(t *testing.T) {
 	tests := []struct {
@@ -56,14 +43,13 @@ func TestWarnEventLogf(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logs := captureKlog(t)
+			logs := testsupport.CaptureKlog(t)
 			recorder := record.NewFakeRecorder(1)
 
 			WarnEventLogf(recorder, &corev1.Node{}, tt.reason, tt.msg, tt.args...)
 
 			assert.Equal(t, "Warning "+tt.reason+" "+tt.expected, <-recorder.Events)
 
-			klog.Flush()
 			// klog prefix `W` for warning
 			assert.Regexp(t, `^W\d`, logs.String())
 			assert.Contains(t, logs.String(), tt.expected)
@@ -72,7 +58,7 @@ func TestWarnEventLogf(t *testing.T) {
 }
 
 func TestWarnEventLogfEventObject(t *testing.T) {
-	captureKlog(t)
+	testsupport.CaptureKlog(t)
 
 	recorder := record.NewFakeRecorder(1)
 	recorder.IncludeObject = true
