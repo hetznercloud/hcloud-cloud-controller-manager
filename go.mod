@@ -8,7 +8,7 @@ require (
 	github.com/hetznercloud/hcloud-go/v2 v2.47.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/pflag v1.0.10
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/syself/hrobot-go v0.2.7
 	golang.org/x/time v0.15.0
 	k8s.io/api v0.36.3
@@ -85,7 +85,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 // indirect
 	golang.org/x/net v0.57.0 // indirect
