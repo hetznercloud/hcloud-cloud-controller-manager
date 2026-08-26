@@ -63,7 +63,7 @@ jobs:
 
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
-          tofu_version: v1.12.5 # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: v1.12.6 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
       - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
@@ -181,7 +181,7 @@ jobs:
 
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
-          tofu_version: v1.12.5 # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: v1.12.6 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
       - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
