@@ -262,13 +262,12 @@ func (l *LoadBalancerOps) changeIPv4RDNS(ctx context.Context, lb *hcloud.LoadBal
 	if spec.IPv4RDNS == nil {
 		return false, nil
 	}
-	rdns := *spec.IPv4RDNS
 	// If the annotation and the actual value match, no changes are needed
-	if rdns == lb.PublicNet.IPv4.DNSPtr {
+	if *spec.IPv4RDNS == lb.PublicNet.IPv4.DNSPtr {
 		return false, nil
 	}
 
-	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv4.IP.String(), &rdns)
+	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv4.IP.String(), spec.IPv4RDNS)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
@@ -287,13 +286,12 @@ func (l *LoadBalancerOps) changeIPv6RDNS(ctx context.Context, lb *hcloud.LoadBal
 	if spec.IPv6RDNS == nil {
 		return false, nil
 	}
-	rdns := *spec.IPv6RDNS
 	// If the annotation and the actual value match, no changes are needed
-	if rdns == lb.PublicNet.IPv6.DNSPtr {
+	if *spec.IPv6RDNS == lb.PublicNet.IPv6.DNSPtr {
 		return false, nil
 	}
 
-	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv6.IP.String(), &rdns)
+	action, _, err := l.LBClient.ChangeDNSPtr(ctx, lb, lb.PublicNet.IPv6.IP.String(), spec.IPv6RDNS)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, withInvalidInputFields(err))
 	}
