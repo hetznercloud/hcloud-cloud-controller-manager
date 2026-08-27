@@ -119,7 +119,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		lb, err = l.lbOps.GetByName(ctx, spec.Name)
 	}
 
-	// New Load Balancer -> create it
+	// Load Balancer does not exist yet
 	if errors.Is(err, hcops.ErrNotFound) {
 		lb, err = l.lbOps.Create(ctx, svc)
 	}
