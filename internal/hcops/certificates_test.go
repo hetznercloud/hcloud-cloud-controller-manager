@@ -131,13 +131,11 @@ func TestCertificateOps_GetCertificateByLabel(t *testing.T) {
 }
 
 // managedCertificateOpts is the certificate the cases below create.
-func managedCertificateOpts() hcloud.CertificateCreateOpts {
-	return hcloud.CertificateCreateOpts{
-		Name:        "test-cert",
-		Type:        hcloud.CertificateTypeManaged,
-		DomainNames: []string{"example.com", "*.example.com"},
-		Labels:      map[string]string{"key": "value"},
-	}
+var managedCertificateOpts = hcloud.CertificateCreateOpts{
+	Name:        "test-cert",
+	Type:        hcloud.CertificateTypeManaged,
+	DomainNames: []string{"example.com", "*.example.com"},
+	Labels:      map[string]string{"key": "value"},
 }
 
 func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
@@ -150,7 +148,7 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 					Return(nil, nil, errors.New("test error"))
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
-				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, managedCertificateOpts())
+				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, managedCertificateOpts)
 				assert.Error(t, err)
 				assert.True(t, strings.HasSuffix(err.Error(), "test error"))
 			},
@@ -164,7 +162,7 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 					Return(nil, nil, err)
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
-				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, managedCertificateOpts())
+				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, managedCertificateOpts)
 				assert.ErrorIs(t, err, hcops.ErrAlreadyExists)
 			},
 		},
@@ -173,12 +171,12 @@ func TestCertificateOps_CreateManagedCertificate(t *testing.T) {
 			Mock: func(_ *testing.T, tt *certificateOpsTestCase) {
 				res := hcloud.CertificateCreateResult{Certificate: &hcloud.Certificate{ID: 1}, Action: &hcloud.Action{ID: 2}}
 				tt.CertClient.
-					On("CreateCertificate", tt.Ctx, managedCertificateOpts()).
+					On("CreateCertificate", tt.Ctx, managedCertificateOpts).
 					Return(res, nil, nil)
 				tt.ActionClient.On("WaitFor", tt.Ctx, &hcloud.Action{ID: 2}).Return(nil)
 			},
 			Perform: func(t *testing.T, tt *certificateOpsTestCase) {
-				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, managedCertificateOpts())
+				err := tt.CertOps.CreateManagedCertificate(tt.Ctx, managedCertificateOpts)
 				assert.NoError(t, err)
 			},
 		},
