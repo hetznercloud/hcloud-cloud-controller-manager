@@ -2,6 +2,7 @@ package annotation_test
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"testing"
@@ -17,6 +18,8 @@ import (
 // Every accessor is exercised through the same annotation name, declared once
 // per type.
 const annName = "some/annotation"
+
+var qAnnName = fmt.Sprintf("%q", annName)
 
 const (
 	annString        annotation.String        = annName
@@ -48,7 +51,7 @@ func TestString(t *testing.T) {
 			name:     "value not set",
 			notSet:   true,
 			expected: "",
-			err:      errors.New(annName + ": not set"),
+			err:      errors.New(qAnnName + ": not set"),
 		},
 	}
 
@@ -108,7 +111,7 @@ func TestInt(t *testing.T) {
 			name:     "value not set",
 			notSet:   true,
 			expected: 0,
-			err:      errors.New(annName + ": not set"),
+			err:      errors.New(qAnnName + ": not set"),
 		},
 		{
 			name:     "value invalid",
@@ -138,7 +141,7 @@ func TestDuration(t *testing.T) {
 		{
 			name:  "value invalid",
 			value: "invalid",
-			err:   errors.New(annName + `: time: invalid duration "invalid"`),
+			err:   errors.New(qAnnName + `: time: invalid duration "invalid"`),
 		},
 	}
 
@@ -181,7 +184,7 @@ func TestIP(t *testing.T) {
 		{
 			name:  "value invalid",
 			value: "invalid",
-			err:   errors.New(annName + ": invalid ip address: invalid"),
+			err:   errors.New(qAnnName + ": invalid ip address: invalid"),
 		},
 		{
 			name:   "value not set",
@@ -214,8 +217,8 @@ func TestProtocol(t *testing.T) {
 		},
 		{
 			name:  "value invalid",
-			value: "invalid",
-			err:   errors.New(annName + ": invalid: invalid"),
+			value: "hppt",
+			err:   errors.New(qAnnName + ": invalid protocol: hppt"),
 		},
 	}
 
@@ -243,8 +246,8 @@ func TestAlgorithmType(t *testing.T) {
 		},
 		{
 			name:  "value invalid",
-			value: "invalid",
-			err:   errors.New(annName + ": invalid: invalid"),
+			value: "round_ronald",
+			err:   errors.New(qAnnName + ": invalid algorithm type: round_ronald"),
 		},
 	}
 

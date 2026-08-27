@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -455,7 +456,7 @@ func TestBuildServiceOpts(t *testing.T) {
 			}
 			maps.Copy(svc.Annotations, tt.serviceAnnotations)
 
-			spec, err := lbspec.Resolve(svc, tt.cfg)
+			spec, err := lbspec.Resolve(record.NewFakeRecorder(10), svc, tt.cfg)
 			require.NoError(t, err)
 
 			lbOps := &LoadBalancerOps{

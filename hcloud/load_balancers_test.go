@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -988,7 +989,7 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			spec, err := lbspec.Resolve(c.service, config.LoadBalancerConfiguration{})
+			spec, err := lbspec.Resolve(record.NewFakeRecorder(10), c.service, config.LoadBalancerConfiguration{})
 			if err != nil {
 				t.Fatal(err)
 			}

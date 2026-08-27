@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
@@ -31,7 +32,7 @@ func Name(svc *corev1.Service) string {
 // All invalid annotations are reported together in the returned error. The
 // returned Spec is still fully populated, with the offending settings left at
 // their fallback, so callers must not use it when err is non-nil.
-func Resolve(svc *corev1.Service, cfg config.LoadBalancerConfiguration) (Spec, error) {
+func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.LoadBalancerConfiguration) (Spec, error) {
 	var errs []error
 	var spec Spec
 
@@ -75,19 +76,23 @@ func Resolve(svc *corev1.Service, cfg config.LoadBalancerConfiguration) (Spec, e
 		return spec, nil
 	}
 
-	if len(errs) == 1 {
-		return spec, fmt.Errorf("invalid Load Balancer annotation: %w", errs[0])
-	}
-
-	// Joining errors creates an error message which is hard to read in the
-	// logs and the Kubernetes events. Log each annotation error separately and
-	// provide details to check the pod logs, if the user only inspects the
-	// Kubernetes event.
 	for _, err := range errs {
-		klog.ErrorS(err, "invalid Load Balancer annotation", "service", klog.KObj(svc))
+		klog.ErrorS(
+			err,
+			"invalid Load Balancer annotation",
+			"service",
+			klog.KObj(svc),
+		)
+		recorder.Eventf(
+			svc,
+			corev1.EventTypeWarning,
+			"InvalidLoadBalancerAnnotation",
+			"invalid Load Balancer annotation %v",
+			err,
+		)
 	}
 
-	return spec, fmt.Errorf("%d Load Balancer annotation(s) are invalid, see the hcloud-cloud-controller-manager logs for details", len(errs))
+	return spec, fmt.Errorf("%d Load Balancer annotation(s) are invalid", len(errs))
 }
 
 func resolveNodeSelector(errs *[]error, svc *corev1.Service) labels.Selector {

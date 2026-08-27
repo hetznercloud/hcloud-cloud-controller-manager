@@ -8,6 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -32,14 +33,16 @@ type LoadBalancerOps interface {
 }
 
 type loadBalancers struct {
-	lbOps LoadBalancerOps
-	cfg   *config.LoadBalancerConfiguration
+	lbOps    LoadBalancerOps
+	cfg      *config.LoadBalancerConfiguration
+	recorder record.EventRecorder
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, lbCfg *config.LoadBalancerConfiguration) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, lbCfg *config.LoadBalancerConfiguration, recorder record.EventRecorder) *loadBalancers {
 	return &loadBalancers{
-		lbOps: lbOps,
-		cfg:   lbCfg,
+		lbOps:    lbOps,
+		cfg:      lbCfg,
+		recorder: recorder,
 	}
 }
 
@@ -63,7 +66,7 @@ func (l *loadBalancers) GetLoadBalancer(
 		return nil, false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	spec, err := lbspec.Resolve(service, *l.cfg)
+	spec, err := lbspec.Resolve(l.recorder, service, *l.cfg)
 	if err != nil {
 		return nil, false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -87,7 +90,7 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		err    error
 	)
 
-	spec, err := lbspec.Resolve(svc, *l.cfg)
+	spec, err := lbspec.Resolve(l.recorder, svc, *l.cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -227,7 +230,7 @@ func (l *loadBalancers) UpdateLoadBalancer(
 		err error
 	)
 
-	spec, err := lbspec.Resolve(svc, *l.cfg)
+	spec, err := lbspec.Resolve(l.recorder, svc, *l.cfg)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

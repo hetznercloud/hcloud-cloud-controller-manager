@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -332,7 +333,7 @@ func TestResolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			spec, err := lbspec.Resolve(service("some-uid", tt.annotations), tt.cfg)
+			spec, err := lbspec.Resolve(record.NewFakeRecorder(10), service("some-uid", tt.annotations), tt.cfg)
 			require.NoError(t, err)
 			tt.check(t, spec)
 		})
@@ -349,20 +350,22 @@ func TestResolveReportsEveryInvalidAnnotation(t *testing.T) {
 	})
 
 	logs := testsupport.CaptureKlog(t)
+	recorder := record.NewFakeRecorder(10)
 
-	_, err := lbspec.Resolve(svc, config.LoadBalancerConfiguration{})
+	_, err := lbspec.Resolve(recorder, svc, config.LoadBalancerConfiguration{})
 
-	// The error only counts the invalid annotations, so that the Kubernetes
-	// event stays readable.
-	require.EqualError(t, err,
-		"5 Load Balancer annotation(s) are invalid, see the hcloud-cloud-controller-manager logs for details")
+	// The error only counts the invalid annotations, the details are reported
+	// through the logs and the Kubernetes events.
+	require.EqualError(t, err, "5 Load Balancer annotation(s) are invalid")
 
 	// One reconcile tells the user about all of their typos, not just the first.
-	assert.Contains(t, logs.String(), "sideways")
-	assert.Contains(t, logs.String(), "maybe")
-	assert.Contains(t, logs.String(), "many")
-	assert.Contains(t, logs.String(), "not-an-ip")
-	assert.Contains(t, logs.String(), "not-a-cidr")
+	for _, want := range []string{"sideways", "maybe", "many", "not-an-ip", "not-a-cidr"} {
+		assert.Contains(t, logs.String(), want)
+	}
+
+	// Every invalid annotation gets its own event, so that a single event stays
+	// readable.
+	assert.Len(t, recorder.Events, 5)
 }
 
 func TestResolveErrors(t *testing.T) {
@@ -374,12 +377,12 @@ func TestResolveErrors(t *testing.T) {
 		{
 			name:        "invalid algorithm",
 			annotations: map[string]string{string(annotation.LBAlgorithmType): "sideways"},
-			wantErr:     "invalid: sideways",
+			wantErr:     "invalid algorithm type: sideways",
 		},
 		{
 			name:        "invalid service protocol",
 			annotations: map[string]string{string(annotation.LBSvcProtocol): "smtp"},
-			wantErr:     "invalid: smtp",
+			wantErr:     "invalid protocol: smtp",
 		},
 		{
 			name:        "invalid node selector",
@@ -402,11 +405,20 @@ func TestResolveErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := lbspec.Resolve(service("some-uid", tt.annotations), config.LoadBalancerConfiguration{})
+			logs := testsupport.CaptureKlog(t)
+			recorder := record.NewFakeRecorder(10)
 
-			require.Error(t, err)
-			assert.ErrorContains(t, err, "invalid Load Balancer annotation:")
-			assert.ErrorContains(t, err, tt.wantErr)
+			_, err := lbspec.Resolve(recorder, service("some-uid", tt.annotations), config.LoadBalancerConfiguration{})
+
+			require.EqualError(t, err, "1 Load Balancer annotation(s) are invalid")
+
+			// The reason is only reported through the logs and the Kubernetes
+			// event.
+			assert.Contains(t, logs.String(), tt.wantErr)
+			require.Len(t, recorder.Events, 1)
+			event := <-recorder.Events
+			assert.Contains(t, event, "InvalidLoadBalancerAnnotation")
+			assert.Contains(t, event, tt.wantErr)
 		})
 	}
 }

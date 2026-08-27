@@ -88,7 +88,7 @@ func (a Certificates) FromService(svc *corev1.Service) ([]*hcloud.Certificate, e
 func value(name string, svc *corev1.Service) (string, error) {
 	v, ok := svc.Annotations[name]
 	if !ok {
-		return "", fmt.Errorf("%s: %w", name, ErrNotSet)
+		return "", fmt.Errorf("%q: %w", name, ErrNotSet)
 	}
 	return v, nil
 }
@@ -103,7 +103,7 @@ func parse[T any](name string, svc *corev1.Service, convert func(string) (T, err
 
 	converted, err := convert(v)
 	if err != nil {
-		return zero, fmt.Errorf("%s: %w", name, err)
+		return zero, fmt.Errorf("%q: %w", name, err)
 	}
 
 	return converted, nil
@@ -125,7 +125,7 @@ func parseAlgorithmType(v string) (hcloud.LoadBalancerAlgorithmType, error) {
 		hcloud.LoadBalancerAlgorithmTypeRoundRobin:
 		return algorithm, nil
 	default:
-		return "", fmt.Errorf("invalid: %s", v)
+		return "", fmt.Errorf("invalid algorithm type: %s", v)
 	}
 }
 
@@ -138,7 +138,7 @@ func parseServiceProtocol(v string) (hcloud.LoadBalancerServiceProtocol, error) 
 		hcloud.LoadBalancerServiceProtocolHTTPS:
 		return protocol, nil
 	default:
-		return "", fmt.Errorf("invalid: %s", v)
+		return "", fmt.Errorf("invalid protocol: %s", v)
 	}
 }
 

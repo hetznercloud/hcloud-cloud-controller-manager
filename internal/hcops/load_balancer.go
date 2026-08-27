@@ -117,7 +117,7 @@ func (l *LoadBalancerOps) Create(ctx context.Context, svc *corev1.Service) (*hcl
 	const op = "hcops/LoadBalancerOps.Create"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -169,7 +169,7 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 
 	var changed bool
 
-	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
@@ -494,7 +494,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		changed bool
 	)
 
-	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
 	}
@@ -785,7 +785,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 
 	var changed bool
 
-	spec, err := lbspec.Resolve(svc, l.Cfg.LoadBalancer)
+	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
