@@ -712,6 +712,41 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
 		},
+		{
+			name:          "public ipv6 without IPv6 subnet",
+			addressFamily: config.AddressFamilyIPv6,
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+			},
+		},
+		{
+			name:          "public dual stack without IPv6 subnet",
+			addressFamily: config.AddressFamilyDualStack,
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
+		{
+			name:          "public ipv6 with malformed IPv6 subnet",
+			addressFamily: config.AddressFamilyIPv6,
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::/64",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+			},
+		},
 	}
 
 	for _, test := range tests {

@@ -41,6 +41,7 @@ import (
 const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
+	InvalidIPv6Net          = "InvalidIPv6Net"
 	instancesV2Subsystem    = "instances_v2"
 )
 
@@ -281,10 +282,23 @@ func robotNodeAddresses(
 	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
 	ipv6 := cfg.Instance.AddressFamily == config.AddressFamilyIPv6 || dualStack
 
-	if ipv6 {
+	// Robot servers do not necessarily have an IPv6 subnet assigned, in which case the field is empty.
+	if ipv6 && server.ServerIPv6Net != "" {
 		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
 		hostAddress := server.ServerIPv6Net + "1"
-		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
+
+		if net.ParseIP(hostAddress) == nil {
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				InvalidIPv6Net,
+				"Robot server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
+				server.Name,
+				server.ServerIPv6Net,
+			)
+		} else {
+			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
+		}
 	}
 
 	if ipv4 {
