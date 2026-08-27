@@ -232,7 +232,9 @@ func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBala
 // hcloud.LoadBalancerUpdateOpts. Using one method reduces the number of API
 // requests should more than one change be necessary.
 func (l *LoadBalancerOps) changeHCLBInfo(
-	ctx context.Context, lb *hcloud.LoadBalancer, spec lbspec.Spec,
+	ctx context.Context,
+	lb *hcloud.LoadBalancer,
+	spec lbspec.Spec,
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeHCLBInfo"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -324,7 +326,10 @@ func (l *LoadBalancerOps) changeAlgorithm(ctx context.Context, lb *hcloud.LoadBa
 }
 
 func (l *LoadBalancerOps) changeType(
-	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec,
+	ctx context.Context,
+	lb *hcloud.LoadBalancer,
+	svc *corev1.Service,
+	spec lbspec.Spec,
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.changeType"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -870,7 +875,8 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 }
 
 func (l *LoadBalancerOps) reconcileManagedCertificate(
-	ctx context.Context, spec lbspec.Spec,
+	ctx context.Context,
+	spec lbspec.Spec,
 ) error {
 	const op = "hcops/LoadBalancerOps.reconcileManagedCertificate"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -895,7 +901,9 @@ func (l *LoadBalancerOps) reconcileManagedCertificate(
 //
 // It returns nil when the Service has no certificates configured.
 func (l *LoadBalancerOps) resolveCertificates(
-	ctx context.Context, svc *corev1.Service, spec lbspec.Spec,
+	ctx context.Context,
+	svc *corev1.Service,
+	spec lbspec.Spec,
 ) ([]*hcloud.Certificate, error) {
 	const op = "hcops/LoadBalancerOps.resolveCertificates"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -931,7 +939,9 @@ func (l *LoadBalancerOps) resolveCertificates(
 // verifyType looks up the Load Balancer type requested by spec and warns about a
 // type that is unconfigured, deprecated or unavailable.
 func (l *LoadBalancerOps) verifyType(
-	ctx context.Context, svc *corev1.Service, spec lbspec.Spec,
+	ctx context.Context,
+	svc *corev1.Service,
+	spec lbspec.Spec,
 ) (*hcloud.LoadBalancerType, error) {
 	ctx = cache.SetSubsystem(ctx, loadBalancerSubsystem)
 
