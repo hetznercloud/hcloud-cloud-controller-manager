@@ -87,7 +87,7 @@ func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.Load
 			svc,
 			corev1.EventTypeWarning,
 			"InvalidLoadBalancerAnnotation",
-			"invalid Load Balancer annotation %v",
+			"Invalid Load Balancer annotation %v",
 			err,
 		)
 	}
