@@ -747,6 +747,147 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
+		{
+			name:          "public ipv6 without IPv6 subnet keeps configured ExternalIP",
+			addressFamily: config.AddressFamilyIPv6,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+		},
+		{
+			name:          "public dual stack without IPv6 subnet keeps configured ExternalIP",
+			addressFamily: config.AddressFamilyDualStack,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
+		{
+			name:          "public ipv6 keeps configured ExternalIP from the IPv6 subnet",
+			addressFamily: config.AddressFamilyIPv6,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+		},
+		{
+			name:          "public dual stack keeps configured ExternalIP from the IPv6 subnet",
+			addressFamily: config.AddressFamilyDualStack,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
+		{
+			name:          "public ipv6 ignores configured ExternalIP outside the IPv6 subnet",
+			addressFamily: config.AddressFamilyIPv6,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:9999::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			},
+		},
+		{
+			name:          "public ipv6 keeps configured ExternalIP that is the first address of the IPv6 subnet",
+			addressFamily: config.AddressFamilyIPv6,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
+			},
+		},
+		{
+			name:          "public ipv6 with malformed IPv6 subnet keeps configured ExternalIP",
+			addressFamily: config.AddressFamilyIPv6,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::/64",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+		},
+		{
+			name:          "public ipv6 without IPv6 subnet ignores configured IPv4 ExternalIP",
+			addressFamily: config.AddressFamilyIPv6,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+			},
+		},
+		{
+			name:          "public ipv4 without IPv6 subnet ignores configured ExternalIP",
+			addressFamily: config.AddressFamilyIPv4,
+			nodeStatusNodeAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
 	}
 
 	for _, test := range tests {

@@ -25,6 +25,7 @@ The Node controller adds information about the server to the Node object. The va
 - Addresses
   - We add the Hostname and (depending on the configuration and availability) the IPv4 and IPv6 addresses of the server in `Node.status.addresses`.
   - For the IPv6 address we use the first address in the Network -> For the network `2a01:f48:111:4221::` we add the address `2a01:f48:111:4221::1`.
+  - Robot reports the IPv6 network of a server, but not the address the server actually uses within it. If the Node object already has an IPv6 ExternalIP out of that network, we keep it instead of using the first address.
   - Automatic reporting of private IPs in a vSwitch to `Node.status.addresses` are not supported.
   - By default, we pass along InternalIPs configured via the kubelet flag `--node-ip`. This can be disabled by setting the environment variable `ROBOT_FORWARD_INTERNAL_IPS` to `false`. It is not allowed to configure the same IP for InternalIP and ExternalIP.
 
