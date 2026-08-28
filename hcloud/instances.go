@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
+	"slices"
 
 	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
@@ -275,19 +277,18 @@ func robotNodeAddresses(
 	cfg config.HCCMConfiguration,
 	recorder record.EventRecorder,
 ) []corev1.NodeAddress {
-	var addresses []corev1.NodeAddress
-	addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeHostName, Address: server.Name})
+	family := cfg.Instance.AddressFamily
+	dualStack := family == config.AddressFamilyDualStack
+	ipv4 := family == config.AddressFamilyIPv4 || dualStack
+	ipv6 := family == config.AddressFamilyIPv6 || dualStack
 
-	dualStack := cfg.Instance.AddressFamily == config.AddressFamilyDualStack
-	ipv4 := cfg.Instance.AddressFamily == config.AddressFamilyIPv4 || dualStack
-	ipv6 := cfg.Instance.AddressFamily == config.AddressFamilyIPv6 || dualStack
+	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
 	// Robot servers do not necessarily have an IPv6 subnet assigned, in which case the field is empty.
 	if ipv6 && server.ServerIPv6Net != "" {
-		// For a given IPv6 network of 2a01:f48:111:4221::, the instance address is 2a01:f48:111:4221::1
-		hostAddress := server.ServerIPv6Net + "1"
-
-		if net.ParseIP(hostAddress) == nil {
+		if hostAddress := robotIPv6HostAddress(server.ServerIPv6Net); hostAddress != "" {
+			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
+		} else {
 			utils.WarnEventLogf(
 				recorder,
 				node,
@@ -296,8 +297,6 @@ func robotNodeAddresses(
 				server.Name,
 				server.ServerIPv6Net,
 			)
-		} else {
-			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
 		}
 	}
 
@@ -306,47 +305,67 @@ func robotNodeAddresses(
 	}
 
 	if cfg.Robot.ForwardInternalIPs {
-	OUTER:
-		for _, currentAddress := range node.Status.Addresses {
-			if currentAddress.Type != corev1.NodeInternalIP {
-				continue
-			}
+		addresses = appendForwardedInternalIPs(addresses, node, family, recorder)
+	}
 
-			ip := net.ParseIP(currentAddress.Address)
-			isIPv4 := ip.To4() != nil
+	return addresses
+}
 
-			var warnMsg string
-			if isIPv4 && ipv6 && !dualStack {
-				warnMsg = fmt.Sprintf(
-					"Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP",
-					currentAddress.Address,
-				)
-			} else if !isIPv4 && ipv4 && !dualStack {
-				warnMsg = fmt.Sprintf(
-					"Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP",
-					currentAddress.Address,
-				)
-			}
+func robotIPv6HostAddress(subnet string) string {
+	addr, err := netip.ParseAddr(subnet)
+	if err != nil || !addr.Is6() || addr.Is4In6() {
+		return ""
+	}
 
-			if warnMsg != "" {
-				utils.WarnEventLogf(recorder, node, MisconfiguredInternalIP, "%s", warnMsg)
-				continue
-			}
+	hostAddress := addr.As16()
+	hostAddress[len(hostAddress)-1] |= 0x01
 
-			for _, address := range addresses {
-				if currentAddress.Address == address.Address {
-					utils.WarnEventLogf(
-						recorder,
-						node,
-						MisconfiguredInternalIP,
-						"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
-						currentAddress.Address,
-					)
-					continue OUTER
-				}
-			}
+	return netip.AddrFrom16(hostAddress).String()
+}
 
-			addresses = append(addresses, currentAddress)
+func appendForwardedInternalIPs(
+	addresses []corev1.NodeAddress,
+	node *corev1.Node,
+	family config.AddressFamily,
+	recorder record.EventRecorder,
+) []corev1.NodeAddress {
+	for _, internalIP := range node.Status.Addresses {
+		if internalIP.Type != corev1.NodeInternalIP {
+			continue
+		}
+
+		isIPv4 := net.ParseIP(internalIP.Address).To4() != nil
+		isKnown := slices.ContainsFunc(addresses, func(address corev1.NodeAddress) bool {
+			return address.Address == internalIP.Address
+		})
+
+		switch {
+		case isIPv4 && family == config.AddressFamilyIPv6:
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				MisconfiguredInternalIP,
+				"Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP",
+				internalIP.Address,
+			)
+		case !isIPv4 && family == config.AddressFamilyIPv4:
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				MisconfiguredInternalIP,
+				"Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP",
+				internalIP.Address,
+			)
+		case isKnown:
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				MisconfiguredInternalIP,
+				"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
+				internalIP.Address,
+			)
+		default:
+			addresses = append(addresses, internalIP)
 		}
 	}
 
