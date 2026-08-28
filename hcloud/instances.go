@@ -45,6 +45,7 @@ const (
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 	InvalidIPv6Net          = "InvalidIPv6Net"
 	instancesV2Subsystem    = "instances_v2"
+	robotIPv6SubnetBits     = 64
 )
 
 type instances struct {
@@ -284,19 +285,9 @@ func robotNodeAddresses(
 
 	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
-	// Robot servers do not necessarily have an IPv6 subnet assigned, in which case the field is empty.
-	if ipv6 && server.ServerIPv6Net != "" {
-		if hostAddress := robotIPv6HostAddress(server.ServerIPv6Net); hostAddress != "" {
+	if ipv6 {
+		if hostAddress := robotIPv6ExternalIP(server, node, recorder); hostAddress != "" {
 			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
-		} else {
-			utils.WarnEventLogf(
-				recorder,
-				node,
-				InvalidIPv6Net,
-				"Robot server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
-				server.Name,
-				server.ServerIPv6Net,
-			)
 		}
 	}
 
@@ -311,16 +302,57 @@ func robotNodeAddresses(
 	return addresses
 }
 
-func robotIPv6HostAddress(subnet string) string {
-	addr, err := netip.ParseAddr(subnet)
-	if err != nil || !addr.Is6() || addr.Is4In6() {
+// robotIPv6ExternalIP returns the IPv6 ExternalIP of a Robot server, or an empty string if
+// there is none.
+//
+// Robot reports the IPv6 subnet assigned to a server, but not the address the server uses
+// within it. We keep the IPv6 ExternalIP that is already configured on the Node object if it
+// belongs to that subnet, and use the first address of the subnet otherwise. Servers do not
+// necessarily have a subnet in Robot at all, e.g. when IPv6 is configured on upstream network
+// equipment instead of per server; the configured address is then the only source we have.
+func robotIPv6ExternalIP(
+	server *hrobotmodels.Server,
+	node *corev1.Node,
+	recorder record.EventRecorder,
+) string {
+	configured := netip.Addr{}
+	for _, address := range node.Status.Addresses {
+		if address.Type != corev1.NodeExternalIP {
+			continue
+		}
+
+		if addr, err := netip.ParseAddr(address.Address); err == nil && addr.Is6() && !addr.Is4In6() {
+			configured = addr
+		}
+	}
+
+	if server.ServerIPv6Net != "" {
+		subnet := netip.Prefix{}
+		addr, err := netip.ParseAddr(server.ServerIPv6Net)
+		if err == nil && addr.Is6() && !addr.Is4In6() {
+			subnet = netip.PrefixFrom(addr, robotIPv6SubnetBits).Masked()
+		}
+
+		switch {
+		case !subnet.IsValid():
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				InvalidIPv6Net,
+				"Robot server %q reports the IPv6 subnet %q, which is not a valid IPv6 subnet. As a result, the IPv6 ExternalIP already configured on the Node is kept instead, if there is one",
+				server.Name,
+				server.ServerIPv6Net,
+			)
+		case !subnet.Contains(configured):
+			return subnet.Addr().Next().String()
+		}
+	}
+
+	if !configured.IsValid() {
 		return ""
 	}
 
-	hostAddress := addr.As16()
-	hostAddress[len(hostAddress)-1] |= 0x01
-
-	return netip.AddrFrom16(hostAddress).String()
+	return configured.String()
 }
 
 func appendForwardedInternalIPs(
