@@ -323,6 +323,7 @@ func robotIPv6ExternalIP(
 
 		if addr, err := netip.ParseAddr(address.Address); err == nil && addr.Is6() && !addr.Is4In6() {
 			configured = addr
+			break
 		}
 	}
 
