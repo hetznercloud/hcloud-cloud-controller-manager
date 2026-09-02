@@ -282,10 +282,11 @@ func robotNodeAddresses(
 	family := cfg.Instance.AddressFamily
 	dualStack := family == config.AddressFamilyDualStack
 	ipv4 := family == config.AddressFamilyIPv4 || dualStack
+	ipv6 := family == config.AddressFamilyIPv6 || dualStack
 
 	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
-	hostAddress, err := robotIPv6ExternalIP(ipv4, server, node, recorder)
+	hostAddress, err := robotIPv6ExternalIP(ipv6, server, node, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -305,13 +306,13 @@ func robotNodeAddresses(
 }
 
 func robotIPv6ExternalIP(
-	ipv4 bool,
+	ipv6 bool,
 	server *hrobotmodels.Server,
 	node *corev1.Node,
 	recorder record.EventRecorder,
 ) (string, error) {
 	// The value only becomes relevant once IPv6 is enabled, so we do not look at it.
-	if ipv4 {
+	if !ipv6 {
 		if _, ok := node.GetAnnotations()[string(annotation.RobotExternalIPv6)]; ok {
 			utils.WarnEventLogf(
 				recorder,
