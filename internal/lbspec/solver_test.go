@@ -57,7 +57,7 @@ func TestResolve(t *testing.T) {
 				assert.False(t, spec.PrivateIPv4.IsValid())
 				assert.False(t, spec.PrivateSubnetIPRange.IsValid())
 				assert.False(t, spec.UsePrivateIP)
-				assert.Nil(t, spec.ManagedCertificate)
+				assert.Nil(t, spec.OwnedCertificate)
 				assert.Equal(t, hcloud.LoadBalancerServiceProtocolTCP, spec.Service.Protocol)
 				assert.Nil(t, spec.Service.ProxyProtocol)
 				assert.Nil(t, spec.Service.HTTP, "no HTTP block without HTTP options")
@@ -222,10 +222,10 @@ func TestResolve(t *testing.T) {
 				string(annotation.LBSvcHTTPCertificates):              "ignored",
 			},
 			check: func(t *testing.T, spec lbspec.Spec) {
-				require.NotNil(t, spec.ManagedCertificate)
-				assert.Equal(t, "ccm-managed-certificate-some-uid", spec.ManagedCertificate.Name)
-				assert.Equal(t, []string{"example.com", "*.example.com"}, spec.ManagedCertificate.Domains)
-				assert.False(t, spec.ManagedCertificate.UseACMEStaging)
+				require.NotNil(t, spec.OwnedCertificate)
+				assert.Equal(t, "ccm-managed-certificate-some-uid", spec.OwnedCertificate.Name)
+				assert.Equal(t, []string{"example.com", "*.example.com"}, spec.OwnedCertificate.Domains)
+				assert.False(t, spec.OwnedCertificate.UseACMEStaging)
 
 				require.NotNil(t, spec.Service.HTTP, "the certificate is attached to an HTTP service")
 				assert.Empty(t, spec.Service.HTTP.Certificates,
@@ -241,9 +241,9 @@ func TestResolve(t *testing.T) {
 				string(annotation.LBSvcHTTPManagedCertificateUseACMEStaging): "true",
 			},
 			check: func(t *testing.T, spec lbspec.Spec) {
-				require.NotNil(t, spec.ManagedCertificate)
-				assert.Equal(t, "my-cert", spec.ManagedCertificate.Name)
-				assert.True(t, spec.ManagedCertificate.UseACMEStaging)
+				require.NotNil(t, spec.OwnedCertificate)
+				assert.Equal(t, "my-cert", spec.OwnedCertificate.Name)
+				assert.True(t, spec.OwnedCertificate.UseACMEStaging)
 			},
 		},
 		{
@@ -253,7 +253,7 @@ func TestResolve(t *testing.T) {
 				string(annotation.LBSvcHTTPCertificates):    "1",
 			},
 			check: func(t *testing.T, spec lbspec.Spec) {
-				assert.Nil(t, spec.ManagedCertificate)
+				assert.Nil(t, spec.OwnedCertificate)
 				require.NotNil(t, spec.Service.HTTP)
 				assert.Equal(t, []*hcloud.Certificate{{ID: 1}}, spec.Service.HTTP.Certificates)
 			},

@@ -181,9 +181,9 @@ func TestSpecAddServerTargetOpts(t *testing.T) {
 	}
 }
 
-func TestManagedCertificateCreateOpts(t *testing.T) {
+func TestOwnedCertificateCreateOpts(t *testing.T) {
 	t.Run("certificate for the configured domains", func(t *testing.T) {
-		cert := lbspec.ManagedCertificate{
+		cert := lbspec.OwnedCertificate{
 			Name:    "some-cert",
 			Labels:  map[string]string{lbspec.LabelServiceUID: "some-uid"},
 			Domains: []string{"example.com", "*.example.com"},
@@ -200,7 +200,7 @@ func TestManagedCertificateCreateOpts(t *testing.T) {
 	})
 
 	t.Run("ACME staging is requested through a label", func(t *testing.T) {
-		cert := lbspec.ManagedCertificate{
+		cert := lbspec.OwnedCertificate{
 			Name:           "some-cert",
 			Labels:         map[string]string{lbspec.LabelServiceUID: "some-uid"},
 			Domains:        []string{"example.com"},

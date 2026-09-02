@@ -75,7 +75,7 @@ func (s Spec) AddServerTargetOpts(serverID int64) hcloud.LoadBalancerAddServerTa
 	}
 }
 
-func (c ManagedCertificate) CreateOpts() hcloud.CertificateCreateOpts {
+func (c OwnedCertificate) CreateOpts() hcloud.CertificateCreateOpts {
 	labels := c.Labels
 	if c.UseACMEStaging {
 		// A copy, so that requesting staging does not leave the label behind

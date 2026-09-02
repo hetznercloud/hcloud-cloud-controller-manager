@@ -69,8 +69,8 @@ func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.Load
 	spec.UsePrivateIP = resolve(&errs, svc, annotation.LBUsePrivateIP, cfg.PrivateIPEnabled)
 	spec.PrivateIngress = !resolve(&errs, svc, annotation.LBDisablePrivateIngress, !cfg.PrivateIngressEnabled)
 	spec.IPv6 = !resolve(&errs, svc, annotation.LBIPv6Disabled, !cfg.IPv6Enabled)
-	spec.ManagedCertificate = resolveManagedCertificate(&errs, svc)
-	spec.Service = resolveService(&errs, svc, cfg, spec.ManagedCertificate != nil)
+	spec.OwnedCertificate = resolveOwnedCertificate(&errs, svc)
+	spec.Service = resolveService(&errs, svc, cfg, spec.OwnedCertificate != nil)
 
 	if len(errs) == 0 {
 		return spec, nil
@@ -130,14 +130,14 @@ func resolvePrivateSubnetIPRange(errs *[]error, svc *corev1.Service, cfg config.
 	return subnet.Masked()
 }
 
-func resolveManagedCertificate(errs *[]error, svc *corev1.Service) *ManagedCertificate {
-	// Compared as a raw string: only the exact value selects managed
-	// certificates.
+func resolveOwnedCertificate(errs *[]error, svc *corev1.Service) *OwnedCertificate {
+	// Compared as a raw string: only the exact value asks us to provide the
+	// certificate.
 	if typ, err := annotation.LBSvcHTTPCertificateType.FromService(svc); err != nil || typ != string(hcloud.CertificateTypeManaged) {
 		return nil
 	}
 
-	cert := ManagedCertificate{
+	cert := OwnedCertificate{
 		Name:   fmt.Sprintf("ccm-managed-certificate-%s", svc.ObjectMeta.UID),
 		Labels: map[string]string{LabelServiceUID: string(svc.ObjectMeta.UID)},
 	}
@@ -162,7 +162,7 @@ func resolveManagedCertificate(errs *[]error, svc *corev1.Service) *ManagedCerti
 }
 
 func resolveService(
-	errs *[]error, svc *corev1.Service, cfg config.LoadBalancerConfiguration, hasManagedCertificate bool,
+	errs *[]error, svc *corev1.Service, cfg config.LoadBalancerConfiguration, hasOwnedCertificate bool,
 ) ServiceSpec {
 	var spec ServiceSpec
 
@@ -193,10 +193,10 @@ func resolveService(
 		httpConfigured = true
 	}
 
-	if hasManagedCertificate {
-		// The managed certificate replaces the uploaded certificate list, so
-		// that annotation is not read at all. The caller fills in the
-		// certificate it looked up by label.
+	if hasOwnedCertificate {
+		// Our own certificate replaces the certificate list, so that
+		// annotation is not read at all. The caller fills in the certificate
+		// it looked up by label.
 		httpConfigured = true
 	} else {
 		certs := resolve(errs, svc, annotation.LBSvcHTTPCertificates, nil)

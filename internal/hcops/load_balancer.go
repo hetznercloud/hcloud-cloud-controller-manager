@@ -794,7 +794,7 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := l.reconcileManagedCertificate(ctx, spec); err != nil {
+	if err := l.reconcileOwnedCertificate(ctx, spec); err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -873,18 +873,18 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	return changed, nil
 }
 
-func (l *LoadBalancerOps) reconcileManagedCertificate(
+func (l *LoadBalancerOps) reconcileOwnedCertificate(
 	ctx context.Context,
 	spec lbspec.Spec,
 ) error {
-	const op = "hcops/LoadBalancerOps.reconcileManagedCertificate"
+	const op = "hcops/LoadBalancerOps.reconcileOwnedCertificate"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	if spec.ManagedCertificate == nil {
+	if spec.OwnedCertificate == nil {
 		return nil
 	}
 
-	err := l.CertOps.CreateManagedCertificate(ctx, spec.ManagedCertificate.CreateOpts())
+	err := l.CertOps.CreateManagedCertificate(ctx, spec.OwnedCertificate.CreateOpts())
 	if errors.Is(err, ErrAlreadyExists) {
 		return nil
 	}
@@ -896,7 +896,8 @@ func (l *LoadBalancerOps) reconcileManagedCertificate(
 
 // resolveCertificates turns the certificate references of the Service into
 // references the API accepts, which means looking up certificates referenced by
-// name. A managed certificate is looked up by the label it was created with.
+// name. A certificate we own ourselves is looked up by the label it was created
+// with.
 //
 // It returns nil when the Service has no certificates configured.
 func (l *LoadBalancerOps) resolveCertificates(
@@ -907,7 +908,7 @@ func (l *LoadBalancerOps) resolveCertificates(
 	const op = "hcops/LoadBalancerOps.resolveCertificates"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	if spec.ManagedCertificate != nil {
+	if spec.OwnedCertificate != nil {
 		cert, err := l.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)

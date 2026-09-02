@@ -82,10 +82,10 @@ type Spec struct {
 	// destination ports differ per port.
 	Service ServiceSpec
 
-	// ManagedCertificate is set when the Service asks for a managed
-	// certificate. The certificate itself is created and looked up by the
-	// caller.
-	ManagedCertificate *ManagedCertificate
+	// OwnedCertificate is set when the Service asks the cloud controller
+	// manager to provide the certificate itself. The certificate is created
+	// and looked up by the caller.
+	OwnedCertificate *OwnedCertificate
 }
 
 // ServiceSpec is the desired state of the services exposed by the Load
@@ -113,8 +113,9 @@ type HTTPSpec struct {
 
 	// Certificates reference certificates either by ID or by name, exactly as
 	// the annotation spelled them. Resolving names to IDs needs the API and is
-	// left to the caller. Empty for a managed certificate, which the caller
-	// looks up by label.
+	// left to the caller. Certificates that already exist are referenced here
+	// whatever their type, managed ones included. Empty for an
+	// [OwnedCertificate], which the caller looks up by label instead.
 	Certificates []*hcloud.Certificate
 }
 
@@ -143,9 +144,14 @@ type HealthCheckHTTPSpec struct {
 	StatusCodes []string
 }
 
-// ManagedCertificate is a certificate the cloud controller manager creates and
-// renews on behalf of the Service.
-type ManagedCertificate struct {
+// OwnedCertificate is a certificate the cloud controller manager creates on
+// behalf of the Service and owns for its lifetime.
+//
+// It is of the Hetzner Cloud "managed" certificate type, so the backend renews
+// it, but not every managed certificate is an OwnedCertificate: one created
+// outside the cluster is referenced by ID or name through
+// [HTTPSpec.Certificates] like an uploaded one.
+type OwnedCertificate struct {
 	Name    string
 	Labels  map[string]string
 	Domains []string
