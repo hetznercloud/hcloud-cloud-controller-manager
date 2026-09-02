@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"time"
 
 	hrobot "github.com/syself/hrobot-go"
@@ -372,7 +373,7 @@ func (l *LoadBalancerOps) detachFromNetwork(ctx context.Context, lb *hcloud.Load
 		// Don't detach the Load Balancer from the network it is supposed to
 		// be attached to and the current private IP of the load balancer matches
 		// the one configured by the user, if one is configured.
-		if l.NetworkID == lbpn.Network.ID && (spec.PrivateIPv4 == nil || spec.PrivateIPv4.Equal(lbpn.IP)) {
+		if l.NetworkID == lbpn.Network.ID && (!spec.PrivateIPv4.IsValid() || sameIP(spec.PrivateIPv4, lbpn.IP)) {
 			continue
 		}
 		klog.InfoS("detach from network", "op", op, "loadBalancerID", lb.ID, "networkID", lbpn.Network.ID, "privateIPv4", lbpn.IP.String())
@@ -400,7 +401,7 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		return false, nil
 	}
 
-	if spec.PrivateIPv4 != nil {
+	if spec.PrivateIPv4.IsValid() {
 		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID, "privateIP", spec.PrivateIPv4)
 	} else {
 		klog.InfoS("attach to network", "op", op, "loadBalancerID", lb.ID, "networkID", l.NetworkID)
@@ -979,13 +980,21 @@ func (l *LoadBalancerOps) verifyType(
 	return lbType, nil
 }
 
-func lbAttached(lb *hcloud.LoadBalancer, nwID int64, privateIPv4 net.IP) bool {
+func lbAttached(lb *hcloud.LoadBalancer, nwID int64, privateIPv4 netip.Addr) bool {
 	for _, nw := range lb.PrivateNet {
-		if nw.Network.ID == nwID && (privateIPv4 == nil || privateIPv4.Equal(nw.IP)) {
+		if nw.Network.ID == nwID && (!privateIPv4.IsValid() || sameIP(privateIPv4, nw.IP)) {
 			return true
 		}
 	}
 	return false
+}
+
+// sameIP reports whether addr and ip are the same address. Both sides are
+// unmapped first, so that an address written as ::ffff:10.0.0.1 equals the
+// same address written as 10.0.0.1, as net.IP.Equal did.
+func sameIP(addr netip.Addr, ip net.IP) bool {
+	other, ok := netip.AddrFromSlice(ip)
+	return ok && addr.Unmap() == other.Unmap()
 }
 
 func getNodeInternalIP(node *corev1.Node) string {

@@ -955,7 +955,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 
 				attachOpts := hcloud.LoadBalancerAttachToNetworkOpts{
 					Network: nw,
-					IP:      net.ParseIP("10.10.10.2"),
+					IP:      net.ParseIP("10.10.10.2").To4(),
 				}
 
 				detachAction := &hcloud.Action{ID: rand.Int63()}
@@ -1037,7 +1037,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 
 				tt.fx.LBOps.NetworkID = nw.ID
 
-				opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw, IP: net.ParseIP("10.10.10.2")}
+				opts := hcloud.LoadBalancerAttachToNetworkOpts{Network: nw, IP: net.ParseIP("10.10.10.2").To4()}
 				action := &hcloud.Action{ID: rand.Int63()}
 				tt.fx.LBClient.On("AttachToNetwork", tt.fx.Ctx, tt.initialLB, opts).Return(action, nil, nil)
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)

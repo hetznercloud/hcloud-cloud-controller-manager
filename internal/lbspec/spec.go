@@ -12,7 +12,7 @@
 package lbspec
 
 import (
-	"net"
+	"net/netip"
 	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -65,11 +65,11 @@ type Spec struct {
 	IPv6RDNS *string
 
 	// PrivateIPv4 is the address the Load Balancer should have in the private
-	// network. Nil when unconfigured.
-	PrivateIPv4 net.IP
-	// PrivateSubnetIPRange is the existing subnet to attach to. Nil when
-	// unconfigured.
-	PrivateSubnetIPRange *net.IPNet
+	// network. The zero value when unconfigured.
+	PrivateIPv4 netip.Addr
+	// PrivateSubnetIPRange is the existing subnet to attach to. The zero value
+	// when unconfigured.
+	PrivateSubnetIPRange netip.Prefix
 	// UsePrivateIP makes server targets use their private IP.
 	UsePrivateIP bool
 	// PrivateIngress publishes the private IPs as ingress addresses.

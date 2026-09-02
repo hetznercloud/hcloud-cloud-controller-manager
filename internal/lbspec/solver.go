@@ -3,7 +3,7 @@ package lbspec
 import (
 	"errors"
 	"fmt"
-	"net"
+	"net/netip"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -64,7 +64,7 @@ func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.Load
 	spec.PublicInterface = negate(resolvePtr(&errs, svc, annotation.LBDisablePublicNetwork, cfg.DisablePublicNetwork))
 	spec.IPv4RDNS = resolvePtr(&errs, svc, annotation.LBPublicIPv4RDNS, nil)
 	spec.IPv6RDNS = resolvePtr(&errs, svc, annotation.LBPublicIPv6RDNS, nil)
-	spec.PrivateIPv4 = resolve(&errs, svc, annotation.LBPrivateIPv4, nil)
+	spec.PrivateIPv4 = resolve(&errs, svc, annotation.LBPrivateIPv4, netip.Addr{})
 	spec.PrivateSubnetIPRange = resolvePrivateSubnetIPRange(&errs, svc, cfg)
 	spec.UsePrivateIP = resolve(&errs, svc, annotation.LBUsePrivateIP, cfg.PrivateIPEnabled)
 	spec.PrivateIngress = !resolve(&errs, svc, annotation.LBDisablePrivateIngress, !cfg.PrivateIngressEnabled)
@@ -111,22 +111,23 @@ func resolveNodeSelector(errs *[]error, svc *corev1.Service) labels.Selector {
 	return selector
 }
 
-func resolvePrivateSubnetIPRange(errs *[]error, svc *corev1.Service, cfg config.LoadBalancerConfiguration) *net.IPNet {
+func resolvePrivateSubnetIPRange(errs *[]error, svc *corev1.Service, cfg config.LoadBalancerConfiguration) netip.Prefix {
 	value := resolvePtr(errs, svc, annotation.PrivateSubnetIPRange, nil)
 	if value == nil {
 		if cfg.PrivateSubnetIPRange == "" {
-			return nil
+			return netip.Prefix{}
 		}
 		value = &cfg.PrivateSubnetIPRange
 	}
 
-	_, subnet, err := net.ParseCIDR(*value)
+	subnet, err := netip.ParsePrefix(*value)
 	if err != nil {
 		*errs = append(*errs, fmt.Errorf("invalid private subnet IP range %q: %w", *value, err))
-		return nil
+		return netip.Prefix{}
 	}
 
-	return subnet
+	// The annotation names a subnet, so host bits carry no meaning.
+	return subnet.Masked()
 }
 
 func resolveManagedCertificate(errs *[]error, svc *corev1.Service) *ManagedCertificate {

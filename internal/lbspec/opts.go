@@ -2,6 +2,8 @@ package lbspec
 
 import (
 	"maps"
+	"net"
+	"net/netip"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -61,8 +63,8 @@ func (s Spec) ChangeAlgorithmOpts() hcloud.LoadBalancerChangeAlgorithmOpts {
 func (s Spec) AttachToNetworkOpts(network *hcloud.Network) hcloud.LoadBalancerAttachToNetworkOpts {
 	return hcloud.LoadBalancerAttachToNetworkOpts{
 		Network: network,
-		IP:      s.PrivateIPv4,
-		IPRange: s.PrivateSubnetIPRange,
+		IP:      toIP(s.PrivateIPv4),
+		IPRange: toIPNet(s.PrivateSubnetIPRange),
 	}
 }
 
@@ -88,6 +90,23 @@ func (c ManagedCertificate) CreateOpts() hcloud.CertificateCreateOpts {
 		Type:        hcloud.CertificateTypeManaged,
 		DomainNames: c.Domains,
 		Labels:      labels,
+	}
+}
+
+func toIP(addr netip.Addr) net.IP {
+	if !addr.IsValid() {
+		return nil
+	}
+	return addr.AsSlice()
+}
+
+func toIPNet(prefix netip.Prefix) *net.IPNet {
+	if !prefix.IsValid() {
+		return nil
+	}
+	return &net.IPNet{
+		IP:   prefix.Addr().AsSlice(),
+		Mask: net.CIDRMask(prefix.Bits(), prefix.Addr().BitLen()),
 	}
 }
 

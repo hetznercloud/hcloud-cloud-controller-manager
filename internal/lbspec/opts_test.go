@@ -2,6 +2,7 @@ package lbspec_test
 
 import (
 	"net"
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -156,18 +157,16 @@ func TestSpecAttachToNetworkOpts(t *testing.T) {
 	})
 
 	t.Run("with an address and a subnet", func(t *testing.T) {
-		_, subnet, err := net.ParseCIDR("10.0.1.0/24")
-		require.NoError(t, err)
-
 		spec := lbspec.Spec{
-			PrivateIPv4:          net.ParseIP("10.0.1.5"),
-			PrivateSubnetIPRange: subnet,
+			PrivateIPv4:          netip.MustParseAddr("10.0.1.5"),
+			PrivateSubnetIPRange: netip.MustParsePrefix("10.0.1.0/24"),
 		}
 
 		opts := spec.AttachToNetworkOpts(network)
 
 		assert.True(t, net.ParseIP("10.0.1.5").Equal(opts.IP))
-		assert.Equal(t, subnet, opts.IPRange)
+		require.NotNil(t, opts.IPRange)
+		assert.Equal(t, "10.0.1.0/24", opts.IPRange.String())
 	})
 }
 

@@ -2,7 +2,7 @@ package lbspec_test
 
 import (
 	"maps"
-	"net"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -54,8 +54,8 @@ func TestResolve(t *testing.T) {
 				assert.Nil(t, spec.PublicInterface, "an unconfigured public interface is left alone")
 				assert.Nil(t, spec.IPv4RDNS)
 				assert.Nil(t, spec.IPv6RDNS)
-				assert.Nil(t, spec.PrivateIPv4)
-				assert.Nil(t, spec.PrivateSubnetIPRange)
+				assert.False(t, spec.PrivateIPv4.IsValid())
+				assert.False(t, spec.PrivateSubnetIPRange.IsValid())
 				assert.False(t, spec.UsePrivateIP)
 				assert.Nil(t, spec.ManagedCertificate)
 				assert.Equal(t, hcloud.LoadBalancerServiceProtocolTCP, spec.Service.Protocol)
@@ -178,7 +178,7 @@ func TestResolve(t *testing.T) {
 				string(annotation.PrivateSubnetIPRange): "10.0.1.0/24",
 			},
 			check: func(t *testing.T, spec lbspec.Spec) {
-				assert.True(t, net.ParseIP("10.0.1.5").Equal(spec.PrivateIPv4))
+				assert.Equal(t, netip.MustParseAddr("10.0.1.5"), spec.PrivateIPv4)
 				assert.Equal(t, "10.0.1.0/24", spec.PrivateSubnetIPRange.String())
 			},
 		},
