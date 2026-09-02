@@ -25,16 +25,15 @@ The Node controller adds information about the server to the Node object. The va
 - Addresses
   - We add the Hostname and (depending on the configuration and availability) the IPv4 and IPv6 addresses of the server in `Node.status.addresses`.
   - For the IPv6 address we use the first address in the Network -> For the network `2a01:f48:111:4221::` we add the address `2a01:f48:111:4221::1`.
-  - Robot reports the IPv6 network of a server, but not the address the server actually uses within it. If the Node object already has an IPv6 ExternalIP out of that network, we keep it instead of using the first address. To use a different address, append it to `Node.status.addresses` once, and we keep it from then on:
+  - Robot reports the IPv6 network of a server, but not the address the server actually uses within it, and does not report a network at all for every server -- for example when IPv6 is configured on upstream network equipment instead of per server. Set the annotation `instance.hetzner.cloud/robot-external-ipv6` on the Node to state the address explicitly. It takes precedence over the address we derive, and is the only source if Robot reports no network:
 
     ```bash
-    kubectl patch node $NODE_NAME --subresource=status --type=json \
-      -p '[{"op": "add", "path": "/status/addresses/-", "value": {"type": "ExternalIP", "address": "2a01:f48:111:4221::5"}}]'
+    kubectl annotate node $NODE_NAME --overwrite \
+      instance.hetzner.cloud/robot-external-ipv6=2a01:f48:111:4221::5
     ```
 
-    Append the address rather than replacing the list: the entry we added earlier stays alongside it until the next sync, at which point we keep the appended address and drop ours.
+    Without the annotation, and if Robot reports no network, the Node gets no IPv6 ExternalIP. If the annotation does not hold a valid IPv6 address, we fail to determine the instance metadata, so that we do not silently configure a different address than the one you asked for.
 
-  - Robot does not report an IPv6 network for every server, for example when IPv6 is configured on upstream network equipment instead of per server. There is nothing to derive an address from then, and the IPv6 ExternalIP configured on the Node object is kept as is.
   - Automatic reporting of private IPs in a vSwitch to `Node.status.addresses` are not supported.
   - By default, we pass along InternalIPs configured via the kubelet flag `--node-ip`. This can be disabled by setting the environment variable `ROBOT_FORWARD_INTERNAL_IPS` to `false`. It is not allowed to configure the same IP for InternalIP and ExternalIP.
 

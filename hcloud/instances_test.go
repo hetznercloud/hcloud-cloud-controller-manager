@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cloudprovider "k8s.io/cloud-provider"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
@@ -432,6 +433,37 @@ func TestInstances_InstanceMetadataRobotServer(t *testing.T) {
 	}
 }
 
+func TestInstances_InstanceMetadataRobotServerInvalidExternalIPv6(t *testing.T) {
+	env := newTestEnv()
+	defer env.Teardown()
+	env.Mux.HandleFunc("/robot/server/321", func(w http.ResponseWriter, _ *http.Request) {
+		json.NewEncoder(w).Encode(hrobotmodels.ServerResponse{
+			Server: hrobotmodels.Server{
+				ServerIP:      "233.252.0.123",
+				ServerIPv6Net: "2a01:f48:111:4221::",
+				ServerNumber:  321,
+				Product:       "Robot Server\u2122 1",
+				Name:          "robot-server1",
+				Dc:            "NBG1-DC1",
+			},
+		})
+	})
+
+	env.Cfg.Instance.AddressFamily = config.AddressFamilyDualStack
+	instances := newInstances(env.Client, env.RobotClient, env.ServerCache, env.Recorder, 0, env.Cfg)
+
+	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "robot-server1",
+			Annotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+		},
+		Spec: corev1.NodeSpec{ProviderID: "hrobot://321"},
+	})
+
+	assert.EqualError(t, err, "hcloud/instancesv2.InstanceMetadata: invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: invalid ip address: not-an-ip")
+	assert.Nil(t, metadata)
+}
+
 func TestNodeAddresses(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -614,8 +646,10 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 		addressFamily           config.AddressFamily
 		server                  *hrobotmodels.Server
 		nodeStatusNodeAddresses []corev1.NodeAddress
+		nodeAnnotations         map[string]string
 		privateNetwork          int
 		expected                []corev1.NodeAddress
+		expectedErr             string
 	}{
 		{
 			name:          "public ipv4",
@@ -748,11 +782,38 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:          "public ipv6 without IPv6 subnet keeps configured ExternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
+			name:            "public ipv6 uses the RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
 				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
 			},
+		},
+		{
+			name:            "public dual stack uses the RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyDualStack,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+		},
+		{
+			name:            "public ipv6 without IPv6 subnet uses the RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
@@ -763,28 +824,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:          "public dual stack without IPv6 subnet keeps configured ExternalIP",
-			addressFamily: config.AddressFamilyDualStack,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-			},
-			server: &hrobotmodels.Server{
-				Name:     "foobar",
-				ServerIP: "203.0.113.7",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
-			},
-		},
-		{
-			name:          "public ipv6 with malformed IPv6 subnet keeps configured ExternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-			},
+			name:            "public ipv6 with malformed IPv6 subnet uses the RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
@@ -796,11 +838,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:          "public ipv6 keeps configured ExternalIP from the IPv6 subnet",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-			},
+			name:            "public ipv6 uses a RobotExternalIPv6 annotation outside the IPv6 subnet",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:9999::5"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
@@ -808,69 +848,16 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 			expected: []corev1.NodeAddress{
 				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-			},
-		},
-		{
-			name:          "public dual stack keeps configured ExternalIP from the IPv6 subnet",
-			addressFamily: config.AddressFamilyDualStack,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
-			},
-			server: &hrobotmodels.Server{
-				Name:          "foobar",
-				ServerIP:      "203.0.113.7",
-				ServerIPv6Net: "2001:db8:1234::",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
-			},
-		},
-		{
-			name:          "public ipv6 keeps configured ExternalIP that is the first address of the IPv6 subnet",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
-			},
-			server: &hrobotmodels.Server{
-				Name:          "foobar",
-				ServerIP:      "203.0.113.7",
-				ServerIPv6Net: "2001:db8:1234::",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
-			},
-		},
-		{
-			name:          "public ipv6 ignores configured ExternalIP outside the IPv6 subnet",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
 				{Type: corev1.NodeExternalIP, Address: "2001:db8:9999::5"},
 			},
-			server: &hrobotmodels.Server{
-				Name:          "foobar",
-				ServerIP:      "203.0.113.7",
-				ServerIPv6Net: "2001:db8:1234::",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::1"},
-			},
 		},
 		{
-			name:          "public ipv6 normalizes configured ExternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "2001:0db8:1234:0000:0000:0000:0000:0005"},
-			},
+			name:            "public ipv6 normalizes the RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:0db8:1234:0000:0000:0000:0000:0005"},
 			server: &hrobotmodels.Server{
-				Name:          "foobar",
-				ServerIP:      "203.0.113.7",
-				ServerIPv6Net: "2001:db8:1234::",
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
 			},
 			expected: []corev1.NodeAddress{
 				{Type: corev1.NodeHostName, Address: "foobar"},
@@ -878,72 +865,65 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:          "public ipv6 without IPv6 subnet ignores stale invalid ExternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				// Written by versions that appended "1" to an empty ServerIPv6Net.
-				{Type: corev1.NodeExternalIP, Address: "1"},
+			name:            "public ipv6 fails on an IPv4 RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "203.0.113.7"},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
 			},
+			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: not an IPv6 address: 203.0.113.7",
+		},
+		{
+			name:            "public ipv6 fails on an IPv4-mapped RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "::ffff:203.0.113.7"},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: not an IPv6 address: 203.0.113.7",
+		},
+		{
+			name:            "public ipv6 fails on an invalid RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: invalid ip address: not-an-ip",
+		},
+		{
+			name:            "public ipv6 without IPv6 subnet fails on an invalid RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+			server: &hrobotmodels.Server{
+				Name:     "foobar",
+				ServerIP: "203.0.113.7",
+			},
+			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: invalid ip address: not-an-ip",
+		},
+		{
+			name:            "public ipv4 ignores an invalid RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv4,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
 			},
 			expected: []corev1.NodeAddress{
 				{Type: corev1.NodeHostName, Address: "foobar"},
-			},
-		},
-		{
-			name:          "public ipv6 with malformed IPv6 subnet ignores stale invalid ExternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				// Written by versions that appended "1" to a ServerIPv6Net with a prefix length.
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::/641"},
-			},
-			server: &hrobotmodels.Server{
-				Name:          "foobar",
-				ServerIP:      "203.0.113.7",
-				ServerIPv6Net: "2001:db8:1234::/64",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-			},
-		},
-		{
-			name:          "public ipv6 without IPv6 subnet ignores configured IPv4 ExternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
-				{Type: corev1.NodeExternalIP, Address: "::ffff:203.0.113.7"},
-			},
-			server: &hrobotmodels.Server{
-				Name:     "foobar",
-				ServerIP: "203.0.113.7",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
 		},
 		{
-			name:          "public ipv6 without IPv6 subnet ignores configured InternalIP",
-			addressFamily: config.AddressFamilyIPv6,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeInternalIP, Address: "2001:db8:1234::5"},
-			},
-			server: &hrobotmodels.Server{
-				Name:     "foobar",
-				ServerIP: "203.0.113.7",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeInternalIP, Address: "2001:db8:1234::5"},
-			},
-		},
-		{
-			name:          "public ipv4 without IPv6 subnet ignores configured ExternalIP",
-			addressFamily: config.AddressFamilyIPv4,
-			nodeStatusNodeAddresses: []corev1.NodeAddress{
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-			},
+			name:            "public ipv4 ignores the RobotExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv4,
+			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
@@ -963,6 +943,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			assert.NoError(t, err)
 
 			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Annotations: test.nodeAnnotations},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{},
 				},
@@ -971,7 +952,14 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				node.Status.Addresses = test.nodeStatusNodeAddresses
 			}
 
-			addresses := robotNodeAddresses(test.server, node, cfg, &MockEventRecorder{})
+			addresses, err := robotNodeAddresses(test.server, node, cfg, &MockEventRecorder{})
+
+			if test.expectedErr != "" {
+				assert.EqualError(t, err, test.expectedErr)
+				assert.Nil(t, addresses)
+				return
+			}
+			assert.NoError(t, err)
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("%s: expected addresses %+v but got %+v", test.name, test.expected, addresses)

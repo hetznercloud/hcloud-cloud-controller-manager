@@ -22,6 +22,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -72,6 +73,10 @@ func (a IP) FromService(svc *corev1.Service) (net.IP, error) {
 	return parse(string(a), svc, parseIP)
 }
 
+func (a IP) FromNode(node *corev1.Node) (net.IP, error) {
+	return parse(string(a), node, parseIP)
+}
+
 func (a Protocol) FromService(svc *corev1.Service) (hcloud.LoadBalancerServiceProtocol, error) {
 	return parse(string(a), svc, parseServiceProtocol)
 }
@@ -84,19 +89,19 @@ func (a Certificates) FromService(svc *corev1.Service) ([]*hcloud.Certificate, e
 	return parse(string(a), svc, parseCertificates)
 }
 
-// value returns the raw value of the annotation with name from svc.
-func value(name string, svc *corev1.Service) (string, error) {
-	v, ok := svc.Annotations[name]
+// value returns the raw value of the annotation with name from obj.
+func value(name string, obj metav1.Object) (string, error) {
+	v, ok := obj.GetAnnotations()[name]
 	if !ok {
 		return "", fmt.Errorf("%s: %w", name, ErrNotSet)
 	}
 	return v, nil
 }
 
-func parse[T any](name string, svc *corev1.Service, convert func(string) (T, error)) (T, error) {
+func parse[T any](name string, obj metav1.Object, convert func(string) (T, error)) (T, error) {
 	var zero T
 
-	v, err := value(name, svc)
+	v, err := value(name, obj)
 	if err != nil {
 		return zero, err
 	}
