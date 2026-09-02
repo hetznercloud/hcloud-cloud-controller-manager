@@ -58,13 +58,12 @@ repos:
     hooks:
       - id: prettier
         name: prettier
+        # Ignored files are listed in .prettierignore, so that they also apply
+        # to editor integrations and manual `prettier` runs.
         entry: prettier --write --ignore-unknown
         language: node
-        types: [text]
-        require_serial: false
+        types_or: [markdown, yaml]
         additional_dependencies: [prettier@3.9.6]
-        files: \.(md|ya?ml)$
-        exclude: ^(CHANGELOG.md|chart/templates/.*|chart/.snapshots/.*|deploy/.*|docs/reference/load_balancer_.*\.md|)$
 
   - repo: local
     hooks:
