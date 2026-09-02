@@ -45,6 +45,7 @@ const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 	InvalidIPv6Net          = "InvalidIPv6Net"
+	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
 	instancesV2Subsystem    = "instances_v2"
 )
 
@@ -281,18 +282,15 @@ func robotNodeAddresses(
 	family := cfg.Instance.AddressFamily
 	dualStack := family == config.AddressFamilyDualStack
 	ipv4 := family == config.AddressFamilyIPv4 || dualStack
-	ipv6 := family == config.AddressFamilyIPv6 || dualStack
 
 	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
-	if ipv6 {
-		hostAddress, err := robotIPv6ExternalIP(server, node, recorder)
-		if err != nil {
-			return nil, err
-		}
-		if hostAddress != "" {
-			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
-		}
+	hostAddress, err := robotIPv6ExternalIP(ipv4, server, node, recorder)
+	if err != nil {
+		return nil, err
+	}
+	if hostAddress != "" {
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
 	}
 
 	if ipv4 {
@@ -307,10 +305,26 @@ func robotNodeAddresses(
 }
 
 func robotIPv6ExternalIP(
+	ipv4 bool,
 	server *hrobotmodels.Server,
 	node *corev1.Node,
 	recorder record.EventRecorder,
 ) (string, error) {
+	// The value only becomes relevant once IPv6 is enabled, so we do not look at it.
+	if ipv4 {
+		if _, ok := node.GetAnnotations()[string(annotation.RobotExternalIPv6)]; ok {
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				IgnoredExternalIPv6,
+				"The annotation %s is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
+				annotation.RobotExternalIPv6,
+			)
+		}
+
+		return "", nil
+	}
+
 	ip, err := annotation.RobotExternalIPv6.FromNode(node)
 
 	switch {

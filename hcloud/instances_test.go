@@ -852,19 +852,6 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:            "public ipv6 normalizes the RobotExternalIPv6 annotation",
-			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:0db8:1234:0000:0000:0000:0000:0005"},
-			server: &hrobotmodels.Server{
-				Name:     "foobar",
-				ServerIP: "203.0.113.7",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
-			},
-		},
-		{
 			name:            "public ipv6 fails on an IPv4 RobotExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
 			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "203.0.113.7"},

@@ -32,7 +32,7 @@ The Node controller adds information about the server to the Node object. The va
       instance.hetzner.cloud/robot-external-ipv6=2a01:f48:111:4221::5
     ```
 
-    Without the annotation, and if Robot reports no network, the Node gets no IPv6 ExternalIP. If the annotation does not hold a valid IPv6 address, we fail to determine the instance metadata, so that we do not silently configure a different address than the one you asked for.
+    Without the annotation, and if Robot reports no network, the Node gets no IPv6 ExternalIP. If the annotation does not hold a valid IPv6 address, we fail to determine the instance metadata, so that we do not silently configure a different address than the one you asked for. If the address family is configured as IPv4 only, the annotation has no effect: we ignore it and emit an `IgnoredExternalIPv6` warning event on the Node.
 
   - Automatic reporting of private IPs in a vSwitch to `Node.status.addresses` are not supported.
   - By default, we pass along InternalIPs configured via the kubelet flag `--node-ip`. This can be disabled by setting the environment variable `ROBOT_FORWARD_INTERNAL_IPS` to `false`. It is not allowed to configure the same IP for InternalIP and ExternalIP.
