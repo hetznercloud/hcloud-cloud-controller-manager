@@ -25,11 +25,17 @@ type LoadBalancerOps interface {
 	GetByName(ctx context.Context, name string) (*hcloud.LoadBalancer, error)
 	GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, error)
 	GetByK8SServiceUID(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancer, error)
-	Create(ctx context.Context, service *corev1.Service) (*hcloud.LoadBalancer, error)
+	Create(ctx context.Context, service *corev1.Service, spec lbspec.Spec) (*hcloud.LoadBalancer, error)
 	Delete(ctx context.Context, lb *hcloud.LoadBalancer) error
-	ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error)
-	ReconcileHCLBTargets(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, nodes []*corev1.Node) (bool, error)
-	ReconcileHCLBServices(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error)
+	ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec) (bool, error)
+	ReconcileHCLBTargets(
+		ctx context.Context,
+		lb *hcloud.LoadBalancer,
+		svc *corev1.Service,
+		spec lbspec.Spec,
+		nodes []*corev1.Node,
+	) (bool, error)
+	ReconcileHCLBServices(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec) (bool, error)
 }
 
 type loadBalancers struct {
@@ -121,14 +127,14 @@ func (l *loadBalancers) EnsureLoadBalancer(
 
 	// Load Balancer does not exist yet
 	if errors.Is(err, hcops.ErrNotFound) {
-		lb, err = l.lbOps.Create(ctx, svc)
+		lb, err = l.lbOps.Create(ctx, svc, spec)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	lbChanged, err := l.lbOps.ReconcileHCLB(ctx, lb, svc)
+	lbChanged, err := l.lbOps.ReconcileHCLB(ctx, lb, svc, spec)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -149,13 +155,13 @@ func (l *loadBalancers) EnsureLoadBalancer(
 		reload = false
 	}
 
-	servicesChanged, err := l.lbOps.ReconcileHCLBServices(ctx, lb, svc)
+	servicesChanged, err := l.lbOps.ReconcileHCLBServices(ctx, lb, svc, spec)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	reload = reload || servicesChanged
 
-	targetsChanged, err := l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes)
+	targetsChanged, err := l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, spec, selectedNodes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -255,13 +261,13 @@ func (l *loadBalancers) UpdateLoadBalancer(
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err = l.lbOps.ReconcileHCLB(ctx, lb, svc); err != nil {
+	if _, err = l.lbOps.ReconcileHCLB(ctx, lb, svc, spec); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, selectedNodes); err != nil {
+	if _, err = l.lbOps.ReconcileHCLBTargets(ctx, lb, svc, spec, selectedNodes); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if _, err = l.lbOps.ReconcileHCLBServices(ctx, lb, svc); err != nil {
+	if _, err = l.lbOps.ReconcileHCLBServices(ctx, lb, svc, spec); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil

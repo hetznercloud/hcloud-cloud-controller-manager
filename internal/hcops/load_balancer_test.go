@@ -503,14 +503,6 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			lb: &hcloud.LoadBalancer{ID: 8},
 		},
 		{
-			name: "fail on invalid Load Balancer algorithm type",
-			serviceAnnotations: map[string]string{
-				string(annotation.LBLocation):      "nbg1",
-				string(annotation.LBAlgorithmType): "invalidType",
-			},
-			err: fmt.Errorf("hcops/LoadBalancerOps.Create: 1 Load Balancer annotation(s) are invalid"),
-		},
-		{
 			name: "disable public interface",
 			serviceAnnotations: map[string]string{
 				string(annotation.LBName):                 "lb-with-priv",
@@ -561,7 +553,7 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 			}
 			maps.Copy(service.Annotations, tt.serviceAnnotations)
 
-			lb, err := fx.LBOps.Create(fx.Ctx, service)
+			lb, err := fx.LBOps.Create(fx.Ctx, service, fx.ResolveSpec(service))
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -625,6 +617,7 @@ type LBReconcilementTestCase struct {
 
 	// set during test execution
 	service *corev1.Service
+	spec    lbspec.Spec
 	fx      *hcops.LoadBalancerOpsFixture
 }
 
@@ -644,6 +637,7 @@ func (tt *LBReconcilementTestCase) run(t *testing.T) {
 		}
 	}
 	maps.Copy(tt.service.Annotations, tt.serviceAnnotations)
+	tt.spec = tt.fx.ResolveSpec(tt.service)
 	if tt.mock != nil {
 		tt.mock(t, tt)
 	}
@@ -677,30 +671,9 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
-			},
-		},
-		{
-			name: "update to invalid algorithm",
-			serviceAnnotations: map[string]string{
-				string(annotation.LBAlgorithmType): "invalidType",
-			},
-			initialLB: &hcloud.LoadBalancer{
-				ID: 2,
-				Algorithm: hcloud.LoadBalancerAlgorithm{
-					Type: hcloud.LoadBalancerAlgorithmTypeRoundRobin,
-				},
-				PublicNet: hcloud.LoadBalancerPublicNet{
-					Enabled: true,
-				},
-			},
-			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
-				assert.EqualError(t, err,
-					"hcops/LoadBalancerOps.ReconcileHCLB: 1 Load Balancer annotation(s) are invalid")
-				assert.False(t, changed)
 			},
 		},
 		{
@@ -718,7 +691,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -749,7 +722,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -782,7 +755,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -802,7 +775,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -822,7 +795,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -849,7 +822,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -869,7 +842,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -896,7 +869,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -923,7 +896,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -968,7 +941,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, attachAction).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -990,7 +963,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBOps.NetworkID = tt.initialLB.PrivateNet[0].Network.ID
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1015,7 +988,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1043,7 +1016,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1077,7 +1050,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1111,7 +1084,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1133,7 +1106,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.LBOps.NetworkID = tt.initialLB.PrivateNet[0].Network.ID
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1157,7 +1130,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1183,7 +1156,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1200,7 +1173,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1224,7 +1197,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1241,7 +1214,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1275,7 +1248,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(&updated, nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 				assert.Equal(t, tt.serviceUID, tt.initialLB.Labels[lbspec.LabelServiceUID])
@@ -1312,7 +1285,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(&updated, nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 				assert.Equal(t, tt.serviceUID, tt.initialLB.Labels[lbspec.LabelServiceUID])
@@ -1320,7 +1293,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 
 				// The stale label must actually be replaced, otherwise every
 				// reconcile issues the same update again.
-				changed, err = tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err = tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 				tt.fx.LBClient.AssertNumberOfCalls(t, "Update", 1)
@@ -1351,7 +1324,7 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 					Return(&updated, nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 				assert.Equal(t, "new-name", tt.initialLB.Name)
@@ -1414,7 +1387,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.MockListRobotServers(tt.robotServers, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1479,7 +1452,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.MockListRobotServers(tt.robotServers, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1508,7 +1481,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				// will fail if an action would be taken instead.
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1536,7 +1509,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				// Nothing to mock because no action will be taken besides emitting an event
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1574,7 +1547,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.MockListRobotServers(nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1615,7 +1588,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.MockListRobotServers(nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1662,7 +1635,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.MockListRobotServers(nil, nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1721,7 +1694,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1754,7 +1727,7 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				tt.fx.LBOps.NetworkID = 4711
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.k8sNodes)
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.False(t, changed)
 			},
@@ -1781,7 +1754,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				},
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				_, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				_, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 			},
 		},
@@ -1823,7 +1796,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1860,7 +1833,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				})
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.EqualError(t, err,
 					"hcops/LoadBalancerOps.ReconcileHCLBServices: invalid input in field 'http' (invalid_input): "+
 						"invalid fields: http.timeout_idle (must be between 5 and 3600)")
@@ -1900,7 +1873,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1941,7 +1914,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -1994,7 +1967,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -2046,7 +2019,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},
@@ -2088,7 +2061,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
-				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service)
+				changed, err := tt.fx.LBOps.ReconcileHCLBServices(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
 			},

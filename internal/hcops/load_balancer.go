@@ -113,15 +113,13 @@ func (l *LoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBa
 
 // Create creates a new Load Balancer using the Hetzner Cloud API.
 //
-// It adds annotations identifying the HC Load Balancer to svc.
-func (l *LoadBalancerOps) Create(ctx context.Context, svc *corev1.Service) (*hcloud.LoadBalancer, error) {
+// svc is only used to report events about the created Load Balancer.
+func (l *LoadBalancerOps) Create(
+	ctx context.Context, svc *corev1.Service, spec lbspec.Spec,
+) (*hcloud.LoadBalancer, error) {
 	const op = "hcops/LoadBalancerOps.Create"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
 	if spec.Location == "" && spec.NetworkZone == "" {
 		return nil, fmt.Errorf("%s: neither %s nor %s set", op, annotation.LBLocation, annotation.LBNetworkZone)
 	}
@@ -162,18 +160,16 @@ func (l *LoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) e
 	return nil
 }
 
-// ReconcileHCLB configures the Hetzner Cloud Load Balancer to match what is
-// defined for the K8S Load Balancer svc.
-func (l *LoadBalancerOps) ReconcileHCLB(ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service) (bool, error) {
+// ReconcileHCLB configures the Hetzner Cloud Load Balancer to match spec.
+//
+// svc is only used to report events about the Load Balancer.
+func (l *LoadBalancerOps) ReconcileHCLB(
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec,
+) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLB"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var changed bool
-
-	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
-	if err != nil {
-		return changed, fmt.Errorf("%s: %w", op, err)
-	}
 
 	labelSet, err := l.changeHCLBInfo(ctx, lb, spec)
 	if err != nil {
@@ -469,7 +465,7 @@ func (l *LoadBalancerOps) togglePublicInterface(ctx context.Context, lb *hcloud.
 // ReconcileHCLBTargets adds or removes target nodes from the Hetzner Cloud
 // Load Balancer when nodes are added or removed to the K8S cluster.
 func (l *LoadBalancerOps) ReconcileHCLBTargets(
-	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, nodes []*corev1.Node,
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec, nodes []*corev1.Node,
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLBTargets"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
@@ -497,11 +493,6 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 		changed bool
 	)
-
-	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
-	if err != nil {
-		return changed, fmt.Errorf("%s: %w", op, err)
-	}
 
 	privateIPEnabled := spec.UsePrivateIP
 	if privateIPEnabled && l.NetworkID == 0 {
@@ -782,17 +773,12 @@ func (l *LoadBalancerOps) emitMaxTargetsReachedError(node *corev1.Node, svc *cor
 // ReconcileHCLBServices synchronizes services exposed by the Hetzner Cloud
 // Load Balancer with the kubernetes cluster.
 func (l *LoadBalancerOps) ReconcileHCLBServices(
-	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service,
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec,
 ) (bool, error) {
 	const op = "hcops/LoadBalancerOps.ReconcileHCLBServices"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	var changed bool
-
-	spec, err := lbspec.Resolve(l.Recorder, svc, l.Cfg.LoadBalancer)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
 
 	if err := l.reconcileOwnedCertificate(ctx, spec); err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)

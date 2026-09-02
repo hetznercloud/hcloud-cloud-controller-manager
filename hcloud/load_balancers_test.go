@@ -253,16 +253,16 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 			On("GetByName", tt.Ctx, lbName).
 			Return(nil, hcops.ErrNotFound)
 		tt.LBOps.
-			On("Create", tt.Ctx, tt.Service).
+			On("Create", tt.Ctx, tt.Service, tt.Spec).
 			Return(tt.LB, nil)
 		tt.LBOps.
-			On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
+			On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).
 			Return(false, nil)
 		tt.LBOps.
-			On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
+			On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).
 			Return(false, nil)
 		tt.LBOps.
-			On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
+			On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).
 			Return(false, nil)
 	}
 
@@ -506,16 +506,16 @@ func TestLoadBalancers_EnsureLoadBalancer_CreateLoadBalancer(t *testing.T) {
 					On("GetByName", tt.Ctx, "priv-net-only").
 					Return(nil, hcops.ErrNotFound)
 				tt.LBOps.
-					On("Create", tt.Ctx, tt.Service).
+					On("Create", tt.Ctx, tt.Service, tt.Spec).
 					Return(tt.LB, nil)
 				tt.LBOps.
-					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).
+					On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).
 					Return(false, nil)
 				tt.LBOps.
-					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).
+					On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).
 					Return(false, nil)
 				tt.LBOps.
-					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).
+					On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).
 					Return(false, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -593,9 +593,9 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				_, err := tt.LoadBalancers.EnsureLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -615,9 +615,9 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(true, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
 				tt.LBOps.On("GetByID", tt.Ctx, tt.LB.ID).Times(1).Return(tt.LB, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -638,9 +638,9 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(true, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(true, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
 				tt.LBOps.On("GetByID", tt.Ctx, tt.LB.ID).Times(1).Return(tt.LB, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -661,9 +661,9 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(true, nil)
 				tt.LBOps.On("GetByID", tt.Ctx, tt.LB.ID).Times(1).Return(tt.LB, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -686,9 +686,9 @@ func TestLoadBalancer_EnsureLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
 				tt.LBOps.On("GetByName", tt.Ctx, "pre-existing-lb").Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(true, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(true, nil)
 				tt.LBOps.On("GetByID", tt.Ctx, tt.LB.ID).Times(1).Return(tt.LB, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
@@ -731,9 +731,9 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			},
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				err := tt.LoadBalancers.UpdateLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
@@ -754,9 +754,9 @@ func TestLoadBalancer_UpdateLoadBalancer(t *testing.T) {
 			Mock: func(_ *testing.T, tt *LoadBalancerTestCase) {
 				tt.LBOps.On("GetByK8SServiceUID", tt.Ctx, tt.Service).Return(nil, hcops.ErrNotFound)
 				tt.LBOps.On("GetByName", tt.Ctx, "previously-created-lb").Return(tt.LB, nil)
-				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Nodes).Return(false, nil)
-				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLB", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBTargets", tt.Ctx, tt.LB, tt.Service, tt.Spec, tt.Nodes).Return(false, nil)
+				tt.LBOps.On("ReconcileHCLBServices", tt.Ctx, tt.LB, tt.Service, tt.Spec).Return(false, nil)
 			},
 			Perform: func(t *testing.T, tt *LoadBalancerTestCase) {
 				err := tt.LoadBalancers.UpdateLoadBalancer(tt.Ctx, tt.ClusterName, tt.Service, tt.Nodes)
