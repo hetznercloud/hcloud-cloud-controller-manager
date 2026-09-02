@@ -139,8 +139,24 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 	return t, nil
 }
 
-func (t *ConstantDocTable) String(hasReadOnlyColumn bool) string {
+func (t *ConstantDocTable) hasReadOnly() bool {
+	for _, entry := range t.entries {
+		if entry.Internal {
+			continue
+		}
+
+		if entry.ReadOnly {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (t *ConstantDocTable) String() string {
 	tableStr := strings.Builder{}
+
+	hasReadOnlyColumn := t.hasReadOnly()
 
 	if hasReadOnlyColumn {
 		tableStr.WriteString("| Name | Type | Default | Read-only | Description |\n")
@@ -246,7 +262,7 @@ func parseMetadataValue(line, key string) string {
 	return ""
 }
 
-func generateDocs(templatePath string, constFilePath string, outputPath string, hasReadOnlyColumn bool) error {
+func generateDocs(templatePath string, constFilePath string, outputPath string) error {
 	// Read template file
 	templateContent, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -271,7 +287,7 @@ func generateDocs(templatePath string, constFilePath string, outputPath string, 
 		return fmt.Errorf("error parsing template: %w", err)
 	}
 
-	tmplData := TemplateData{ConstTable: docTable.String(hasReadOnlyColumn)}
+	tmplData := TemplateData{ConstTable: docTable.String()}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, tmplData); err != nil {
 		return fmt.Errorf("error executing template: %w", err)
@@ -295,23 +311,29 @@ func generateDocs(templatePath string, constFilePath string, outputPath string, 
 
 //go:generate go run $GOFILE
 func main() {
-	// Generate Load Balancer annotations documentation
-	lbTemplatePath := "./load_balancer_annotations.md.tmpl"
-	lbAnnotationsPath := "../internal/annotation/load_balancer.go"
-	lbOutputPath := "../docs/reference/load_balancer_annotations.md"
-
-	// Generate Load Balancer env documentation
-	lbEnvTemplatePath := "./load_balancer_envs.md.tmpl"
-	lbEnvPath := "../internal/config/load_balancer_envs.go"
-	lbEnvOutputPath := "../docs/reference/load_balancer_envs.md"
-
-	if err := generateDocs(lbTemplatePath, lbAnnotationsPath, lbOutputPath, true); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+	docs := []struct {
+		TemplatePath string
+		SourcePath   string
+		TargetPath   string
+	}{
+		{
+			// Generate Load Balancer annotations documentation
+			TemplatePath: "./load_balancer_annotations.md.tmpl",
+			SourcePath:   "../internal/annotation/load_balancer.go",
+			TargetPath:   "../docs/reference/load_balancer_annotations.md",
+		},
+		{
+			// Generate Load Balancer env documentation
+			TemplatePath: "./load_balancer_envs.md.tmpl",
+			SourcePath:   "../internal/config/load_balancer_envs.go",
+			TargetPath:   "../docs/reference/load_balancer_envs.md",
+		},
 	}
 
-	if err := generateDocs(lbEnvTemplatePath, lbEnvPath, lbEnvOutputPath, false); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+	for _, doc := range docs {
+		if err := generateDocs(doc.TemplatePath, doc.SourcePath, doc.TargetPath); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 }
