@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.36.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.36.1)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.36.0...v1.36.1)
+
+### Bug Fixes
+
+- **instances**: skip IPv6 ExternalIP for Robot servers without a subnet (#1337) ([3ec2945](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/3ec2945e7c1ace5129e09e51132d26aad51a2ca4))
+
 ## [v1.36.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.36.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.35.0...v1.36.0)
