@@ -16,7 +16,7 @@ package annotation
 import (
 	"errors"
 	"fmt"
-	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -68,7 +68,7 @@ func (a Strings) FromService(svc *corev1.Service) ([]string, error) {
 	})
 }
 
-func (a IP) FromService(svc *corev1.Service) (net.IP, error) {
+func (a IP) FromService(svc *corev1.Service) (netip.Addr, error) {
 	return parse(string(a), svc, parseIP)
 }
 
@@ -88,7 +88,7 @@ func (a Certificates) FromService(svc *corev1.Service) ([]*hcloud.Certificate, e
 func value(name string, svc *corev1.Service) (string, error) {
 	v, ok := svc.Annotations[name]
 	if !ok {
-		return "", fmt.Errorf("%s: %w", name, ErrNotSet)
+		return "", fmt.Errorf("%q: %w", name, ErrNotSet)
 	}
 	return v, nil
 }
@@ -103,16 +103,16 @@ func parse[T any](name string, svc *corev1.Service, convert func(string) (T, err
 
 	converted, err := convert(v)
 	if err != nil {
-		return zero, fmt.Errorf("%s: %w", name, err)
+		return zero, fmt.Errorf("%q: %w", name, err)
 	}
 
 	return converted, nil
 }
 
-func parseIP(v string) (net.IP, error) {
-	ip := net.ParseIP(v)
-	if ip == nil {
-		return nil, fmt.Errorf("invalid ip address: %s", v)
+func parseIP(v string) (netip.Addr, error) {
+	ip, err := netip.ParseAddr(v)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("invalid ip address: %s", v)
 	}
 	return ip, nil
 }
@@ -125,7 +125,7 @@ func parseAlgorithmType(v string) (hcloud.LoadBalancerAlgorithmType, error) {
 		hcloud.LoadBalancerAlgorithmTypeRoundRobin:
 		return algorithm, nil
 	default:
-		return "", fmt.Errorf("invalid: %s", v)
+		return "", fmt.Errorf("invalid algorithm type: %s", v)
 	}
 }
 
@@ -138,7 +138,7 @@ func parseServiceProtocol(v string) (hcloud.LoadBalancerServiceProtocol, error) 
 		hcloud.LoadBalancerServiceProtocolHTTPS:
 		return protocol, nil
 	default:
-		return "", fmt.Errorf("invalid: %s", v)
+		return "", fmt.Errorf("invalid protocol: %s", v)
 	}
 }
 

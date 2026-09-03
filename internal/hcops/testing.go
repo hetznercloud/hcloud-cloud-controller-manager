@@ -10,9 +10,11 @@ import (
 	"time"
 
 	hrobotmodels "github.com/syself/hrobot-go/models"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -85,6 +87,19 @@ func newLBTypeCacheFixture(t *testing.T) *cache.Cache[hcloud.LoadBalancerType] {
 
 	client := hcloud.NewClient(hcloud.WithEndpoint(server.URL))
 	return cache.NewLoadBalancerTypeCache(client, cache.ModeAll, time.Minute)
+}
+
+// ResolveSpec resolves the desired Load Balancer state for svc, the way the
+// cloud provider does before it calls into [LoadBalancerOps]. Invalid
+// annotations fail the test.
+func (fx *LoadBalancerOpsFixture) ResolveSpec(svc *corev1.Service) lbspec.Spec {
+	fx.T.Helper()
+
+	spec, err := lbspec.Resolve(fx.LBOps.Recorder, svc, fx.LBOps.Cfg.LoadBalancer)
+	if err != nil {
+		fx.T.Fatalf("resolve Load Balancer spec: %v", err)
+	}
+	return spec
 }
 
 func (fx *LoadBalancerOpsFixture) MockGetByID(lb *hcloud.LoadBalancer, err error) {
