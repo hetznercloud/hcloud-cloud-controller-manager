@@ -31,6 +31,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
@@ -44,6 +45,7 @@ const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 	InvalidIPv6Net          = "InvalidIPv6Net"
+	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
 	instancesV2Subsystem    = "instances_v2"
 )
 
@@ -276,7 +278,7 @@ func robotNodeAddresses(
 	node *corev1.Node,
 	cfg config.HCCMConfiguration,
 	recorder record.EventRecorder,
-) []corev1.NodeAddress {
+) ([]corev1.NodeAddress, error) {
 	family := cfg.Instance.AddressFamily
 	dualStack := family == config.AddressFamilyDualStack
 	ipv4 := family == config.AddressFamilyIPv4 || dualStack
@@ -284,20 +286,12 @@ func robotNodeAddresses(
 
 	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
-	// Robot servers do not necessarily have an IPv6 subnet assigned, in which case the field is empty.
-	if ipv6 && server.ServerIPv6Net != "" {
-		if hostAddress := robotIPv6HostAddress(server.ServerIPv6Net); hostAddress != "" {
-			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
-		} else {
-			utils.WarnEventLogf(
-				recorder,
-				node,
-				InvalidIPv6Net,
-				"Robot server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
-				server.Name,
-				server.ServerIPv6Net,
-			)
-		}
+	hostAddress, err := robotIPv6ExternalIP(ipv6, server, node, recorder)
+	if err != nil {
+		return nil, err
+	}
+	if hostAddress != "" {
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress})
 	}
 
 	if ipv4 {
@@ -308,7 +302,59 @@ func robotNodeAddresses(
 		addresses = appendForwardedInternalIPs(addresses, node, family, recorder)
 	}
 
-	return addresses
+	return addresses, nil
+}
+
+func robotIPv6ExternalIP(
+	ipv6 bool,
+	server *hrobotmodels.Server,
+	node *corev1.Node,
+	recorder record.EventRecorder,
+) (string, error) {
+	// The value only becomes relevant once IPv6 is enabled, so we do not look at it.
+	if !ipv6 {
+		if _, ok := node.GetAnnotations()[string(annotation.RobotExternalIPv6)]; ok {
+			utils.WarnEventLogf(
+				recorder,
+				node,
+				IgnoredExternalIPv6,
+				"The annotation %s is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
+				annotation.RobotExternalIPv6,
+			)
+		}
+
+		return "", nil
+	}
+
+	ip, err := annotation.RobotExternalIPv6.FromNode(node)
+
+	switch {
+	case err == nil && ip.To4() == nil:
+		return ip.String(), nil
+	case err == nil:
+		return "", fmt.Errorf("invalid Node annotation: %s: not an IPv6 address: %s", annotation.RobotExternalIPv6, ip)
+	case !errors.Is(err, annotation.ErrNotSet):
+		return "", fmt.Errorf("invalid Node annotation: %w", err)
+	}
+
+	// Robot servers do not necessarily have an IPv6 subnet assigned, in which case the field is empty.
+	if server.ServerIPv6Net == "" {
+		return "", nil
+	}
+
+	hostAddress := robotIPv6HostAddress(server.ServerIPv6Net)
+	if hostAddress == "" {
+		utils.WarnEventLogf(
+			recorder,
+			node,
+			InvalidIPv6Net,
+			"Robot server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
+			server.Name,
+			server.ServerIPv6Net,
+		)
+	}
+
+	return hostAddress, nil
 }
 
 func robotIPv6HostAddress(subnet string) string {
@@ -427,10 +473,15 @@ func (s robotServer) IsShutdown() (bool, error) {
 }
 
 func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+	nodeAddresses, err := robotNodeAddresses(s.Server, node, cfg, s.recorder)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromRobotServerNumber(s.ServerNumber),
 		InstanceType:  getInstanceTypeOfRobotServer(s.Server),
-		NodeAddresses: robotNodeAddresses(s.Server, node, cfg, s.recorder),
+		NodeAddresses: nodeAddresses,
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
