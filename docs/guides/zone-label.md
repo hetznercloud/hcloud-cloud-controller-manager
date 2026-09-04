@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Disabling the zone label"
+tags: []
+language: "en"
+description: ""
+docs_type: ["getting_started"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "Getting Started", "Disabling the zone label"]
+scrape_type: "whole"
+priority: 70
+---
+-->
+
 # Zone Label
 
 When a node is initialized, the hcloud-cloud-controller-manager sets these topology labels on it:

@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Setup"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Load Balancer", "Setup"]
+scrape_type: "whole"
+priority: 50
+---
+-->
+
 # Configuration
 
 Load Balancers are configured via Kubernetes [annotations](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/). You can find a full list of annotations and their description in [this table](../../reference/load_balancer_annotations.md).

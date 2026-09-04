@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Migrating from Syself"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Robot", "Migrating from Syself"]
+scrape_type: "whole"
+priority: 50
+---
+-->
+
 # Migrating from [`syself/hetzner-cloud-controller-manager`](https://github.com/syself/hetzner-cloud-controller-manager)
 
 If you have previously used the Hetzner Cloud Controller Manager by Syself, you can migrate to hcloud-cloud-controller-manager. We have tried to keep the configuration & features mostly the same and backwards compatible, but there are some changes you need to be aware of.
