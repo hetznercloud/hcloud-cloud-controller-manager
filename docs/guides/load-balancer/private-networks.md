@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Create a Load Balancer with private network"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Load Balancer", "Create a Load Balancer with private network"]
+scrape_type: "whole"
+priority: 90
+---
+-->
+
 # Load Balancers with Private Networks
 
 Load Balancer traffic to the targets can be routed via Private Networks. To achieve this, ensure you have set up a cluster with Private Network support according to [this guide](../private-network-setup.md).
@@ -23,7 +39,7 @@ spec:
   type: LoadBalancer
 ```
 
-For IPVS based plugins (kube-router, kube-proxy in ipvs mode, etc...) make sure you supply 'load-balancer.hetzner.cloud/disable-private-ingress: "true"' annotation to your service or set "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS" environment variable to true on hcloud-cloud-controller-manager deployment as mentioned in a paragraph below. Otherwise, network plugin installs load balancer's IP address on system's dummy interface effectively looping IPVS system in a cycle. In such scenario cluster nodes won't ever pass load balancer's health probes.
+For IPVS based plugins (kube-router, kube-proxy in ipvs mode, etc...) make sure you supply `load-balancer.hetzner.cloud/disable-private-ingress: "true"` annotation to your service, or set "HCLOUD_LOAD_BALANCERS_DISABLE_PRIVATE_INGRESS" environment variable to "true" on `hcloud-cloud-controller-manager` deployment as mentioned in a paragraph below. Otherwise, network plugin installs load balancer's IP address on system's dummy interface effectively looping IPVS system in a cycle. In such scenario cluster nodes won't ever pass load balancer's health probes.
 
 ## Join Load Balancer to a Subnet
 
