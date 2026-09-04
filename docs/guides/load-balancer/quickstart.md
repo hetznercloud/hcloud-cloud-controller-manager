@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Create a Load Balancer"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Load Balancer", "Create a Load Balancer"]
+scrape_type: "whole"
+priority: 100
+---
+-->
+
 # Quickstart
 
 This guide will explain how to setup a simple Load Balancer.

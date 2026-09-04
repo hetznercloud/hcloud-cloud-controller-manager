@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Deploying a cluster with NGINX Ingress"
+tags: []
+language: "en"
+description: ""
+docs_type: ["getting_started"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "Getting Started", "Deploying a cluster with NGINX Ingress"]
+scrape_type: "whole"
+priority: 90
+---
+-->
+
 # Deploying a k3s Cluster with Hetzner Cloud Controller Manager and NGINX Ingress
 
 In this tutorial, you will learn how to set up a lightweight Kubernetes cluster on **Hetzner Cloud** using **k3s**, install the **Hetzner Cloud Controller Manager (HCCM)**, and deploy the **Ingress NGINX Controller** to expose services via a **Hetzner Load Balancer**.

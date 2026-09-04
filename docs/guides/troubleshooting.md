@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Common issues"
+tags: []
+language: "en"
+description: ""
+docs_type: ["faq/troubleshooting"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Kubernetes Cloud Controller Manager", "Troubleshooting", "Common issues"]
+scrape_type: "whole"
+priority: 100
+---
+-->
+
 # Troubleshooting
 
 ## Load Balancers
