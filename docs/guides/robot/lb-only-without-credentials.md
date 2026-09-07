@@ -28,7 +28,7 @@ In this mode, the HCCM derives Load Balancer targets from the Kubernetes Node's 
 ## Setup
 
 1. Create a secret without Robot credentials:
-   
+
    ```bash
    export HCLOUD_TOKEN=<your-hcloud-token>
    export HCLOUD_NETWORK=<your-network-id>
@@ -38,7 +38,7 @@ In this mode, the HCCM derives Load Balancer targets from the Kubernetes Node's 
    ```
 
 2. Install the Helm chart with Robot enabled, node and route controllers disabled, and private IPs configured:
-   
+
    ```bash
    helm repo add hcloud https://charts.hetzner.cloud
    helm repo update hcloud
@@ -52,7 +52,7 @@ In this mode, the HCCM derives Load Balancer targets from the Kubernetes Node's 
    ```
 
 3. Verify that your Robot Nodes have a `ProviderID` and an `InternalIP`:
-   
+
    ```bash
    kubectl get nodes -o 'custom-columns=NAME:.metadata.name,PROVIDER-ID:.spec.providerID,INTERNAL-IP:.status.addresses[?(@.type=="InternalIP")].address'
    ```

@@ -21,7 +21,7 @@ Before setting up the hcloud-cloud-controller-manager you need to configure your
 1. Create a read+write API token in the [Hetzner Console](https://console.hetzner.com/) as described in [this document](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/).
 
 2. Export your Robot credentials and Hetzner Console API token as environment variables:
-   
+
    ```bash
    export HCLOUD_TOKEN=<your-hcloud-token>
    export ROBOT_USER=<your-robot-user-name>
@@ -33,7 +33,7 @@ Before setting up the hcloud-cloud-controller-manager you need to configure your
    ```
 
 3. Install the Helm chart:
-   
+
    ```bash
    helm repo add hcloud https://charts.hetzner.cloud
    helm repo update hcloud

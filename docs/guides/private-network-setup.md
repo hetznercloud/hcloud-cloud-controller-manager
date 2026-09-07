@@ -25,7 +25,7 @@ By default, the HCCM's route controller is enabled. For this reason, you need to
 1. Select the appropriate IP ranges for your cluster. You can reference the [explanation document](../explanation/private-networks.md).
 
 2. Create the Private Network from the [Hetzner Console](https://console.hetzner.com/) or via the [`hcloud-cli`](https://github.com/hetznercloud/cli):
-   
+
    ```bash
    hcloud network create --name my-network --ip-range=10.0.0.0/8
    ```
@@ -37,7 +37,7 @@ By default, the HCCM's route controller is enabled. For this reason, you need to
 5. Create a read+write API token in the [Hetzner Console](https://console.hetzner.com/) as described in [this document](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/).
 
 6. Create a secret containing your Hetzner Cloud API token and your Private Network ID or name:
-   
+
    ```bash
    kubectl -n kube-system create secret generic hcloud \
        --from-literal=token=<hcloud API token> \
@@ -45,14 +45,14 @@ By default, the HCCM's route controller is enabled. For this reason, you need to
    ```
 
 7. Add the Helm repository:
-   
+
    ```bash
    helm repo add hcloud https://charts.hetzner.cloud
    helm repo update hcloud
    ```
 
 8. Install the chart:
-   
+
    ```bash
    helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system \
        --set networking.enabled=true \
