@@ -84,7 +84,7 @@ repos:
     rev: v2.13.2
     hooks:
       - id: golangci-lint-full
-        language_version: 1.26.7 # renovate: datasource=golang-version depName=go
+        language_version: 1.26.8 # renovate: datasource=golang-version depName=go
 
   - repo: local
     hooks:
