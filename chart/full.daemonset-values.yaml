@@ -6,6 +6,7 @@ serviceAccount:
 
 monitoring:
   podMonitor:
+    enabled: true
     labels:
       environment: staging
     annotations:

@@ -5,14 +5,16 @@ kind: PodMonitor
 metadata:
   name: {{ include "hcloud-cloud-controller-manager.name" . }}
   namespace: {{ .Release.Namespace }}
+  {{- with $.Values.monitoring.podMonitor.labels }}
   labels:
-    {{- with $.Values.monitoring.podMonitor.labels }}
-      {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $.Values.monitoring.podMonitor.annotations }}
   annotations:
-    {{- range $key, $value := .Values.monitoring.podMonitor.annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
+  {{- end }}
 spec:
   {{- tpl (toYaml $.Values.monitoring.podMonitor.spec) $ | nindent 2 }}
   selector:

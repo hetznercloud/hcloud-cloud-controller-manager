@@ -193,3 +193,21 @@ spec:
         - name: token-volume
           secret:
             secretName: hcloud-token
+---
+# Source: hcloud-cloud-controller-manager/templates/podmonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: hcloud-cloud-controller-manager
+  namespace: kube-system
+  labels:
+    environment: staging
+  annotations:
+    release: "kube-prometheus-stack"
+spec:
+  podMetricsEndpoints:
+  - port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: 'hcloud-hccm'
+      app.kubernetes.io/name: 'hcloud-cloud-controller-manager'

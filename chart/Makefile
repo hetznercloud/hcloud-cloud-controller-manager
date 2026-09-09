@@ -6,15 +6,26 @@ all: lint snapshots deploy-manifests
 
 # ----- Snapshots -----
 
+# Templates gated behind .Capabilities.APIVersions are not rendered unless the
+# API is declared, as `helm template` runs without a cluster.
+API_VERSIONS = --api-versions monitoring.coreos.com/v1/PodMonitor
+
 .PHONY: snapshots-clean
 snapshots-clean:
 	rm -f .snapshots/*
 
 .snapshots/default.yaml:
-	helm template hcloud-hccm . $(RELEASE_NAMESPACE) > "$@"
+	helm template hcloud-hccm . \
+		$(RELEASE_NAMESPACE) \
+		$(API_VERSIONS) \
+		> "$@"
 
 .snapshots/%.yaml: %-values.yaml
-	helm template hcloud-hccm . $(RELEASE_NAMESPACE) -f "$<" > "$@"
+	helm template hcloud-hccm . \
+		$(RELEASE_NAMESPACE) \
+		$(API_VERSIONS) \
+		-f "$<" \
+		> "$@"
 
 .PHONY: snapshots
 snapshots: snapshots-clean .snapshots/*
