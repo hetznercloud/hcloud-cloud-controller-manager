@@ -1,7 +1,7 @@
 package annotation
 
 const (
-	// RobotExternalIPv6 configures the IPv6 address a Robot server is reachable at. We use it
-	// as the IPv6 ExternalIP of the Node instead of deriving one.
-	RobotExternalIPv6 IP = "instance.hetzner.cloud/robot-external-ipv6"
+	// ExternalIPv6 configures the IPv6 ExternalIP of the Node, instead of deriving it from the
+	// IPv6 subnet the server reports. This annotations can be set for Cloud and Robot servers.
+	ExternalIPv6 IP = "instance.hetzner.cloud/external-ipv6"
 )

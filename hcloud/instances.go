@@ -46,6 +46,7 @@ const (
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 	InvalidIPv6Net          = "InvalidIPv6Net"
 	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
+	InvalidExternalIPv6     = "InvalidExternalIPv6"
 	instancesV2Subsystem    = "instances_v2"
 )
 
@@ -107,7 +108,7 @@ func (i *instances) lookupServer(
 				return nil, nil
 			}
 
-			return hcloudServer{server}, nil
+			return hcloudServer{server, i.recorder}, nil
 		}
 
 		if i.robotClient == nil {
@@ -153,7 +154,7 @@ func (i *instances) lookupServer(
 
 	switch {
 	case cloudServer != nil:
-		return hcloudServer{cloudServer}, nil
+		return hcloudServer{cloudServer, i.recorder}, nil
 	case hrobotServer != nil:
 		return robotServer{hrobotServer, i.robotClient, i.recorder}, nil
 	default:
@@ -228,8 +229,10 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 func hcloudNodeAddresses(
 	networkID int64,
 	server *hcloud.Server,
+	node *corev1.Node,
 	cfg config.HCCMConfiguration,
-) []corev1.NodeAddress {
+	recorder record.EventRecorder,
+) ([]corev1.NodeAddress, error) {
 	var addresses []corev1.NodeAddress
 	addresses = append(
 		addresses,
@@ -247,14 +250,19 @@ func hcloudNodeAddresses(
 		)
 	}
 
-	if ipv6 && !server.PublicNet.IPv6.IsUnspecified() {
-		// For a given IPv6 network of 2001:db8:1234::/64, the instance address is 2001:db8:1234::1
-		hostAddress := server.PublicNet.IPv6.IP
-		hostAddress[len(hostAddress)-1] |= 0x01
+	ipv6Net := ""
+	if !server.PublicNet.IPv6.IsUnspecified() {
+		ipv6Net = server.PublicNet.IPv6.IP.String()
+	}
 
+	hostAddress, err := externalIPv6(ipv6, ipv6Net, server.Name, node, recorder)
+	if err != nil {
+		return nil, err
+	}
+	if hostAddress != "" {
 		addresses = append(
 			addresses,
-			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress.String()},
+			corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: hostAddress},
 		)
 	}
 
@@ -270,7 +278,7 @@ func hcloudNodeAddresses(
 		}
 	}
 
-	return addresses
+	return addresses, nil
 }
 
 func robotNodeAddresses(
@@ -286,7 +294,7 @@ func robotNodeAddresses(
 
 	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
-	hostAddress, err := robotIPv6ExternalIP(ipv6, server, node, recorder)
+	hostAddress, err := externalIPv6(ipv6, server.ServerIPv6Net, server.Name, node, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -305,59 +313,94 @@ func robotNodeAddresses(
 	return addresses, nil
 }
 
-func robotIPv6ExternalIP(
+// externalIPv6 returns an empty string if the server has no IPv6 ExternalIP. Robot does not
+// report an IPv6 subnet for every server, e.g. when IPv6 is configured on upstream network
+// equipment instead of per server, so the annotation is then the only source for the address.
+func externalIPv6(
 	ipv6 bool,
-	server *hrobotmodels.Server,
+	subnet string,
+	serverName string,
 	node *corev1.Node,
 	recorder record.EventRecorder,
 ) (string, error) {
-	// The value only becomes relevant once IPv6 is enabled, so we do not look at it.
 	if !ipv6 {
-		if _, ok := node.GetAnnotations()[string(annotation.RobotExternalIPv6)]; ok {
+		if _, ok := node.GetAnnotations()[string(annotation.ExternalIPv6)]; ok {
 			utils.WarnEventLogf(
 				recorder,
 				node,
 				IgnoredExternalIPv6,
 				"The annotation %s is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
-				annotation.RobotExternalIPv6,
+				annotation.ExternalIPv6,
 			)
 		}
 
 		return "", nil
 	}
 
-	ip, err := annotation.RobotExternalIPv6.FromNode(node)
+	ip, err := annotation.ExternalIPv6.FromNode(node)
 
 	switch {
-	case err == nil && ip.To4() == nil:
-		return ip.String(), nil
+	case err == nil && ip.To4() != nil:
+		return "", invalidExternalIPv6(
+			recorder,
+			node,
+			fmt.Errorf("%s: not an IPv6 address: %s",
+				annotation.ExternalIPv6,
+				ip,
+			),
+		)
+	case err == nil && !ip.IsGlobalUnicast():
+		return "", invalidExternalIPv6(
+			recorder,
+			node,
+			fmt.Errorf(
+				"%s: not a global unicast address: %s",
+				annotation.ExternalIPv6,
+				ip,
+			),
+		)
 	case err == nil:
-		return "", fmt.Errorf("invalid Node annotation: %s: not an IPv6 address: %s", annotation.RobotExternalIPv6, ip)
+		return ip.String(), nil
 	case !errors.Is(err, annotation.ErrNotSet):
-		return "", fmt.Errorf("invalid Node annotation: %w", err)
+		return "", invalidExternalIPv6(recorder, node, err)
 	}
 
-	// Robot servers do not necessarily have an IPv6 subnet assigned, in which case the field is empty.
-	if server.ServerIPv6Net == "" {
+	if subnet == "" {
 		return "", nil
 	}
 
-	hostAddress := robotIPv6HostAddress(server.ServerIPv6Net)
+	hostAddress := ipv6HostAddress(subnet)
 	if hostAddress == "" {
 		utils.WarnEventLogf(
 			recorder,
 			node,
 			InvalidIPv6Net,
-			"Robot server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
-			server.Name,
-			server.ServerIPv6Net,
+			"Server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
+			serverName,
+			subnet,
 		)
 	}
 
 	return hostAddress, nil
 }
 
-func robotIPv6HostAddress(subnet string) string {
+// invalidExternalIPv6 reports err to the user as well, who would otherwise only see the Node fail
+// to initialize: the cloud node controller logs the error without emitting an event.
+func invalidExternalIPv6(recorder record.EventRecorder, node *corev1.Node, err error) error {
+	utils.WarnEventLogf(
+		recorder,
+		node,
+		InvalidExternalIPv6,
+		"Invalid Node annotation: %v. As a result, the Node is not initialized",
+		err,
+	)
+
+	return fmt.Errorf("invalid Node annotation: %w", err)
+}
+
+// ipv6HostAddress returns 2001:db8:1234::1 for the subnet 2001:db8:1234::, or an empty string if
+// the subnet is not a valid IPv6 subnet.
+func ipv6HostAddress(subnet string) string {
 	addr, err := netip.ParseAddr(subnet)
 	if err != nil || !addr.Is6() || addr.Is4In6() {
 		return ""
@@ -429,17 +472,23 @@ type genericServer interface {
 
 type hcloudServer struct {
 	*hcloud.Server
+	recorder record.EventRecorder
 }
 
 func (s hcloudServer) IsShutdown() (bool, error) {
 	return s.Status == hcloud.ServerStatusOff, nil
 }
 
-func (s hcloudServer) Metadata(networkID int64, _ *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+func (s hcloudServer) Metadata(networkID int64, node *corev1.Node, cfg config.HCCMConfiguration) (*cloudprovider.InstanceMetadata, error) {
+	nodeAddresses, err := hcloudNodeAddresses(networkID, s.Server, node, cfg, s.recorder)
+	if err != nil {
+		return nil, err
+	}
+
 	metadata := &cloudprovider.InstanceMetadata{
 		ProviderID:    providerid.FromCloudServerID(s.ID),
 		InstanceType:  s.ServerType.Name,
-		NodeAddresses: hcloudNodeAddresses(networkID, s.Server, cfg),
+		NodeAddresses: nodeAddresses,
 		Region:        s.Location.Name,
 		AdditionalLabels: map[string]string{
 			ProvidedBy: "cloud",

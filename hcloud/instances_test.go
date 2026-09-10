@@ -29,6 +29,7 @@ import (
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
@@ -455,22 +456,44 @@ func TestInstances_InstanceMetadataRobotServerInvalidExternalIPv6(t *testing.T) 
 	metadata, err := instances.InstanceMetadata(context.TODO(), &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "robot-server1",
-			Annotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+			Annotations: map[string]string{string(annotation.ExternalIPv6): "not-an-ip"},
 		},
 		Spec: corev1.NodeSpec{ProviderID: "hrobot://321"},
 	})
 
-	assert.EqualError(t, err, "hcloud/instancesv2.InstanceMetadata: invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: invalid ip address: not-an-ip")
+	assert.EqualError(t, err, "hcloud/instancesv2.InstanceMetadata: invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip")
 	assert.Nil(t, metadata)
+}
+
+// assertEvent asserts that recorder recorded expected, or nothing at all if expected is empty.
+func assertEvent(t *testing.T, recorder *record.FakeRecorder, expected string) {
+	t.Helper()
+
+	close(recorder.Events)
+
+	var events []string
+	for event := range recorder.Events {
+		events = append(events, event)
+	}
+
+	if expected == "" {
+		assert.Empty(t, events)
+		return
+	}
+
+	assert.Equal(t, []string{expected}, events)
 }
 
 func TestNodeAddresses(t *testing.T) {
 	tests := []struct {
-		name           string
-		addressFamily  config.AddressFamily
-		server         *hcloud.Server
-		privateNetwork int64
-		expected       []corev1.NodeAddress
+		name            string
+		addressFamily   config.AddressFamily
+		server          *hcloud.Server
+		nodeAnnotations map[string]string
+		privateNetwork  int64
+		expected        []corev1.NodeAddress
+		expectedErr     string
+		expectedEvent   string
 	}{
 		{
 			name:          "hostname",
@@ -572,6 +595,176 @@ func TestNodeAddresses(t *testing.T) {
 		},
 
 		{
+			name:            "public ipv6 uses the ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+		},
+		{
+			name:            "public dual stack uses the ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyDualStack,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+		},
+		{
+			name:            "public ipv6 without public ipv6 uses the ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+				},
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "2001:db8:1234::5"},
+			},
+		},
+		{
+			name:            "public ipv6 fails on an IPv4 ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "203.0.113.7"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not an IPv6 address: 203.0.113.7",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not an IPv6 address: 203.0.113.7. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv6 fails on an invalid ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "not-an-ip"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv6 fails on a link-local ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "fe80::1"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: fe80::1",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: fe80::1. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv6 fails on a loopback ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "::1"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: ::1",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: ::1. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv6 fails on an unspecified ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "::"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: ::",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: ::. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv6 fails on a multicast ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "ff02::1"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: ff02::1",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: ff02::1. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv4 ignores the ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv4,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
+			server: &hcloud.Server{
+				Name: "foobar",
+				PublicNet: hcloud.ServerPublicNet{
+					IPv4: hcloud.ServerPublicNetIPv4{
+						IP: net.ParseIP("203.0.113.7"),
+					},
+					IPv6: hcloud.ServerPublicNetIPv6{
+						IP: net.ParseIP("2001:db8:1234::"),
+					},
+				},
+			},
+			expected: []corev1.NodeAddress{
+				{Type: corev1.NodeHostName, Address: "foobar"},
+				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
+			},
+			expectedEvent: "Warning IgnoredExternalIPv6 The annotation instance.hetzner.cloud/external-ipv6 is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
+		},
+
+		{
 			name:           "unknown private network",
 			addressFamily:  config.AddressFamilyIPv4,
 			privateNetwork: 1,
@@ -631,7 +824,22 @@ func TestNodeAddresses(t *testing.T) {
 			cfg, err := config.Read()
 			assert.NoError(t, err)
 
-			addresses := hcloudNodeAddresses(test.privateNetwork, test.server, cfg)
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Annotations: test.nodeAnnotations},
+			}
+
+			recorder := record.NewFakeRecorder(10)
+
+			addresses, err := hcloudNodeAddresses(test.privateNetwork, test.server, node, cfg, recorder)
+
+			assertEvent(t, recorder, test.expectedEvent)
+
+			if test.expectedErr != "" {
+				assert.EqualError(t, err, test.expectedErr)
+				assert.Nil(t, addresses)
+				return
+			}
+			assert.NoError(t, err)
 
 			if !reflect.DeepEqual(addresses, test.expected) {
 				t.Fatalf("Expected addresses %+v but got %+v", test.expected, addresses)
@@ -650,6 +858,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 		privateNetwork          int
 		expected                []corev1.NodeAddress
 		expectedErr             string
+		expectedEvent           string
 	}{
 		{
 			name:          "public ipv4",
@@ -727,6 +936,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeHostName, Address: "foobar"},
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
+			expectedEvent: "Warning MisconfiguredInternalIP Configured InternalIP already exists as an ExternalIP. As a result, 203.0.113.7 is not added as an InternalIP",
 		},
 		{
 			name:          "configured InternalIP does not fit configured AddressFamily",
@@ -745,6 +955,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeHostName, Address: "foobar"},
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
+			expectedEvent: "Warning MisconfiguredInternalIP Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, 2001:db8:1234:: is not added as an InternalIP",
 		},
 		{
 			name:          "public ipv6 without IPv6 subnet",
@@ -780,11 +991,12 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			expected: []corev1.NodeAddress{
 				{Type: corev1.NodeHostName, Address: "foobar"},
 			},
+			expectedEvent: `Warning InvalidIPv6Net Server "foobar" reports the IPv6 subnet "2001:db8:1234::/64", which does not yield a valid address. As a result, no IPv6 ExternalIP is added`,
 		},
 		{
-			name:            "public ipv6 uses the RobotExternalIPv6 annotation",
+			name:            "public ipv6 uses the ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
@@ -796,9 +1008,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:            "public dual stack uses the RobotExternalIPv6 annotation",
+			name:            "public dual stack uses the ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyDualStack,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
@@ -811,9 +1023,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:            "public ipv6 without IPv6 subnet uses the RobotExternalIPv6 annotation",
+			name:            "public ipv6 without IPv6 subnet uses the ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
@@ -824,9 +1036,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:            "public ipv6 with malformed IPv6 subnet uses the RobotExternalIPv6 annotation",
+			name:            "public ipv6 with malformed IPv6 subnet uses the ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
@@ -838,9 +1050,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:            "public ipv6 uses a RobotExternalIPv6 annotation outside the IPv6 subnet",
+			name:            "public ipv6 uses an ExternalIPv6 annotation outside the IPv6 subnet",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:9999::5"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:9999::5"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
@@ -852,52 +1064,68 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:            "public ipv6 fails on an IPv4 RobotExternalIPv6 annotation",
+			name:            "public ipv6 fails on an IPv4 ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "203.0.113.7"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "203.0.113.7"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
 				ServerIPv6Net: "2001:db8:1234::",
 			},
-			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: not an IPv6 address: 203.0.113.7",
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not an IPv6 address: 203.0.113.7",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not an IPv6 address: 203.0.113.7. As a result, the Node is not initialized",
 		},
 		{
-			name:            "public ipv6 fails on an IPv4-mapped RobotExternalIPv6 annotation",
+			name:            "public ipv6 fails on an IPv4-mapped ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "::ffff:203.0.113.7"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "::ffff:203.0.113.7"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
 				ServerIPv6Net: "2001:db8:1234::",
 			},
-			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: not an IPv6 address: 203.0.113.7",
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not an IPv6 address: 203.0.113.7",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not an IPv6 address: 203.0.113.7. As a result, the Node is not initialized",
 		},
 		{
-			name:            "public ipv6 fails on an invalid RobotExternalIPv6 annotation",
+			name:            "public ipv6 fails on a link-local ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "fe80::1"},
 			server: &hrobotmodels.Server{
 				Name:          "foobar",
 				ServerIP:      "203.0.113.7",
 				ServerIPv6Net: "2001:db8:1234::",
 			},
-			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: invalid ip address: not-an-ip",
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: fe80::1",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: not a global unicast address: fe80::1. As a result, the Node is not initialized",
 		},
 		{
-			name:            "public ipv6 without IPv6 subnet fails on an invalid RobotExternalIPv6 annotation",
+			name:            "public ipv6 fails on an invalid ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "not-an-ip"},
+			server: &hrobotmodels.Server{
+				Name:          "foobar",
+				ServerIP:      "203.0.113.7",
+				ServerIPv6Net: "2001:db8:1234::",
+			},
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip. As a result, the Node is not initialized",
+		},
+		{
+			name:            "public ipv6 without IPv6 subnet fails on an invalid ExternalIPv6 annotation",
+			addressFamily:   config.AddressFamilyIPv6,
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "not-an-ip"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
 			},
-			expectedErr: "invalid Node annotation: instance.hetzner.cloud/robot-external-ipv6: invalid ip address: not-an-ip",
+			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip. As a result, the Node is not initialized",
 		},
 		{
-			name:            "public ipv4 ignores an invalid RobotExternalIPv6 annotation",
+			name:            "public ipv4 ignores an invalid ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv4,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "not-an-ip"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "not-an-ip"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
@@ -906,11 +1134,12 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeHostName, Address: "foobar"},
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
+			expectedEvent: "Warning IgnoredExternalIPv6 The annotation instance.hetzner.cloud/external-ipv6 is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
 		},
 		{
-			name:            "public ipv4 ignores the RobotExternalIPv6 annotation",
+			name:            "public ipv4 ignores the ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv4,
-			nodeAnnotations: map[string]string{string(annotation.RobotExternalIPv6): "2001:db8:1234::5"},
+			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
 			server: &hrobotmodels.Server{
 				Name:     "foobar",
 				ServerIP: "203.0.113.7",
@@ -919,6 +1148,7 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				{Type: corev1.NodeHostName, Address: "foobar"},
 				{Type: corev1.NodeExternalIP, Address: "203.0.113.7"},
 			},
+			expectedEvent: "Warning IgnoredExternalIPv6 The annotation instance.hetzner.cloud/external-ipv6 is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
 		},
 	}
 
@@ -939,7 +1169,11 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				node.Status.Addresses = test.nodeStatusNodeAddresses
 			}
 
-			addresses, err := robotNodeAddresses(test.server, node, cfg, &MockEventRecorder{})
+			recorder := record.NewFakeRecorder(10)
+
+			addresses, err := robotNodeAddresses(test.server, node, cfg, recorder)
+
+			assertEvent(t, recorder, test.expectedEvent)
 
 			if test.expectedErr != "" {
 				assert.EqualError(t, err, test.expectedErr)
