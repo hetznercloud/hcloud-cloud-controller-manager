@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Private-network setup"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Networking", "Private-network setup"]
+scrape_type: "whole"
+priority: 100
+---
+-->
+
 # Private Network Setup
 
 This guide teaches you how to setup HCCM with support for Private Networks. Please familiarize yourself with the explanation document about [Private Networks](../explanation/private-networks.md).
@@ -8,7 +24,7 @@ By default, the HCCM's route controller is enabled. For this reason, you need to
 
 1. Select the appropriate IP ranges for your cluster. You can reference the [explanation document](../explanation/private-networks.md).
 
-2. Create the Private Network from the [Hetzner Cloud Console](https://console.hetzner.cloud/) or via the [`hcloud-cli`](https://github.com/hetznercloud/cli):
+2. Create the Private Network from the [Hetzner Console](https://console.hetzner.com/) or via the [`hcloud-cli`](https://github.com/hetznercloud/cli):
 
 ```bash
 hcloud network create --name my-network --ip-range=10.0.0.0/8
@@ -18,7 +34,7 @@ hcloud network create --name my-network --ip-range=10.0.0.0/8
 
 4. Provision your Kubernetes cluster with the Kubelet option `--cloud-provider=external`.
 
-5. Create a read+write API token in the [Hetzner Cloud Console](https://console.hetzner.cloud/) as described in [this document](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/).
+5. Create a read+write API token in the [Hetzner Console](https://console.hetzner.com/) as described in [this document](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/).
 
 6. Create a secret containing your Hetzner Cloud API token and your Private Network ID or name:
 

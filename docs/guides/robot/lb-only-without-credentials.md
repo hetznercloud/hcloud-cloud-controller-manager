@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-09-07"
+date_changed: "2026-09-07"
+title: "Adding Load Balancer targets via Kubernetes InternalIP"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Robot", "Adding Load Balancer targets via Kubernetes InternalIP"]
+scrape_type: "whole"
+priority: 80
+---
+-->
+
 # Load Balancer-Only Setup Without Robot API Credentials
 
 If you manage Robot nodes externally (e.g., via Talos or another provisioning tool) and only need the HCCM to add Robot servers as Load Balancer IP targets, you can run without Robot API credentials. This avoids exposing account-wide Robot API credentials to the cluster.
