@@ -195,6 +195,47 @@ func TestIP(t *testing.T) {
 	})
 }
 
+// Nodes carry annotations just like Services do, so the same table applies.
+func TestIPFromNode(t *testing.T) {
+	tests := []accessorTest{
+		{
+			name:     "value set to valid IPv6",
+			value:    "3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2",
+			expected: net.ParseIP("3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2"),
+		},
+		{
+			name:  "value invalid",
+			value: "invalid",
+			err:   errors.New(annName + ": invalid ip address: invalid"),
+		},
+		{
+			name:   "value not set",
+			notSet: true,
+			err:    annotation.ErrNotSet,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var node corev1.Node
+			if !tt.notSet {
+				node.Annotations = map[string]string{annName: tt.value}
+			}
+
+			actual, err := annIP.FromNode(&node)
+			if tt.err != nil {
+				if errors.Is(err, tt.err) {
+					return
+				}
+				assert.EqualError(t, err, tt.err.Error())
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
 func TestProtocol(t *testing.T) {
 	tests := []accessorTest{
 		{

@@ -317,6 +317,12 @@ func main() {
 		TargetPath   string
 	}{
 		{
+			// Generate Node annotations documentation
+			TemplatePath: "./node_annotations.md.tmpl",
+			SourcePath:   "../internal/annotation/instance.go",
+			TargetPath:   "../docs/reference/node_annotations.md",
+		},
+		{
 			// Generate Load Balancer annotations documentation
 			TemplatePath: "./load_balancer_annotations.md.tmpl",
 			SourcePath:   "../internal/annotation/load_balancer.go",

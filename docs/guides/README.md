@@ -7,5 +7,6 @@ In this folder, you should find guides for you to accomplish specific tasks with
 - [Load Balancer](load-balancer/README.md)
 - [Robot](robot/README.md)
 - [Address Family](address-family.md)
+- [IPv6 ExternalIP](external-ipv6.md)
 - [Zone Label](zone-label.md)
 - [Troubleshooting](troubleshooting.md)
