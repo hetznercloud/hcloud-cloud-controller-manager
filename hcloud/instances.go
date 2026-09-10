@@ -44,7 +44,6 @@ import (
 const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
-	InvalidIPv6Net          = "InvalidIPv6Net"
 	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
 	InvalidExternalIPv6     = "InvalidExternalIPv6"
 	instancesV2Subsystem    = "instances_v2"
@@ -255,7 +254,7 @@ func hcloudNodeAddresses(
 		ipv6Net = server.PublicNet.IPv6.IP.String()
 	}
 
-	hostAddress, err := externalIPv6(ipv6, ipv6Net, server.Name, node, recorder)
+	hostAddress, err := externalIPv6(ipv6, ipv6Net, node, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +293,7 @@ func robotNodeAddresses(
 
 	addresses := []corev1.NodeAddress{{Type: corev1.NodeHostName, Address: server.Name}}
 
-	hostAddress, err := externalIPv6(ipv6, server.ServerIPv6Net, server.Name, node, recorder)
+	hostAddress, err := externalIPv6(ipv6, server.ServerIPv6Net, node, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +318,6 @@ func robotNodeAddresses(
 func externalIPv6(
 	ipv6 bool,
 	subnet string,
-	serverName string,
 	node *corev1.Node,
 	recorder record.EventRecorder,
 ) (string, error) {
@@ -369,19 +367,7 @@ func externalIPv6(
 		return "", nil
 	}
 
-	hostAddress := ipv6HostAddress(subnet)
-	if hostAddress == "" {
-		utils.WarnEventLogf(
-			recorder,
-			node,
-			InvalidIPv6Net,
-			"Server %q reports the IPv6 subnet %q, which does not yield a valid address. As a result, no IPv6 ExternalIP is added",
-			serverName,
-			subnet,
-		)
-	}
-
-	return hostAddress, nil
+	return ipv6HostAddress(subnet), nil
 }
 
 // invalidExternalIPv6 reports err to the user as well, who would otherwise only see the Node fail

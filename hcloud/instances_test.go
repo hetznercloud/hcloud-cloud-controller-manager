@@ -981,19 +981,6 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 			},
 		},
 		{
-			name:          "public ipv6 with malformed IPv6 subnet",
-			addressFamily: config.AddressFamilyIPv6,
-			server: &hrobotmodels.Server{
-				Name:          "foobar",
-				ServerIP:      "203.0.113.7",
-				ServerIPv6Net: "2001:db8:1234::/64",
-			},
-			expected: []corev1.NodeAddress{
-				{Type: corev1.NodeHostName, Address: "foobar"},
-			},
-			expectedEvent: `Warning InvalidIPv6Net Server "foobar" reports the IPv6 subnet "2001:db8:1234::/64", which does not yield a valid address. As a result, no IPv6 ExternalIP is added`,
-		},
-		{
 			name:            "public ipv6 uses the ExternalIPv6 annotation",
 			addressFamily:   config.AddressFamilyIPv6,
 			nodeAnnotations: map[string]string{string(annotation.ExternalIPv6): "2001:db8:1234::5"},
