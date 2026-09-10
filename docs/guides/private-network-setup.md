@@ -26,9 +26,9 @@ By default, the HCCM's route controller is enabled. For this reason, you need to
 
 2. Create the Private Network from the [Hetzner Console](https://console.hetzner.com/) or via the [`hcloud-cli`](https://github.com/hetznercloud/cli):
 
-   ```bash
-   hcloud network create --name my-network --ip-range=10.0.0.0/8
-   ```
+```bash
+hcloud network create --name my-network --ip-range=10.0.0.0/8
+```
 
 3. Add your nodes to the network.
 
@@ -38,25 +38,25 @@ By default, the HCCM's route controller is enabled. For this reason, you need to
 
 6. Create a secret containing your Hetzner Cloud API token and your Private Network ID or name:
 
-   ```bash
-   kubectl -n kube-system create secret generic hcloud \
-       --from-literal=token=<hcloud API token> \
-       --from-literal=network=<hcloud network-id-or-name>
-   ```
+```bash
+kubectl -n kube-system create secret generic hcloud \
+    --from-literal=token=<hcloud API token> \
+    --from-literal=network=<hcloud network-id-or-name>
+```
 
 7. Add the Helm repository:
 
-   ```bash
-   helm repo add hcloud https://charts.hetzner.cloud
-   helm repo update hcloud
-   ```
+```bash
+helm repo add hcloud https://charts.hetzner.cloud
+helm repo update hcloud
+```
 
 8. Install the chart:
 
-   ```bash
-   helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system \
-       --set networking.enabled=true \
-       --set networking.clusterCIDR=<cluster-cidr>
-   ```
+```bash
+helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system \
+    --set networking.enabled=true \
+    --set networking.clusterCIDR=<cluster-cidr>
+```
 
 9. Install your CNI plugin.

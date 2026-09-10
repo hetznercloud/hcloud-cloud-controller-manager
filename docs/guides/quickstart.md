@@ -22,19 +22,19 @@ Before setting up the hcloud-cloud-controller-manager you need to configure your
 
 2. Create a secret containing your Hetzner Console API token:
 
-   ```bash
-   kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
-   ```
+```bash
+kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token>
+```
 
 3. Add the Helm repository:
 
-   ```bash
-   helm repo add hcloud https://charts.hetzner.cloud
-   helm repo update hcloud
-   ```
+```bash
+helm repo add hcloud https://charts.hetzner.cloud
+helm repo update hcloud
+```
 
 4. Install the chart:
 
-   ```bash
-   helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system
-   ```
+```bash
+helm install hccm hcloud/hcloud-cloud-controller-manager -n kube-system
+```
