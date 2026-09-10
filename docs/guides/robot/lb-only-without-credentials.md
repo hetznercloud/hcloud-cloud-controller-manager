@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Robot", "Adding Load Balancer targets via Kubernetes InternalIP"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Robot", "Adding Load Balancer targets via Kubernetes InternalIP"]
 scrape_type: "whole"
 priority: 80
 ---

@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Robot", "Migrating from Syself"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Robot", "Migrating from Syself"]
 scrape_type: "whole"
 priority: 50
 ---

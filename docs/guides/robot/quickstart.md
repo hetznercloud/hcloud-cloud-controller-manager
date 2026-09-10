@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Kubernetes Cloud Controller Manager", "How-To: Robot", "Installing the controller manager"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Robot", "Installing the controller manager"]
 scrape_type: "whole"
 priority: 100
 ---

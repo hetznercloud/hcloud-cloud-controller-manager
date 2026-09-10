@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["getting_started"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Kubernetes Cloud Controller Manager", "Getting Started", "Installing the controller manager"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Getting Started", "Installing the controller manager"]
 scrape_type: "whole"
 priority: 100
 ---
