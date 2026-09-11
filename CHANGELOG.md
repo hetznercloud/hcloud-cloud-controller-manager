@@ -1,5 +1,28 @@
 # Changelog
 
+## [v1.37.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.37.0)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.36.0...v1.37.0)
+
+### IPv6 ExternalIP
+
+We derive the IPv6 ExternalIP of a Node from the IPv6 subnet the server reports, by using the first address of that subnet. This is wrong for servers that use a different address out of their subnet, and Robot does not report a subnet for every server, in which case the Node got no IPv6 ExternalIP at all. You can now set the address explicitly through the Node annotation `instance.hetzner.cloud/external-ipv6`:
+
+```bash
+kubectl annotate node $NODE_NAME --overwrite \
+  instance.hetzner.cloud/external-ipv6=2001:db8:1234::5
+```
+
+The annotation works for Cloud and Robot servers and takes precedence over the derived address. It requires IPv6 to be enabled for Node addresses via `HCLOUD_INSTANCES_ADDRESS_FAMILY`.
+
+### Features
+
+- **instances**: configure the IPv6 ExternalIP through a Node annotation ([8d6cdd8](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/8d6cdd82bb27c6885a66874486042349e8a97b1e))
+
+### Bug Fixes
+
+- **instances**: skip IPv6 ExternalIP for Robot servers without a subnet (#1337) ([3ec2945](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/3ec2945e7c1ace5129e09e51132d26aad51a2ca4))
+
 ## [v1.37.0-rc.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.37.0-rc.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.36.0...v1.37.0-rc.0)
