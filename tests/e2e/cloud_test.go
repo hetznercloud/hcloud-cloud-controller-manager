@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -140,7 +140,7 @@ func TestServiceLoadBalancersHTTPSWithManagedCertificate(t *testing.T) {
 
 	certs, err := testCluster.hcloud.Certificate.AllWithOpts(t.Context(), hcloud.CertificateListOpts{
 		ListOpts: hcloud.ListOpts{
-			LabelSelector: fmt.Sprintf("%s=%s", hcops.LabelServiceUID, lbSvc.ObjectMeta.UID),
+			LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, lbSvc.ObjectMeta.UID),
 		},
 	})
 	assert.NoError(t, err)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -40,6 +41,7 @@ type LoadBalancerTestCase struct {
 	LBClient      *mocks.LoadBalancerClient
 	LoadBalancers *loadBalancers
 	Service       *corev1.Service
+	Spec          lbspec.Spec
 }
 
 func (tt *LoadBalancerTestCase) run(t *testing.T) {
@@ -73,16 +75,20 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 		tt.Ctx = context.Background()
 	}
 
-	if tt.Mock != nil {
-		tt.Mock(t, tt)
-	}
-
 	lbConfig := &config.LoadBalancerConfiguration{
 		PrivateIngressEnabled: *tt.UsePrivateIngressDefault,
 		IPv6Enabled:           *tt.UseIPv6Default,
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, lbConfig)
+	// The error is ignored on purpose: a test case may set an invalid
+	// annotation to check how the cloud provider reports it.
+	tt.Spec, _ = lbspec.Resolve(&MockEventRecorder{}, tt.Service, *lbConfig)
+
+	if tt.Mock != nil {
+		tt.Mock(t, tt)
+	}
+
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, lbConfig, &MockEventRecorder{})
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)

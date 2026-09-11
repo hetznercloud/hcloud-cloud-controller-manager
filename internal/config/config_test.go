@@ -476,7 +476,7 @@ func TestHCCMConfiguration_Validate(t *testing.T) {
 					PrivateSubnetIPRange: "10.0.0.0/33",
 				},
 			},
-			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE\": must be a valid CIDR: invalid CIDR address: 10.0.0.0/33"),
+			wantErr: errors.New("invalid value for \"HCLOUD_LOAD_BALANCERS_PRIVATE_SUBNET_IP_RANGE\": must be a valid CIDR: netip.ParsePrefix(\"10.0.0.0/33\"): prefix length out of range"),
 		},
 		{
 			name: "algorithm type invalid",
