@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -25,9 +26,9 @@ func (m *MockLoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.Lo
 }
 
 func (m *MockLoadBalancerOps) Create(
-	ctx context.Context, lbName string, service *corev1.Service,
+	ctx context.Context, service *corev1.Service, spec lbspec.Spec,
 ) (*hcloud.LoadBalancer, error) {
-	args := m.Called(ctx, lbName, service)
+	args := m.Called(ctx, service, spec)
 	return mocks.GetLoadBalancerPtr(args, 0), args.Error(1)
 }
 
@@ -37,23 +38,23 @@ func (m *MockLoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalance
 }
 
 func (m *MockLoadBalancerOps) ReconcileHCLB(
-	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service,
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec,
 ) (bool, error) {
-	args := m.Called(ctx, lb, svc)
+	args := m.Called(ctx, lb, svc, spec)
 	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockLoadBalancerOps) ReconcileHCLBTargets(
-	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, nodes []*corev1.Node,
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec, nodes []*corev1.Node,
 ) (bool, error) {
-	args := m.Called(ctx, lb, svc, nodes)
+	args := m.Called(ctx, lb, svc, spec, nodes)
 	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockLoadBalancerOps) ReconcileHCLBServices(
-	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service,
+	ctx context.Context, lb *hcloud.LoadBalancer, svc *corev1.Service, spec lbspec.Spec,
 ) (bool, error) {
-	args := m.Called(ctx, lb, svc)
+	args := m.Called(ctx, lb, svc, spec)
 	return args.Bool(0), args.Error(1)
 }
 

@@ -3,7 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"net"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -321,7 +321,7 @@ func (c HCCMConfiguration) Validate() (err error) {
 	}
 
 	if c.LoadBalancer.PrivateSubnetIPRange != "" {
-		if _, _, err := net.ParseCIDR(c.LoadBalancer.PrivateSubnetIPRange); err != nil {
+		if _, err := netip.ParsePrefix(c.LoadBalancer.PrivateSubnetIPRange); err != nil {
 			errs = append(errs, fmt.Errorf("invalid value for %q: must be a valid CIDR: %w", hcloudLoadBalancersPrivateSubnetIPRange, err))
 		}
 	}

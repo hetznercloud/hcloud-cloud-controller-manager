@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -140,7 +140,7 @@ func (tc *TestCluster) Stop() error {
 	ctx := context.Background()
 
 	uids := tc.loadBalancers.All()
-	selector := fmt.Sprintf("%s in (%s)", hcops.LabelServiceUID, strings.Join(uids, ","))
+	selector := fmt.Sprintf("%s in (%s)", lbspec.LabelServiceUID, strings.Join(uids, ","))
 	lbs, err := tc.hcloud.LoadBalancer.AllWithOpts(ctx, hcloud.LoadBalancerListOpts{
 		ListOpts: hcloud.ListOpts{
 			LabelSelector: selector,
