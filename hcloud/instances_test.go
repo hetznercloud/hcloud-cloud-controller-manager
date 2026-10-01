@@ -461,7 +461,7 @@ func TestInstances_InstanceMetadataRobotServerInvalidExternalIPv6(t *testing.T) 
 		Spec: corev1.NodeSpec{ProviderID: "hrobot://321"},
 	})
 
-	assert.EqualError(t, err, "hcloud/instancesv2.InstanceMetadata: invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip")
+	assert.EqualError(t, err, "hcloud/instancesv2.InstanceMetadata: invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip")
 	assert.Nil(t, metadata)
 }
 
@@ -554,16 +554,16 @@ func TestExternalIPv6(t *testing.T) {
 			ipv6Configured: true,
 			ipv6Subnet:     subnet,
 			annotations:    map[string]string{string(annotation.ExternalIPv6): "not-an-ip"},
-			expectedErr:    "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip",
-			expectedEvent:  "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip. As a result, the Node is not initialized",
+			expectedErr:    "invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip",
+			expectedEvent:  "Warning InvalidExternalIPv6 Invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip. As a result, the Node is not initialized",
 		},
 		{
 			name:           "fails on an empty annotation",
 			ipv6Configured: true,
 			ipv6Subnet:     subnet,
 			annotations:    map[string]string{string(annotation.ExternalIPv6): ""},
-			expectedErr:    "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: ",
-			expectedEvent:  "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: . As a result, the Node is not initialized",
+			expectedErr:    "invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: ",
+			expectedEvent:  "Warning InvalidExternalIPv6 Invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: . As a result, the Node is not initialized",
 		},
 		{
 			name:           "fails on a link-local annotation",
@@ -760,8 +760,8 @@ func TestNodeAddresses(t *testing.T) {
 					},
 				},
 			},
-			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip",
-			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip. As a result, the Node is not initialized",
+			expectedErr:   "invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip. As a result, the Node is not initialized",
 		},
 
 		{
@@ -1004,8 +1004,8 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 				ServerIP:      "203.0.113.7",
 				ServerIPv6Net: "2001:db8:1234::",
 			},
-			expectedErr:   "invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip",
-			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: instance.hetzner.cloud/external-ipv6: invalid ip address: not-an-ip. As a result, the Node is not initialized",
+			expectedErr:   "invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip",
+			expectedEvent: "Warning InvalidExternalIPv6 Invalid Node annotation: \"instance.hetzner.cloud/external-ipv6\": invalid ip address: not-an-ip. As a result, the Node is not initialized",
 		},
 	}
 

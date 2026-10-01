@@ -338,13 +338,13 @@ func externalIPv6(
 	ip, err := annotation.ExternalIPv6.FromNode(node)
 
 	switch {
-	case err == nil && ip.To4() != nil:
+	case err == nil && ip.Unmap().Is4():
 		return "", invalidExternalIPv6(
 			recorder,
 			node,
 			fmt.Errorf("%s: not an IPv6 address: %s",
 				annotation.ExternalIPv6,
-				ip,
+				ip.Unmap(),
 			),
 		)
 	case err == nil && !ip.IsGlobalUnicast():

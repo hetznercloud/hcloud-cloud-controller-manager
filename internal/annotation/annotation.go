@@ -73,7 +73,7 @@ func (a IP) FromService(svc *corev1.Service) (netip.Addr, error) {
 	return parse(string(a), svc, parseIP)
 }
 
-func (a IP) FromNode(node *corev1.Node) (net.IP, error) {
+func (a IP) FromNode(node *corev1.Node) (netip.Addr, error) {
 	return parse(string(a), node, parseIP)
 }
 
