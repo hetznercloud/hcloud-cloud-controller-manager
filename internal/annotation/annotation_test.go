@@ -204,12 +204,12 @@ func TestIPFromNode(t *testing.T) {
 		{
 			name:     "value set to valid IPv6",
 			value:    "3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2",
-			expected: net.ParseIP("3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2"),
+			expected: netip.MustParseAddr("3c2e:2ef9:a7e9:1a5b:30ba:4912:e3fe:91b2"),
 		},
 		{
 			name:  "value invalid",
 			value: "invalid",
-			err:   errors.New(annName + ": invalid ip address: invalid"),
+			err:   errors.New(qAnnName + ": invalid ip address: invalid"),
 		},
 		{
 			name:   "value not set",
