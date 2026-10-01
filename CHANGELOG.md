@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.38.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.38.0)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.37.0...v1.38.0)
+
+### Features
+
+- support Kubernetes v1.37 ([f188865](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f188865ae34204612ce6ac3b4018e955ea099fdd))
+
+### Bug Fixes
+
+- drop Kubernetes v1.33 support ([f188865](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f188865ae34204612ce6ac3b4018e955ea099fdd))
+
 ## [v1.37.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.37.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.36.0...v1.37.0)
