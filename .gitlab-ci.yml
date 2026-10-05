@@ -2,7 +2,6 @@ include:
   - project: cloud/integrations/ci
     file:
       - default.yml
-      - workflows/feature-branches.yml
   - project: cloud/integrations/ci
     file: docs-sync.yml
     inputs:
