@@ -569,6 +569,7 @@ func TestLoadBalancerOps_Delete(t *testing.T) {
 	tests := []struct {
 		name      string
 		clientErr error
+		waitErr   error
 		err       error
 	}{
 		{
@@ -583,22 +584,33 @@ func TestLoadBalancerOps_Delete(t *testing.T) {
 			clientErr: errors.New("deletion failed"),
 			err:       errors.New("hcops/LoadBalancerOps.Delete: deletion failed"),
 		},
+		{
+			name:    "waiting for delete action fails",
+			waitErr: errors.New("action failed"),
+			err:     errors.New("hcops/LoadBalancerOps.Delete: action failed"),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fx := hcops.NewLoadBalancerOpsFixture(t)
-			ctx := context.Background()
 			lb := &hcloud.LoadBalancer{ID: 1}
+			action := &hcloud.Action{ID: 2}
 
-			fx.LBClient.On("Delete", ctx, lb).Return(nil, tt.clientErr)
+			fx.LBClient.
+				On("DeleteWithResult", fx.Ctx, lb).
+				Return(hcloud.LoadBalancerDeleteResult{Action: action}, nil, tt.clientErr)
+			if tt.clientErr == nil {
+				fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(tt.waitErr)
+			}
 
-			err := fx.LBOps.Delete(ctx, lb)
+			err := fx.LBOps.Delete(fx.Ctx, lb)
 			if tt.err == nil {
 				assert.NoError(t, err)
-				return
+			} else {
+				assert.EqualError(t, err, tt.err.Error())
 			}
-			assert.EqualError(t, err, tt.err.Error())
+			fx.AssertExpectations()
 		})
 	}
 }
