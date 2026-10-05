@@ -3,6 +3,10 @@ include:
     file:
       - default.yml
       - workflows/feature-branches.yml
+  - project: cloud/integrations/ci
+    file: docs-sync.yml
+    inputs:
+      target-base-branch: "docs-integrations"
 
 variables:
   GOMODCACHE: $CI_PROJECT_DIR/.cache/go-mod
