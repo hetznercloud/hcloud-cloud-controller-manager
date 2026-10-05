@@ -45,6 +45,13 @@ func (m *LoadBalancerClient) Delete(ctx context.Context, lb *hcloud.LoadBalancer
 	return getResponsePtr(args, 0), args.Error(1)
 }
 
+func (m *LoadBalancerClient) DeleteWithResult(
+	ctx context.Context, lb *hcloud.LoadBalancer,
+) (hcloud.LoadBalancerDeleteResult, *hcloud.Response, error) {
+	args := m.Called(ctx, lb)
+	return args.Get(0).(hcloud.LoadBalancerDeleteResult), getResponsePtr(args, 1), args.Error(2)
+}
+
 func (m *LoadBalancerClient) AddService(
 	ctx context.Context, lb *hcloud.LoadBalancer, opts hcloud.LoadBalancerAddServiceOpts,
 ) (*hcloud.Action, *hcloud.Response, error) {

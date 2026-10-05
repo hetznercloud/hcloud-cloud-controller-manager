@@ -150,13 +150,19 @@ func (l *LoadBalancerOps) Delete(ctx context.Context, lb *hcloud.LoadBalancer) e
 	const op = "hcops/LoadBalancerOps.Delete"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	_, err := l.LBClient.Delete(ctx, lb)
+	result, _, err := l.LBClient.DeleteWithResult(ctx, lb)
 	if hcloud.IsError(err, hcloud.ErrorCodeNotFound) {
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
+	err = l.ActionClient.WaitFor(ctx, result.Action)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	return nil
 }
 
