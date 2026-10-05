@@ -62,6 +62,56 @@ func TestSpecCreateOpts(t *testing.T) {
 
 		assert.Nil(t, opts.Algorithm, "an unconfigured algorithm is not sent")
 		assert.Nil(t, opts.PublicInterface, "an unconfigured public interface is not sent")
+		assert.Nil(t, opts.PublicNet, "an unconfigured public net is not sent")
+	})
+
+	t.Run("with primary IPs", func(t *testing.T) {
+		tests := []struct {
+			name        string
+			primaryIPv4 int64
+			primaryIPv6 int64
+			want        *hcloud.LoadBalancerCreateOptsPublicNet
+		}{
+			{
+				name:        "IPv4 only",
+				primaryIPv4: 4711,
+				want: &hcloud.LoadBalancerCreateOptsPublicNet{
+					IPv4: &hcloud.PrimaryIP{ID: 4711},
+				},
+			},
+			{
+				name:        "IPv6 only",
+				primaryIPv6: 4712,
+				want: &hcloud.LoadBalancerCreateOptsPublicNet{
+					IPv6: &hcloud.PrimaryIP{ID: 4712},
+				},
+			},
+			{
+				name:        "IPv4 and IPv6",
+				primaryIPv4: 4711,
+				primaryIPv6: 4712,
+				want: &hcloud.LoadBalancerCreateOptsPublicNet{
+					IPv4: &hcloud.PrimaryIP{ID: 4711},
+					IPv6: &hcloud.PrimaryIP{ID: 4712},
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				spec := lbspec.Spec{
+					Name:        "some-lb",
+					Labels:      labels,
+					Location:    "fsn1",
+					PrimaryIPv4: tt.primaryIPv4,
+					PrimaryIPv6: tt.primaryIPv6,
+				}
+
+				opts := spec.CreateOpts(lbType)
+
+				assert.Equal(t, tt.want, opts.PublicNet)
+			})
+		}
 	})
 }
 

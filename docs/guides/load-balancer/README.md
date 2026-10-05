@@ -5,3 +5,4 @@ In this folder, you should find guides for you to accomplish specific tasks with
 - [Quickstart](quickstart.md)
 - [Configuration](configuration.md)
 - [Private Networks](private-networks.md)
+- [Primary IPs](primary-ips.md)

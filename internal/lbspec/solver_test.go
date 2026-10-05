@@ -54,6 +54,8 @@ func TestResolve(t *testing.T) {
 				assert.Nil(t, spec.PublicInterface, "an unconfigured public interface is left alone")
 				assert.Nil(t, spec.IPv4RDNS)
 				assert.Nil(t, spec.IPv6RDNS)
+				assert.Zero(t, spec.PrimaryIPv4)
+				assert.Zero(t, spec.PrimaryIPv6)
 				assert.False(t, spec.PrivateIPv4.IsValid())
 				assert.False(t, spec.PrivateSubnetIPRange.IsValid())
 				assert.False(t, spec.UsePrivateIP)
@@ -169,6 +171,17 @@ func TestResolve(t *testing.T) {
 			check: func(t *testing.T, spec lbspec.Spec) {
 				assert.Equal(t, new(""), spec.IPv4RDNS, "an empty record is a value, not an omission")
 				assert.Equal(t, new("lb.example.com"), spec.IPv6RDNS)
+			},
+		},
+		{
+			name: "public net primary IPs are parsed",
+			annotations: map[string]string{
+				string(annotation.LBPublicNetIPv4): "4711",
+				string(annotation.LBPublicNetIPv6): "4712",
+			},
+			check: func(t *testing.T, spec lbspec.Spec) {
+				assert.Equal(t, int64(4711), spec.PrimaryIPv4)
+				assert.Equal(t, int64(4712), spec.PrimaryIPv6)
 			},
 		},
 		{
@@ -388,6 +401,16 @@ func TestResolveErrors(t *testing.T) {
 			name:        "invalid node selector",
 			annotations: map[string]string{string(annotation.LBNodeSelector): "environment=production=staging"},
 			wantErr:     "unable to parse the node-selector annotation",
+		},
+		{
+			name:        "invalid public net IPv4",
+			annotations: map[string]string{string(annotation.LBPublicNetIPv4): "my-ip"},
+			wantErr:     "my-ip",
+		},
+		{
+			name:        "invalid public net IPv6",
+			annotations: map[string]string{string(annotation.LBPublicNetIPv6): "my-ip"},
+			wantErr:     "my-ip",
 		},
 		{
 			name:        "invalid duration",

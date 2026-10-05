@@ -64,6 +64,12 @@ type Spec struct {
 	IPv4RDNS *string
 	IPv6RDNS *string
 
+	// PrimaryIPv4 and PrimaryIPv6 are the IDs of existing Primary IPs the Load
+	// Balancer is created with. Zero when unconfigured. Only applied on
+	// creation.
+	PrimaryIPv4 int64
+	PrimaryIPv6 int64
+
 	// PrivateIPv4 is the address the Load Balancer should have in the private
 	// network. The zero value when unconfigured.
 	PrivateIPv4 netip.Addr
