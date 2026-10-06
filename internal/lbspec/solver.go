@@ -64,6 +64,8 @@ func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.Load
 	spec.PublicInterface = negate(resolvePtr(&errs, svc, annotation.LBDisablePublicNetwork, cfg.DisablePublicNetwork))
 	spec.IPv4RDNS = resolvePtr(&errs, svc, annotation.LBPublicIPv4RDNS, nil)
 	spec.IPv6RDNS = resolvePtr(&errs, svc, annotation.LBPublicIPv6RDNS, nil)
+	spec.PrimaryIPv4 = int64(resolve(&errs, svc, annotation.LBPublicNetIPv4, 0))
+	spec.PrimaryIPv6 = int64(resolve(&errs, svc, annotation.LBPublicNetIPv6, 0))
 	spec.PrivateIPv4 = resolve(&errs, svc, annotation.LBPrivateIPv4, netip.Addr{})
 	spec.PrivateSubnetIPRange = resolvePrivateSubnetIPRange(&errs, svc, cfg)
 	spec.UsePrivateIP = resolve(&errs, svc, annotation.LBUsePrivateIP, cfg.PrivateIPEnabled)

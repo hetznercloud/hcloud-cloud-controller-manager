@@ -25,6 +25,32 @@ const (
 	// Read-only: true
 	LBPublicIPv6RDNS String = "load-balancer.hetzner.cloud/ipv6-rdns"
 
+	// LBPublicNetIPv4 specifies the ID of an existing Primary IP of type IPv4 to
+	// assign to the Load Balancer. The Primary IP must be unassigned and bound
+	// to the same location as the Load Balancer. Requires the public network,
+	// so it cannot be combined with [LBDisablePublicNetwork].
+	//
+	// Changing the Primary IP after the load balancer was created has no
+	// effect. In order to use a different Primary IP it is necessary to delete
+	// and re-create the load balancer.
+	//
+	// If auto delete is enabled on the Primary IP, it is deleted together with
+	// the load balancer.
+	LBPublicNetIPv4 Int = "load-balancer.hetzner.cloud/public-net-ipv4"
+
+	// LBPublicNetIPv6 specifies the ID of an existing Primary IP of type IPv6 to
+	// assign to the Load Balancer. The Primary IP must be unassigned and bound
+	// to the same location as the Load Balancer. Requires the public network,
+	// so it cannot be combined with [LBDisablePublicNetwork].
+	//
+	// Changing the Primary IP after the load balancer was created has no
+	// effect. In order to use a different Primary IP it is necessary to delete
+	// and re-create the load balancer.
+	//
+	// If auto delete is enabled on the Primary IP, it is deleted together with
+	// the load balancer.
+	LBPublicNetIPv6 Int = "load-balancer.hetzner.cloud/public-net-ipv6"
+
 	// LBIPv6Disabled disables the use of IPv6 for the Load Balancer.
 	// Set this annotation if you use external-dns.
 	//
