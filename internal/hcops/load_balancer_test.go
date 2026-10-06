@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
@@ -884,6 +885,107 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.True(t, changed)
+			},
+		},
+		{
+			name: "don't warn about unconfigured primary IPs",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBType): "lb21",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 7,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					Name: "lb21",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{ID: 4711},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{ID: 4712},
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+				select {
+				case event := <-tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events:
+					t.Errorf("unexpected event: %s", event)
+				default:
+				}
+			},
+		},
+		{
+			name: "don't warn about matching primary IPs",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBType):          "lb21",
+				string(annotation.LBPublicNetIPv4): "4711",
+				string(annotation.LBPublicNetIPv6): "4712",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 7,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					Name: "lb21",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{ID: 4711},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{ID: 4712},
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+				select {
+				case event := <-tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events:
+					t.Errorf("unexpected event: %s", event)
+				default:
+				}
+			},
+		},
+		{
+			name: "warn about changed primary IPs",
+			serviceAnnotations: map[string]string{
+				string(annotation.LBType):          "lb21",
+				string(annotation.LBPublicNetIPv4): "4713",
+				string(annotation.LBPublicNetIPv6): "4714",
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 7,
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					Name: "lb21",
+				},
+				PublicNet: hcloud.LoadBalancerPublicNet{
+					Enabled: true,
+					IPv4:    hcloud.LoadBalancerPublicNetIPv4{ID: 4711},
+					IPv6:    hcloud.LoadBalancerPublicNetIPv6{ID: 4712},
+				},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
+				assert.NoError(t, err)
+				assert.False(t, changed)
+
+				events := tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events
+				assert.Equal(
+					t,
+					"Warning PrimaryIPChangeUnsupported Load Balancer has Primary IPv4 4711, changing it to 4713 is not supported",
+					<-events,
+				)
+				assert.Equal(
+					t,
+					"Warning PrimaryIPChangeUnsupported Load Balancer has Primary IPv6 4712, changing it to 4714 is not supported",
+					<-events,
+				)
 			},
 		},
 		{

@@ -177,6 +177,8 @@ func (l *LoadBalancerOps) ReconcileHCLB(
 
 	var changed bool
 
+	l.reconcilePrimaryIPs(lb, svc, spec)
+
 	labelSet, err := l.changeHCLBInfo(ctx, lb, spec)
 	if err != nil {
 		return changed, fmt.Errorf("%s: %w", op, err)
@@ -226,6 +228,34 @@ func (l *LoadBalancerOps) ReconcileHCLB(
 	changed = changed || pubIfaceToggled
 
 	return changed, nil
+}
+
+func (l *LoadBalancerOps) reconcilePrimaryIPs(
+	lb *hcloud.LoadBalancer,
+	svc *corev1.Service,
+	spec lbspec.Spec,
+) {
+	if spec.PrimaryIPv4 != 0 && spec.PrimaryIPv4 != lb.PublicNet.IPv4.ID {
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"PrimaryIPChangeUnsupported",
+			"Load Balancer has Primary IPv4 %d, changing it to %d is not supported",
+			lb.PublicNet.IPv4.ID,
+			spec.PrimaryIPv4,
+		)
+	}
+
+	if spec.PrimaryIPv6 != 0 && spec.PrimaryIPv6 != lb.PublicNet.IPv6.ID {
+		utils.WarnEventLogf(
+			l.Recorder,
+			svc,
+			"PrimaryIPChangeUnsupported",
+			"Load Balancer has Primary IPv6 %d, changing it to %d is not supported",
+			lb.PublicNet.IPv6.ID,
+			spec.PrimaryIPv6,
+		)
+	}
 }
 
 // changeHCLBInfo changes a Load Balancers name and sets the service UID label
