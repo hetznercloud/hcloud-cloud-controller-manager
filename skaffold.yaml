@@ -26,6 +26,8 @@ manifests:
           # We circumvent this by co-locating the registry & HCCM, so it's always a local pull.
           affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].topologyKey: "kubernetes.io/hostname"
           affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchLabels.app: docker-registry
+          # hostNetwork + affinity to the registry Pod means old and new Pods conflict on host ports during a rolling update.
+          strategy.type: Recreate
           env.GOCOVERDIR.value: "/coverage"
           extraVolumes[0].name: coverage
           extraVolumes[0].emptyDir: {}
