@@ -1,5 +1,27 @@
 # Changelog
 
+## [v1.39.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.0)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.38.0...v1.39.0)
+
+### Load Balancers with Primary IPs
+
+Load Balancers can now be created with existing [Primary IPs](https://docs.hetzner.cloud/changelog#2026-10-05-load-balancers-can-use-existing-primary-ips) instead of system managed public IPs. Because the Primary IPs exist on their own, a Load Balancer's public addresses can survive deleting and recreating the Service, so you don't have to change DNS records. Set the new Service annotations `load-balancer.hetzner.cloud/public-net-ipv4` and `load-balancer.hetzner.cloud/public-net-ipv6` to the ID of a Primary IP:
+
+```yaml
+metadata:
+  annotations:
+    load-balancer.hetzner.cloud/public-net-ipv4: "4711"
+    load-balancer.hetzner.cloud/public-net-ipv6: "4712"
+```
+
+See the [Primary IPs guide](docs/guides/load-balancer/primary-ips.md) for details.
+
+### Features
+
+- **load-balancer**: await Load Balancer deletion action ([f57489e](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f57489e8e5967b64bd807e0fb717cdb352fdc431))
+- **load-balancer**: create Load Balancers with existing Primary IPs (#1374) ([4385a97](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/4385a97cea0f2a46ce02310eff8f4b3c4038b2d1))
+
 ## [v1.38.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.38.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.37.0...v1.38.0)
