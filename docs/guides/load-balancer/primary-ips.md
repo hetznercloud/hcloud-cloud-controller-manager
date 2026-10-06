@@ -55,6 +55,6 @@ hcloud primary-ip update --auto-delete=false my-lb-ipv4
 
 ## Limitations
 
-- **Only applied on creation.** The Primary IPs are assigned when the Load Balancer is created. Adding, changing or removing the annotations on an existing Load Balancer has no effect. To use different Primary IPs, delete and recreate the Service.
+- **Only applied on creation.** The Primary IPs are assigned when the Load Balancer is created. Adding, changing or removing the annotations on an existing Load Balancer leads to a warning, but has no effect otherwise. To use different Primary IPs, delete and recreate the Service.
 - **Requires the public network.** The annotations cannot be combined with `load-balancer.hetzner.cloud/disable-public-network: "true"` or the `HCLOUD_LOAD_BALANCERS_DISABLE_PUBLIC_NETWORK` environment variable. The Load Balancer creation fails in that case.
 - **Unassigned and in the same location.** The Primary IPs must not be assigned to another resource, must not be blocked and must be bound to the location of the Load Balancer. Otherwise the Load Balancer creation fails. Check the Events of the Service for the error message.
