@@ -32,14 +32,14 @@ func (s Spec) CreateOpts(lbType *hcloud.LoadBalancerType) hcloud.LoadBalancerCre
 
 	if s.PrimaryIPv4 != 0 || s.PrimaryIPv6 != 0 {
 		opts.PublicNet = &hcloud.LoadBalancerCreateOptsPublicNet{}
-	}
 
-	if s.PrimaryIPv4 != 0 {
-		opts.PublicNet.IPv4 = &hcloud.PrimaryIP{ID: s.PrimaryIPv4}
-	}
+		if s.PrimaryIPv4 != 0 {
+			opts.PublicNet.IPv4 = &hcloud.PrimaryIP{ID: s.PrimaryIPv4}
+		}
 
-	if s.PrimaryIPv6 != 0 {
-		opts.PublicNet.IPv6 = &hcloud.PrimaryIP{ID: s.PrimaryIPv6}
+		if s.PrimaryIPv6 != 0 {
+			opts.PublicNet.IPv6 = &hcloud.PrimaryIP{ID: s.PrimaryIPv6}
+		}
 	}
 
 	return opts
