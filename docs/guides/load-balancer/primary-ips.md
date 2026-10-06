@@ -1,3 +1,19 @@
+<!--
+---
+date: "2026-10-06"
+date_changed: "2026-10-06"
+title: "Create a Load Balancer with Primary IPs"
+tags: []
+language: "en"
+description: ""
+docs_type: ["how_to"]
+product_category: ["Integrations"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Load Balancer", "Create a Load Balancer with Primary IPs"]
+scrape_type: "whole"
+priority: 90
+---
+-->
+
 # Load Balancers with Primary IPs
 
 By default, a Load Balancer gets system managed public IP addresses, which are created and deleted together with the Load Balancer. If you want to keep the public IP addresses of a Load Balancer, for example to recreate a Service without changing DNS records, you can create the Load Balancer with existing [Primary IPs](https://docs.hetzner.cloud/reference/cloud#tag/primary-ips) instead.
