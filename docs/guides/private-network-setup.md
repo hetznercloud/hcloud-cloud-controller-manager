@@ -8,9 +8,9 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Networking", "Private-network setup"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Private-network setup"]
 scrape_type: "whole"
-priority: 100
+priority: 110
 ---
 -->
 

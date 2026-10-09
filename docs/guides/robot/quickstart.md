@@ -2,15 +2,15 @@
 ---
 date: "2026-09-07"
 date_changed: "2026-09-07"
-title: "Installing the controller manager"
+title: "Installing the controller manager for Robot servers"
 tags: []
 language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Robot", "Installing the controller manager"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Installing the controller manager for Robot servers"]
 scrape_type: "whole"
-priority: 100
+priority: 60
 ---
 -->
 

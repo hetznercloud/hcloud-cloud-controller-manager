@@ -8,9 +8,9 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Load Balancer", "Create a Load Balancer with Primary IPs"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Create a Load Balancer with Primary IPs"]
 scrape_type: "whole"
-priority: 90
+priority: 70
 ---
 -->
 

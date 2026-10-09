@@ -8,9 +8,9 @@ language: "en"
 description: ""
 docs_type: ["faq/troubleshooting"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Troubleshooting", "Common issues"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Common issues"]
 scrape_type: "whole"
-priority: 100
+priority: 10
 ---
 -->
 
