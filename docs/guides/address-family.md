@@ -8,9 +8,9 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Networking", "Address Family"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Address Family"]
 scrape_type: "whole"
-priority: 90
+priority: 30
 ---
 -->
 

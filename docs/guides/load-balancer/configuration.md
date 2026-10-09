@@ -2,15 +2,15 @@
 ---
 date: "2026-09-07"
 date_changed: "2026-09-07"
-title: "Setup"
+title: "Load Balancer setup"
 tags: []
 language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "How-To: Load Balancer", "Setup"]
+translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Load Balancer setup"]
 scrape_type: "whole"
-priority: 50
+priority: 90
 ---
 -->
 
