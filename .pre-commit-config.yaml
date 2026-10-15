@@ -63,7 +63,7 @@ repos:
         entry: prettier --write --ignore-unknown
         language: node
         types_or: [markdown, yaml]
-        additional_dependencies: [prettier@3.9.9]
+        additional_dependencies: [prettier@3.9.10]
 
   - repo: local
     hooks:
