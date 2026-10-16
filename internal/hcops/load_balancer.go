@@ -457,7 +457,11 @@ func (l *LoadBalancerOps) attachToNetwork(ctx context.Context, lb *hcloud.LoadBa
 		klog.InfoS("retry due to conflict or lock",
 			"op", op, "delay", fmt.Sprintf("%v", retryDelay), "err", fmt.Sprintf("%v", err))
 
-		time.Sleep(retryDelay)
+		select {
+		case <-ctx.Done():
+			return false, fmt.Errorf("%s: %w", op, ctx.Err())
+		case <-time.After(retryDelay):
+		}
 		a, _, err = l.LBClient.AttachToNetwork(ctx, lb, opts)
 	}
 	if err != nil {
