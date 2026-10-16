@@ -95,7 +95,7 @@ func (l *LoadBalancerOps) GetByName(ctx context.Context, name string) (*hcloud.L
 // If no Load Balancer with id could be found, a wrapped ErrNotFound is
 // returned.
 func (l *LoadBalancerOps) GetByID(ctx context.Context, id int64) (*hcloud.LoadBalancer, error) {
-	const op = "hcops/LoadBalancerOps.GetByName"
+	const op = "hcops/LoadBalancerOps.GetByID"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	lb, _, err := l.LBClient.GetByID(ctx, id)
