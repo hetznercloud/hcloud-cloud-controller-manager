@@ -530,7 +530,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	for _, target := range lb.Targets {
 		var (
 			targetName string
-			a          *hcloud.Action
+			action     *hcloud.Action
 			err        error
 		)
 
@@ -549,7 +549,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			}
 
 			klog.InfoS("remove target", "op", op, "service", svc.Name, "targetName", targetName)
-			a, _, err = l.LBClient.RemoveServerTarget(ctx, lb, target.Server.Server)
+			action, _, err = l.LBClient.RemoveServerTarget(ctx, lb, target.Server.Server)
 		case hcloud.LoadBalancerTargetTypeIP:
 			ip := target.IP.IP
 			if _, desired := ipTargets[ip]; desired {
@@ -560,13 +560,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			targetName = ip
 
 			klog.InfoS("remove target", "op", op, "service", svc.Name, "targetIP", ip)
-			a, _, err = l.LBClient.RemoveIPTarget(ctx, lb, net.ParseIP(ip))
+			action, _, err = l.LBClient.RemoveIPTarget(ctx, lb, net.ParseIP(ip))
 		default:
 			continue
 		}
 
 		if err == nil {
-			err = l.ActionClient.WaitFor(ctx, a)
+			err = l.ActionClient.WaitFor(ctx, action)
 		}
 		if err != nil {
 			return changed, fmt.Errorf("%s: target: %s: %w", op, targetName, err)
@@ -631,7 +631,7 @@ func (l *LoadBalancerOps) addTarget(
 		return false, nil
 	}
 
-	a, _, err := add()
+	action, _, err := add()
 	if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
 		l.emitMaxTargetsReachedError(node, svc, op)
 		return false, nil
@@ -639,7 +639,7 @@ func (l *LoadBalancerOps) addTarget(
 	if err != nil {
 		return false, err
 	}
-	if err := l.ActionClient.WaitFor(ctx, a); err != nil {
+	if err := l.ActionClient.WaitFor(ctx, action); err != nil {
 		return false, err
 	}
 	return true, nil
