@@ -36,6 +36,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/instance"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -188,7 +189,7 @@ func (c *cloud) Instances() (cloudprovider.Instances, bool) {
 }
 
 func (c *cloud) InstancesV2() (cloudprovider.InstancesV2, bool) {
-	return newInstances(c.client, c.robotClient, c.serverCache, c.recorder, c.networkID, c.cfg), true
+	return instance.New(c.client, c.robotClient, c.serverCache, c.recorder, c.networkID, c.cfg), true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {

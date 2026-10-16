@@ -1846,6 +1846,55 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				assert.False(t, changed)
 			},
 		},
+		{
+			name: "robot switching to private IP replaces the ExternalIP target",
+			k8sNodes: []*corev1.Node{
+				{
+					Spec:       corev1.NodeSpec{ProviderID: "hrobot://3"},
+					ObjectMeta: metav1.ObjectMeta{Name: "robot-3"},
+					Status: corev1.NodeStatus{
+						Addresses: []corev1.NodeAddress{
+							{Type: corev1.NodeInternalIP, Address: "10.0.1.10"},
+						},
+					},
+				},
+			},
+			initialLB: &hcloud.LoadBalancer{
+				ID: 1,
+				Targets: []hcloud.LoadBalancerTarget{
+					{
+						Type: hcloud.LoadBalancerTargetTypeIP,
+						IP:   &hcloud.LoadBalancerTargetIP{IP: "1.2.3.4"},
+					},
+				},
+				LoadBalancerType: &hcloud.LoadBalancerType{
+					MaxTargets: 25,
+				},
+			},
+			robotServers: []hrobotmodels.Server{
+				{ServerNumber: 3, Name: "robot-3", ServerIP: "1.2.3.4"},
+			},
+			cfg: config.HCCMConfiguration{
+				LoadBalancer: config.LoadBalancerConfiguration{PrivateIPEnabled: true},
+				Robot:        config.RobotConfiguration{Enabled: true},
+			},
+			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
+				tt.fx.LBOps.NetworkID = 4711
+				tt.fx.MockListRobotServers(tt.robotServers, nil)
+
+				action := tt.fx.MockRemoveIPTarget(tt.initialLB, net.ParseIP("1.2.3.4"), nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+
+				optsIP := hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("10.0.1.10")}
+				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
+				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+			},
+			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
+				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -38,38 +38,45 @@ func (e *UnkownPrefixError) Error() string {
 	)
 }
 
+type Provider string
+
+const (
+	ProviderCloud Provider = "cloud"
+	ProviderRobot Provider = "robot"
+)
+
 // ToServerID parses the Cloud or Robot Server ID from a ProviderID.
 //
 // This method supports all formats for the ProviderID that were ever used.
 // If a format is ever dropped from this method the Nodes that still use that
 // format will get abandoned and can no longer be processed by HCCM.
-func ToServerID(providerID string) (id int64, isCloudServer bool, err error) {
+func ToServerID(providerID string) (int64, Provider, error) {
 	idString := ""
+	providerType := ProviderCloud
 	switch {
 	case strings.HasPrefix(providerID, prefixRobot):
 		idString = strings.ReplaceAll(providerID, prefixRobot, "")
-
+		providerType = ProviderRobot
 	case strings.HasPrefix(providerID, prefixRobotLegacy):
 		// This case needs to be before [prefixCloud], as [prefixCloud] is a superset of [prefixRobotLegacy]
 		idString = strings.ReplaceAll(providerID, prefixRobotLegacy, "")
-
+		providerType = ProviderRobot
 	case strings.HasPrefix(providerID, prefixCloud):
-		isCloudServer = true
 		idString = strings.ReplaceAll(providerID, prefixCloud, "")
-
+		providerType = ProviderCloud
 	default:
-		return 0, false, &UnkownPrefixError{providerID}
+		return 0, providerType, &UnkownPrefixError{providerID}
 	}
 
 	if idString == "" {
-		return 0, false, fmt.Errorf("providerID is missing a serverID: %s", providerID)
+		return 0, providerType, fmt.Errorf("providerID is missing a serverID: %s", providerID)
 	}
 
-	id, err = strconv.ParseInt(idString, 10, 64)
+	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
-		return 0, false, fmt.Errorf("unable to parse server id: %s", providerID)
+		return 0, providerType, fmt.Errorf("unable to parse server id: %s", providerID)
 	}
-	return id, isCloudServer, nil
+	return id, providerType, nil
 }
 
 // FromCloudServerID generates the canonical ProviderID for a Cloud Server.
