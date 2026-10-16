@@ -63,9 +63,9 @@ var (
 	errMissingRobotClient = errors.New("no robot client configured, make sure to enable Robot support in the configuration")
 )
 
-// NewInstances returns an implementation of [cloudprovider.InstancesV2] backed by
+// New returns an implementation of [cloudprovider.InstancesV2] backed by
 // the Hetzner Cloud and Hetzner Robot APIs.
-func NewInstances(
+func New(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
 	serverCache *cache.Cache[hcloud.Server],
