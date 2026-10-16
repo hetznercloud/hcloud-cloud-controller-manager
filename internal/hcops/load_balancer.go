@@ -785,10 +785,10 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 					l.emitMaxTargetsReachedError(node, svc, op)
 					continue
 				}
-				return changed, fmt.Errorf("%s: target %s: %w", op, node, err)
+				return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
 			}
 			if err := l.ActionClient.WaitFor(ctx, a); err != nil {
-				return changed, fmt.Errorf("%s: target %s: %w", op, node, err)
+				return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
 			}
 			changed = true
 			numberOfTargets++
