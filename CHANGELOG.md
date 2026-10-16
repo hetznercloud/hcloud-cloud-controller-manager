@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.39.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.1)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.39.0...v1.39.1)
+
+### Bug Fixes
+
+- **load-balancer**: log node name in robot target errors (#1385) ([f4f9a8d](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f4f9a8de5c231a962229431c756df7b2b2a166fe))
+- **load-balancer**: use correct op label in GetByID (#1384) ([53a9143](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/53a91434a88061a725fdae72e3986a1cc966b68a))
+- **load-balancer**: respect context in attach retry delay (#1386) ([b7d833f](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/b7d833fc2cfaf2cd1bb6ccb89193e5c005c0d275))
+
 ## [v1.39.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.38.0...v1.39.0)
