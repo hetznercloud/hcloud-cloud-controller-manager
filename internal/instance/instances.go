@@ -107,7 +107,7 @@ func (i *instances) lookupServer(
 		}
 
 		return hcloudServer{server, i.recorder}, nil
-	case providerid.ProviderRobot:
+	default:
 		server, err := getRobotServerByID(i, int(id), node)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get robot server \"%d\": %w", id, err)
@@ -117,8 +117,6 @@ func (i *instances) lookupServer(
 		}
 		return robotServer{server, i.robotClient, i.recorder}, nil
 	}
-
-	return nil, fmt.Errorf("no provider found for provider id %s", node.Spec.ProviderID)
 }
 
 // getServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server]
@@ -135,7 +133,6 @@ func (i *instances) getServer(
 ) (genericServer, error) {
 	ctx = cache.SetSubsystem(ctx, instancesV2Subsystem)
 
-	// Already initialized
 	if node.Spec.ProviderID != "" {
 		return i.lookupServer(ctx, node)
 	}
@@ -206,7 +203,7 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bo
 		)
 	}
 
-	isShutdown, err := server.IsShutdown(ctx)
+	isShutdown, err := server.IsShutdown()
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -462,7 +459,7 @@ func appendForwardedInternalIPs(
 }
 
 type genericServer interface {
-	IsShutdown(context.Context) (bool, error)
+	IsShutdown() (bool, error)
 	Metadata(
 		networkID int64,
 		node *corev1.Node,
@@ -475,7 +472,7 @@ type hcloudServer struct {
 	recorder record.EventRecorder
 }
 
-func (s hcloudServer) IsShutdown(_ context.Context) (bool, error) {
+func (s hcloudServer) IsShutdown() (bool, error) {
 	return s.Status == hcloud.ServerStatusOff, nil
 }
 
@@ -491,7 +488,7 @@ func (s hcloudServer) Metadata(networkID int64, node *corev1.Node, cfg config.HC
 		NodeAddresses: nodeAddresses,
 		Region:        s.Location.Name,
 		AdditionalLabels: map[string]string{
-			ProvidedBy: "cloud",
+			ProvidedBy: string(providerid.ProviderCloud),
 		},
 	}
 
@@ -510,7 +507,7 @@ type robotServer struct {
 	recorder    record.EventRecorder
 }
 
-func (s robotServer) IsShutdown(_ context.Context) (bool, error) {
+func (s robotServer) IsShutdown() (bool, error) {
 	resetStatus, err := s.robotClient.ResetGet(s.ServerNumber)
 	if err != nil {
 		return false, err
@@ -534,7 +531,7 @@ func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfigu
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
-			ProvidedBy: "robot",
+			ProvidedBy: string(providerid.ProviderRobot),
 		},
 	}, nil
 }

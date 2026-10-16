@@ -24,30 +24,9 @@ import (
 	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 )
-
-type MockEventRecorder struct{}
-
-func (er *MockEventRecorder) Event(_ runtime.Object, _, _, _ string) {
-}
-
-func (er *MockEventRecorder) Eventf(
-	_ runtime.Object,
-	_, _, _ string,
-	_ ...any,
-) {
-}
-
-func (er *MockEventRecorder) AnnotatedEventf(
-	_ runtime.Object,
-	_ map[string]string,
-	_, _, _ string,
-	_ ...any,
-) {
-}
 
 func getRobotServerByName(c hrobot.RobotClient, node *corev1.Node) (server *hrobotmodels.Server, err error) {
 	const op = "hcloud/getRobotServerByName"

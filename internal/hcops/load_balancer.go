@@ -575,35 +575,36 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		numberOfTargets--
 	}
 
+	var pending []pendingTarget
 	for id, node := range serverTargets {
 		if existingServerTargets[id] {
 			continue
 		}
-
-		klog.InfoS("add target", "op", op, "service", svc.Name, "targetName", node.Name)
-		added, err := l.addTarget(ctx, lb, svc, node, numberOfTargets, func() (*hcloud.Action, *hcloud.Response, error) {
-			return l.LBClient.AddServerTarget(ctx, lb, spec.AddServerTargetOpts(id))
+		pending = append(pending, pendingTarget{
+			node: node,
+			add: func() (*hcloud.Action, *hcloud.Response, error) {
+				klog.InfoS("add target", "op", op, "service", svc.Name, "targetName", node.Name)
+				return l.LBClient.AddServerTarget(ctx, lb, spec.AddServerTargetOpts(id))
+			},
 		})
-		if err != nil {
-			return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
-		}
-		if added {
-			changed = true
-			numberOfTargets++
-		}
 	}
-
 	for ip, node := range ipTargets {
 		if existingIPTargets[ip] {
 			continue
 		}
-
-		klog.InfoS("add target", "op", op, "service", svc.Name, "targetName", node.Name, "ip", ip)
-		added, err := l.addTarget(ctx, lb, svc, node, numberOfTargets, func() (*hcloud.Action, *hcloud.Response, error) {
-			return l.LBClient.AddIPTarget(ctx, lb, hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP(ip)})
+		pending = append(pending, pendingTarget{
+			node: node,
+			add: func() (*hcloud.Action, *hcloud.Response, error) {
+				klog.InfoS("add target", "op", op, "service", svc.Name, "targetName", node.Name, "ip", ip)
+				return l.LBClient.AddIPTarget(ctx, lb, hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP(ip)})
+			},
 		})
+	}
+
+	for _, target := range pending {
+		added, err := l.addTarget(ctx, op, lb, svc, target, numberOfTargets)
 		if err != nil {
-			return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
+			return changed, fmt.Errorf("%s: target %s: %w", op, target.node.Name, err)
 		}
 		if added {
 			changed = true
@@ -614,26 +615,29 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	return changed, nil
 }
 
+type pendingTarget struct {
+	node *corev1.Node
+	add  func() (*hcloud.Action, *hcloud.Response, error)
+}
+
 // addTarget returns false without an error if the target was not added because
 // the Load Balancer has reached its maximum number of targets.
 func (l *LoadBalancerOps) addTarget(
 	ctx context.Context,
+	op string,
 	lb *hcloud.LoadBalancer,
 	svc *corev1.Service,
-	node *corev1.Node,
+	target pendingTarget,
 	numberOfTargets int,
-	add func() (*hcloud.Action, *hcloud.Response, error),
 ) (bool, error) {
-	const op = "hcops/LoadBalancerOps.ReconcileHCLBTargets"
-
 	if numberOfTargets >= lb.LoadBalancerType.MaxTargets {
-		l.emitMaxTargetsReachedError(node, svc, op)
+		l.emitMaxTargetsReachedError(target.node, svc, op)
 		return false, nil
 	}
 
-	action, _, err := add()
+	action, _, err := target.add()
 	if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
-		l.emitMaxTargetsReachedError(node, svc, op)
+		l.emitMaxTargetsReachedError(target.node, svc, op)
 		return false, nil
 	}
 	if err != nil {
@@ -696,7 +700,6 @@ func (l *LoadBalancerOps) desiredTargets(
 			continue
 		}
 
-		// Without Robot credentials the InternalIP of the Node is the only known IP.
 		if ip := l.targetIP(svc, node, externalIP, usePrivateIP); ip != "" {
 			ipTargets[ip] = node
 			continue
@@ -753,7 +756,6 @@ func (l *LoadBalancerOps) targetIP(svc *corev1.Service, node *corev1.Node, exter
 	return externalIP
 }
 
-//nolint:unparam // op might get set to different values in the future
 func (l *LoadBalancerOps) emitMaxTargetsReachedError(node *corev1.Node, svc *corev1.Service, op string) {
 	l.Recorder.Eventf(node, corev1.EventTypeWarning, "MaxTargetsReached",
 		"Node could not be added to Load Balancer for service %s because the max number of targets has been reached",
