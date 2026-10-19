@@ -43,6 +43,8 @@ import (
 
 const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
+	providedByCloud         = "cloud"
+	providedByRobot         = "robot"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
 	InvalidExternalIPv6     = "InvalidExternalIPv6"
@@ -488,7 +490,7 @@ func (s hcloudServer) Metadata(networkID int64, node *corev1.Node, cfg config.HC
 		NodeAddresses: nodeAddresses,
 		Region:        s.Location.Name,
 		AdditionalLabels: map[string]string{
-			ProvidedBy: string(providerid.ProviderCloud),
+			ProvidedBy: providedByCloud,
 		},
 	}
 
@@ -531,7 +533,7 @@ func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfigu
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
-			ProvidedBy: string(providerid.ProviderRobot),
+			ProvidedBy: providedByRobot,
 		},
 	}, nil
 }

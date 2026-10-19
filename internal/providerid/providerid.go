@@ -6,16 +6,23 @@ import (
 	"strings"
 )
 
+type Provider string
+
+const (
+	ProviderCloud Provider = "hcloud"
+	ProviderRobot Provider = "hrobot"
+)
+
 const (
 	// prefixCloud is the prefix for Cloud Server provider IDs.
 	//
 	// It MUST not be changed, otherwise existing nodes will not be recognized anymore.
-	prefixCloud = "hcloud://"
+	prefixCloud = string(ProviderCloud) + "://"
 
 	// prefixRobot is the prefix for Robot Server provider IDs.
 	//
 	// It MUST not be changed, otherwise existing nodes will not be recognized anymore.
-	prefixRobot = "hrobot://"
+	prefixRobot = string(ProviderRobot) + "://"
 
 	// prefixRobot is the prefix used by the Syself Fork for Robot Server provider IDs.
 	// This Prefix is no longer used for new nodes, instead [prefixRobot] should be used.
@@ -37,13 +44,6 @@ func (e *UnkownPrefixError) Error() string {
 		e.ProviderID,
 	)
 }
-
-type Provider string
-
-const (
-	ProviderCloud Provider = "cloud"
-	ProviderRobot Provider = "robot"
-)
 
 // ToServerID parses the Cloud or Robot Server ID from a ProviderID.
 //
