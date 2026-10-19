@@ -557,10 +557,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			}
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
-		if provider == providerid.ProviderCloud {
+		switch provider {
+		case providerid.ProviderCloud:
 			k8sNodeIDsHCloud[id] = true
-		} else {
+		case providerid.ProviderRobot:
 			k8sNodeIDsRobot[int(id)] = true
+		default:
+			return changed, fmt.Errorf("%s: unsupported provider %q", op, provider)
 		}
 		k8sNodes[id] = node
 	}

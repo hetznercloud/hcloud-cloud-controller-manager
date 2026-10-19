@@ -109,7 +109,7 @@ func (i *instances) lookupServer(
 		}
 
 		return hcloudServer{server, i.recorder}, nil
-	default:
+	case providerid.ProviderRobot:
 		server, err := getRobotServerByID(i, int(id), node)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get robot server \"%d\": %w", id, err)
@@ -118,6 +118,8 @@ func (i *instances) lookupServer(
 			return nil, nil
 		}
 		return robotServer{server, i.robotClient, i.recorder}, nil
+	default:
+		return nil, fmt.Errorf("unsupported provider %q", provider)
 	}
 }
 

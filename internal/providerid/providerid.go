@@ -51,8 +51,8 @@ func (e *UnkownPrefixError) Error() string {
 // If a format is ever dropped from this method the Nodes that still use that
 // format will get abandoned and can no longer be processed by HCCM.
 func ToServerID(providerID string) (int64, Provider, error) {
-	idString := ""
-	providerType := ProviderCloud
+	var idString string
+	var providerType Provider
 	switch {
 	case strings.HasPrefix(providerID, prefixRobot):
 		idString = strings.ReplaceAll(providerID, prefixRobot, "")
@@ -65,16 +65,16 @@ func ToServerID(providerID string) (int64, Provider, error) {
 		idString = strings.ReplaceAll(providerID, prefixCloud, "")
 		providerType = ProviderCloud
 	default:
-		return 0, providerType, &UnkownPrefixError{providerID}
+		return 0, "", &UnkownPrefixError{providerID}
 	}
 
 	if idString == "" {
-		return 0, providerType, fmt.Errorf("providerID is missing a serverID: %s", providerID)
+		return 0, "", fmt.Errorf("providerID is missing a serverID: %s", providerID)
 	}
 
 	id, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
-		return 0, providerType, fmt.Errorf("unable to parse server id: %s", providerID)
+		return 0, "", fmt.Errorf("unable to parse server id: %s", providerID)
 	}
 	return id, providerType, nil
 }

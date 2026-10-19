@@ -39,7 +39,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
 
-// TestInstances_InstanceExists also tests [lookupServer]. The other tests
+// TestInstances_InstanceExists also tests [instances.getServer]. The other tests
 // [instances] rely on these tests and only test their additional features.
 func TestInstances_InstanceExists(t *testing.T) {
 	env := testenv.New()
