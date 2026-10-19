@@ -612,6 +612,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			}
 
 			// Overwrite ExternalIP with InternalIP
+			delete(robotIPsToIDs, s.ServerIP)
 			robotIPsToIDs[internalIP] = s.ServerNumber
 			robotIDToIPv4[s.ServerNumber] = internalIP
 		}
