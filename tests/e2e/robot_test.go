@@ -30,9 +30,9 @@ func TestNodeSetCorrectNodeLabelsAndIPAddressesRobot(t *testing.T) {
 	node := nodes.Items[0]
 
 	// Parse the server number from the ProviderID
-	id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+	id, provider, err := providerid.ToServerID(node.Spec.ProviderID)
 	require.NoError(t, err)
-	assert.False(t, isCloudServer)
+	assert.Equal(t, providerid.ProviderRobot, provider)
 
 	// Get the server from the Robot API to cross-check Labels
 	server, err := testCluster.hrobot.ServerGet(int(id))

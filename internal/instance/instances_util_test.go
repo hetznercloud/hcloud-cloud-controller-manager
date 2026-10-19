@@ -1,4 +1,4 @@
-package hcloud
+package instance
 
 import (
 	"testing"
