@@ -181,11 +181,11 @@ func (r *routes) resolveRouteTarget(ctx context.Context, nodeName string) (*core
 
 	var server *hcloud.Server
 	if node.Spec.ProviderID != "" {
-		id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+		id, provider, err := providerid.ToServerID(node.Spec.ProviderID)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error parsing provider id %q for node %s: %w", node.Spec.ProviderID, nodeName, err)
 		}
-		if !isCloudServer {
+		if provider != providerid.ProviderCloud {
 			return nil, nil, fmt.Errorf("node %s is not a cloud server, routes are only supported for cloud servers", node.Name)
 		}
 		server, err = r.serverCache.ByID(ctx, id, cache.WithMaxAge(routeTargetCacheMaxAge))

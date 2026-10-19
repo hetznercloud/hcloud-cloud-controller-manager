@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package hcloud
+package instance
 
 import (
 	"context"
@@ -43,6 +43,8 @@ import (
 
 const (
 	ProvidedBy              = "instance.hetzner.cloud/provided-by"
+	providedByCloud         = "cloud"
+	providedByRobot         = "robot"
 	MisconfiguredInternalIP = "MisconfiguredInternalIP"
 	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
 	InvalidExternalIPv6     = "InvalidExternalIPv6"
@@ -63,14 +65,16 @@ var (
 	errMissingRobotClient = errors.New("no robot client configured, make sure to enable Robot support in the configuration")
 )
 
-func newInstances(
+// New returns an implementation of [cloudprovider.InstancesV2] backed by
+// the Hetzner Cloud and Hetzner Robot APIs.
+func New(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
 	serverCache *cache.Cache[hcloud.Server],
 	recorder record.EventRecorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
-) *instances {
+) cloudprovider.InstancesV2 {
 	return &instances{
 		client,
 		robotClient,
@@ -81,58 +85,69 @@ func newInstances(
 	}
 }
 
-// lookupServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server] for a given [*corev1.Node].
-// It returns an error if the Node has an invalid provider ID or if API requests failed.
-// It can return nil server if neither the ProviderID nor the Name matches an existing server.
+// lookupServer locates the server for a [*corev1.Node] that already has a ProviderID set.
+// It returns an error if the ProviderID is invalid or if the API request failed.
+// It can return a nil server if the ProviderID does not match an existing server.
 func (i *instances) lookupServer(
 	ctx context.Context,
 	node *corev1.Node,
 ) (genericServer, error) {
-	ctx = cache.SetSubsystem(ctx, instancesV2Subsystem)
+	id, provider, err := providerid.ToServerID(node.Spec.ProviderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert provider id to server id: %w", err)
+	}
 
-	if node.Spec.ProviderID != "" {
-		var serverID int64
-		serverID, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+	switch provider {
+	case providerid.ProviderCloud:
+		server, err := i.serverCache.ByID(ctx, id)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert provider id to server id: %w", err)
-		}
-
-		if isCloudServer {
-			server, err := i.serverCache.ByID(ctx, serverID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get hcloud server \"%d\": %w", serverID, err)
-			}
-
-			if server == nil {
-				return nil, nil
-			}
-
-			return hcloudServer{server, i.recorder}, nil
-		}
-
-		if i.robotClient == nil {
-			return nil, errMissingRobotClient
-		}
-		server, err := getRobotServerByID(i, int(serverID), node)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get robot server \"%d\": %w", serverID, err)
+			return nil, fmt.Errorf("failed to get hcloud server \"%d\": %w", id, err)
 		}
 
 		if server == nil {
 			return nil, nil
 		}
 
+		return hcloudServer{server, i.recorder}, nil
+	case providerid.ProviderRobot:
+		server, err := getRobotServerByID(i, int(id), node)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get robot server \"%d\": %w", id, err)
+		}
+		if server == nil {
+			return nil, nil
+		}
 		return robotServer{server, i.robotClient, i.recorder}, nil
+	default:
+		return nil, fmt.Errorf("unsupported provider %q", provider)
+	}
+}
+
+// getServer attempts to locate the corresponding [*hcloud.Server] or [*hrobotmodels.Server]
+// for a given [*corev1.Node].
+//
+// Nodes that already have a ProviderID are looked up through it. For Nodes without a ProviderID
+// we try to find the server by name in both APIs. In case we find two servers, we return an error.
+//
+// It returns an error if the Node has an invalid provider ID or if API requests failed.
+// It can return nil server if neither the ProviderID nor the Name matches an existing server.
+func (i *instances) getServer(
+	ctx context.Context,
+	node *corev1.Node,
+) (genericServer, error) {
+	ctx = cache.SetSubsystem(ctx, instancesV2Subsystem)
+
+	if node.Spec.ProviderID != "" {
+		return i.lookupServer(ctx, node)
 	}
 
-	// If the node has no provider ID we try to find the server by name from
-	// both sources. In case we find two servers, we return an error.
+	var hrobotServer *hrobotmodels.Server
+
 	cloudServer, err := i.serverCache.ByName(ctx, node.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get hcloud server %q: %w", node.Name, err)
 	}
 
-	var hrobotServer *hrobotmodels.Server
 	if i.robotClient != nil {
 		hrobotServer, err = getRobotServerByName(i.robotClient, node)
 		if err != nil {
@@ -167,7 +182,7 @@ func (i *instances) InstanceExists(ctx context.Context, node *corev1.Node) (bool
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 	klog.V(4).InfoS("InstanceExists called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
-	server, err := i.lookupServer(ctx, node)
+	server, err := i.getServer(ctx, node)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -180,7 +195,7 @@ func (i *instances) InstanceShutdown(ctx context.Context, node *corev1.Node) (bo
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 	klog.V(4).InfoS("InstanceShutdown called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
-	server, err := i.lookupServer(ctx, node)
+	server, err := i.getServer(ctx, node)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
@@ -205,7 +220,7 @@ func (i *instances) InstanceMetadata(ctx context.Context, node *corev1.Node) (*c
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 	klog.V(4).InfoS("InstanceMetadata called", "node", node.Name, "providerID", node.Spec.ProviderID)
 
-	server, err := i.lookupServer(ctx, node)
+	server, err := i.getServer(ctx, node)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -477,7 +492,7 @@ func (s hcloudServer) Metadata(networkID int64, node *corev1.Node, cfg config.HC
 		NodeAddresses: nodeAddresses,
 		Region:        s.Location.Name,
 		AdditionalLabels: map[string]string{
-			ProvidedBy: "cloud",
+			ProvidedBy: providedByCloud,
 		},
 	}
 
@@ -520,7 +535,7 @@ func (s robotServer) Metadata(_ int64, node *corev1.Node, cfg config.HCCMConfigu
 		Zone:          getZoneOfRobotServer(s.Server),
 		Region:        getRegionOfRobotServer(s.Server),
 		AdditionalLabels: map[string]string{
-			ProvidedBy: "robot",
+			ProvidedBy: providedByRobot,
 		},
 	}, nil
 }

@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	cloudprovider "k8s.io/cloud-provider"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testenv"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
@@ -31,7 +32,7 @@ func nodeLister(t *testing.T, nodes ...*corev1.Node) corelisters.NodeLister {
 const DefaultClusterCIDR = "10.244.0.0/16"
 
 func TestRoutes_CreateRoute(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.ServerGetResponse{
@@ -109,7 +110,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 }
 
 func TestRoutes_ListRoutes(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 	// ListRoutes resolves each route's gateway to a node by loading all servers via the
 	// cache, so it fetches the full server list rather than individual servers.
@@ -165,7 +166,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 }
 
 func TestRoutes_DeleteRoute(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(schema.NetworkGetResponse{
@@ -228,7 +229,7 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 }
 
 func TestRoutes_CreateRoute_RobotProviderID(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
@@ -256,7 +257,7 @@ func TestRoutes_CreateRoute_RobotProviderID(t *testing.T) {
 // TestRoutes_CreateRoute_IPv6 asserts that an IPv6 destination CIDR is rejected early with a
 // clear error.
 func TestRoutes_CreateRoute_IPv6(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/networks/1", func(w http.ResponseWriter, _ *http.Request) {
@@ -282,7 +283,7 @@ func TestRoutes_CreateRoute_IPv6(t *testing.T) {
 // k8s node name differs from the hcloud server name — the core fix in this PR. The server is
 // resolved by its immutable ProviderID rather than by k8s node name.
 func TestRoutes_CreateRoute_NodeNameDrift(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/servers/42", func(w http.ResponseWriter, _ *http.Request) {
@@ -337,7 +338,7 @@ func TestRoutes_CreateRoute_NodeNameDrift(t *testing.T) {
 // when the node has no ProviderID (e.g. node controller not used), the hcloud server
 // is resolved by node name instead.
 func TestRoutes_CreateRoute_NoProviderID(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/servers", func(w http.ResponseWriter, _ *http.Request) {
@@ -393,7 +394,7 @@ func TestRoutes_CreateRoute_NoProviderID(t *testing.T) {
 // TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh asserts that even
 // after a cache refresh, the server is still not attached to the routes network.
 func TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
@@ -429,7 +430,7 @@ func TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh(t *testing.T) {
 // TestRoutes_CreateRoute_ReplaceStaleRoute asserts that a pre-existing route with a wrong
 // gateway is deleted and a new one is added in the same call (upsert-in-place).
 func TestRoutes_CreateRoute_ReplaceStaleRoute(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {
@@ -495,7 +496,7 @@ func TestRoutes_CreateRoute_ReplaceStaleRoute(t *testing.T) {
 // TestRoutes_CreateRoute_AlreadyExists asserts no API mutations happen when the route already
 // matches the desired destination + gateway.
 func TestRoutes_CreateRoute_AlreadyExists(t *testing.T) {
-	env := newTestEnv()
+	env := testenv.New()
 	defer env.Teardown()
 
 	env.Mux.HandleFunc("/servers/1", func(w http.ResponseWriter, _ *http.Request) {

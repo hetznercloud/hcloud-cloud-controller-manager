@@ -541,7 +541,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 	// Extract HC server IDs of all K8S nodes assigned to the K8S cluster.
 	for _, node := range nodes {
-		id, isCloudServer, err := providerid.ToServerID(node.Spec.ProviderID)
+		id, provider, err := providerid.ToServerID(node.Spec.ProviderID)
 		if err != nil {
 			if errors.As(err, new(*providerid.UnkownPrefixError)) {
 				// ProviderID has unknown prefix, cluster might have non-hccm nodes that can not be added to the
@@ -557,10 +557,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			}
 			return changed, fmt.Errorf("%s: %w", op, err)
 		}
-		if isCloudServer {
+		switch provider {
+		case providerid.ProviderCloud:
 			k8sNodeIDsHCloud[id] = true
-		} else {
+		case providerid.ProviderRobot:
 			k8sNodeIDsRobot[int(id)] = true
+		default:
+			return changed, fmt.Errorf("%s: unsupported provider %q", op, provider)
 		}
 		k8sNodes[id] = node
 	}
