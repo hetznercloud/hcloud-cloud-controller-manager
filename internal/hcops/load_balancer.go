@@ -517,8 +517,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		k8sNodeIDsRobot  = make(map[int]bool)
 		k8sNodes         = make(map[int64]*corev1.Node)
 
-		robotIPsToIDs = make(map[string]int)
-		robotIDToIPv4 = make(map[int]string)
+		robotIPsToIDs       = make(map[string]int)
+		robotIDToIPv4       = make(map[int]string)
+		replacedExternalIPs = make(map[string]int)
 		// Set of server IDs assigned as targets to the HC Load Balancer. Some
 		// of the entries may get deleted during reconcilement. In this case
 		// the hclbTargetIDs[id] is always false. If hclbTargetIDs[id] is true,
@@ -613,6 +614,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 			// Overwrite ExternalIP with InternalIP
 			delete(robotIPsToIDs, s.ServerIP)
+			replacedExternalIPs[s.ServerIP] = s.ServerNumber
 			robotIPsToIDs[internalIP] = s.ServerNumber
 			robotIDToIPv4[s.ServerNumber] = internalIP
 		}
@@ -699,6 +701,18 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				nodeName = node.Name
 			} else {
 				nodeName = fmt.Sprintf("%d", id)
+			}
+
+			if id, replaced := replacedExternalIPs[ip]; replaced {
+				utils.WarnEventLogf(
+					l.Recorder,
+					svc,
+					"ExternalIPTargetReplaced",
+					"removing ExternalIP target %s of node %s, because `use-private-ip: true` is set and its InternalIP %s is used instead",
+					ip,
+					k8sNodes[int64(id)].Name,
+					robotIDToIPv4[id],
+				)
 			}
 
 			klog.InfoS("remove target", "op", op, "service", svc.ObjectMeta.Name, "targetName", nodeName)

@@ -1888,11 +1888,21 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				optsIP := hcloud.LoadBalancerAddIPTargetOpts{IP: net.ParseIP("10.0.1.10")}
 				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
+
+				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
+
+				events := tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events
+				assert.Len(t, events, 1)
+				assert.Equal(
+					t,
+					"Warning ExternalIPTargetReplaced removing ExternalIP target 1.2.3.4 of node robot-3, because `use-private-ip: true` is set and its InternalIP 10.0.1.10 is used instead",
+					<-events,
+				)
 			},
 		},
 	}
