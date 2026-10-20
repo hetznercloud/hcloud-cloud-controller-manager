@@ -3,6 +3,10 @@
 [![Tests](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/hetznercloud/hcloud-cloud-controller-manager/actions/workflows/test.yml)
 [![Codecov](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/graph/badge.svg?token=Q7pbOoyVpj)](https://codecov.io/github/hetznercloud/hcloud-cloud-controller-manager/tree/main)
 
+> [!IMPORTANT]
+>
+> On 2026-07-07 we deleted the `latest` image tag. It was broken and heavily outdated (last updated three years ago), so it should not be relied upon. Always pin your deployment to a specific released version instead. See the [releases](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases) for available versions.
+
 The Hetzner Cloud [cloud-controller-manager](https://kubernetes.io/docs/concepts/architecture/cloud-controller/) integrates your Kubernetes cluster with the Hetzner Cloud & Robot APIs.
 
 ## Docs
