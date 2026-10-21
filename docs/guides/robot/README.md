@@ -6,3 +6,4 @@ In this folder, you should find guides for you to accomplish specific tasks with
 - [Private Networks](private-networks.md)
 - [Load Balancer Only Without Credentials](lb-only-without-credentials.md)
 - [Migrating from Syself](migrating-from-syself.md)
+- [Leftover ExternalIP Targets](leftover-external-ip-targets.md)
