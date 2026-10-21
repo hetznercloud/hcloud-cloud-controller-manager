@@ -559,6 +559,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 			targetName = ip
 
+			// TODO: Remove in the next major release.
 			if node, replaced := desired.replacedExternalIPs[ip]; replaced {
 				utils.WarnEventLogf(
 					l.Recorder,
