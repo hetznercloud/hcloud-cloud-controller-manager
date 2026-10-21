@@ -20,6 +20,8 @@ With the v1.24.0 release we introduced the option to configure Internal IPs for 
 
 As a result, the annotation `load-balancer.hetzner.cloud/use-private-ip` can be set, if the Robot server is connected to a private network and its IP is of type [InternalIP](https://kubernetes.io/docs/reference/node/node-status/#addresses).
 
+> If you upgrade from v1.31.0 or newer, check your Load Balancers for [leftover ExternalIP targets](./leftover-external-ip-targets.md) first.
+
 ## Prerequisite
 
 Enable Robot support as outlined in the [Robot setup guide](./quickstart.md). As mentioned there, for a Robot server we pass along configured InternalIPs, that do not appear as an ExternalIP and are within the configured address family. Check with this command if you have configured an InternalIP:
