@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.39.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.1)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.39.0...v1.39.1)
+
+### Upgrade note: leftover ExternalIP targets of Robot servers
+
+If `load-balancer.hetzner.cloud/use-private-ip` is enabled, the Load Balancer targets the `InternalIP` of a Robot server. Since v1.31.0, the ExternalIP target of the server was kept as well, which could hide a broken private network setup. With this release, these leftover ExternalIP targets are removed on the first reconciliation after the upgrade.
+
+Before upgrading, make sure the `InternalIP` targets of your Robot servers are healthy and can be added to the Load Balancer. Otherwise, these nodes no longer receive traffic. Follow the [guide to check for leftover ExternalIP targets](https://github.com/hetznercloud/hcloud-cloud-controller-manager/blob/main/docs/guides/robot/leftover-external-ip-targets.md) to find out if you are affected.
+
+Clusters without Robot credentials are not affected.
+
+### Bug Fixes
+
+- **load-balancer**: log node name in robot target errors (#1385) ([f4f9a8d](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/f4f9a8de5c231a962229431c756df7b2b2a166fe))
+- **load-balancer**: use correct op label in GetByID (#1384) ([53a9143](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/53a91434a88061a725fdae72e3986a1cc966b68a))
+- **load-balancer**: respect context in attach retry delay (#1386) ([b7d833f](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/b7d833fc2cfaf2cd1bb6ccb89193e5c005c0d275))
+- **load-balancer**: remove leftover ExternalIP targets of Robot servers when using private IPs (#1389) ([6cc2fe7](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/6cc2fe7bacbb63410b842005fd790380939e4cc6))
+
 ## [v1.39.0](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.0)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.38.0...v1.39.0)
