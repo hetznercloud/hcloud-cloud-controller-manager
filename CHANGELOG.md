@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.39.2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.2)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.39.1...v1.39.2)
+
+### Bug Fixes
+
+- update Go to mitigate CVE-2026-111943 (#1395) ([7a215cf](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/7a215cfdee07d41611d262f3e1e792637c765239))
+
 ## [v1.39.1](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.1)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.39.0...v1.39.1)
