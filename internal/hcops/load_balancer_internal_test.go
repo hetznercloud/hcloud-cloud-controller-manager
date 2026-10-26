@@ -136,11 +136,11 @@ func TestBuildServiceOpts(t *testing.T) {
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 				HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{
 					CookieName:     new("my-cookie"),
-					CookieLifetime: hcloud.Ptr(time.Hour),
+					CookieLifetime: new(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   new(true),
 					StickySessions: new(true),
-					TimeoutIdle:    hcloud.Ptr(30 * time.Second),
+					TimeoutIdle:    new(30 * time.Second),
 				},
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
@@ -152,11 +152,11 @@ func TestBuildServiceOpts(t *testing.T) {
 				Protocol:        hcloud.LoadBalancerServiceProtocolHTTP,
 				HTTP: &hcloud.LoadBalancerUpdateServiceOptsHTTP{
 					CookieName:     new("my-cookie"),
-					CookieLifetime: hcloud.Ptr(time.Hour),
+					CookieLifetime: new(time.Hour),
 					Certificates:   []*hcloud.Certificate{{ID: 1}, {ID: 3}},
 					RedirectHTTP:   new(true),
 					StickySessions: new(true),
-					TimeoutIdle:    hcloud.Ptr(30 * time.Second),
+					TimeoutIdle:    new(30 * time.Second),
 				},
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
@@ -218,8 +218,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
 					Port:     new(8085),
-					Interval: hcloud.Ptr(30 * time.Second),
-					Timeout:  hcloud.Ptr(5 * time.Second),
+					Interval: new(30 * time.Second),
+					Timeout:  new(5 * time.Second),
 					Retries:  new(5),
 				},
 			},
@@ -229,8 +229,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
 					Port:     new(8085),
-					Interval: hcloud.Ptr(30 * time.Second),
-					Timeout:  hcloud.Ptr(5 * time.Second),
+					Interval: new(30 * time.Second),
+					Timeout:  new(5 * time.Second),
 					Retries:  new(5),
 				},
 			},
@@ -319,8 +319,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
 					Port:     new(8084),
-					Interval: hcloud.Ptr(time.Hour),
-					Timeout:  hcloud.Ptr(30 * time.Second),
+					Interval: new(time.Hour),
+					Timeout:  new(30 * time.Second),
 					Retries:  new(5),
 				},
 			},
@@ -330,8 +330,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolTCP,
 					Port:     new(8084),
-					Interval: hcloud.Ptr(time.Hour),
-					Timeout:  hcloud.Ptr(30 * time.Second),
+					Interval: new(time.Hour),
+					Timeout:  new(30 * time.Second),
 					Retries:  new(5),
 				},
 			},
@@ -357,8 +357,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
 					Port:     new(8085),
-					Interval: hcloud.Ptr(time.Hour),
-					Timeout:  hcloud.Ptr(30 * time.Second),
+					Interval: new(time.Hour),
+					Timeout:  new(30 * time.Second),
 					Retries:  new(5),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHealthCheckHTTP{
 						Domain:      new("example.com"),
@@ -374,8 +374,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
 					Port:     new(8085),
-					Interval: hcloud.Ptr(time.Hour),
-					Timeout:  hcloud.Ptr(30 * time.Second),
+					Interval: new(time.Hour),
+					Timeout:  new(30 * time.Second),
 					Retries:  new(5),
 					HTTP: &hcloud.LoadBalancerUpdateServiceOptsHealthCheckHTTP{
 						Domain:      new("example.com"),
@@ -406,8 +406,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
 					Port:     new(8084),
-					Interval: hcloud.Ptr(time.Hour),
-					Timeout:  hcloud.Ptr(30 * time.Second),
+					Interval: new(time.Hour),
+					Timeout:  new(30 * time.Second),
 					Retries:  new(5),
 					HTTP: &hcloud.LoadBalancerAddServiceOptsHealthCheckHTTP{
 						Domain:      new("example.com"),
@@ -423,8 +423,8 @@ func TestBuildServiceOpts(t *testing.T) {
 				HealthCheck: &hcloud.LoadBalancerUpdateServiceOptsHealthCheck{
 					Protocol: hcloud.LoadBalancerServiceProtocolHTTP,
 					Port:     new(8084),
-					Interval: hcloud.Ptr(time.Hour),
-					Timeout:  hcloud.Ptr(30 * time.Second),
+					Interval: new(time.Hour),
+					Timeout:  new(30 * time.Second),
 					Retries:  new(5),
 					HTTP: &hcloud.LoadBalancerUpdateServiceOptsHealthCheckHTTP{
 						Domain:      new("example.com"),
