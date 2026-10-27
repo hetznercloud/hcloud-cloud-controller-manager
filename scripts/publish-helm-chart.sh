@@ -48,6 +48,11 @@ pushd "${TMP_DIR}"
 # Setup git-lfs
 git lfs install --local
 
+if [[ -n "${CHART_REPO_TOKEN}" ]]; then
+  # shellcheck disable=SC2016
+  git config --local credential.helper '!f() { echo username=x-access-token; echo "password=${CHART_REPO_TOKEN}"; }; f'
+fi
+
 # commit & push
 git add -- index.yaml "${CHART_FILE}"
 git commit -m "feat: add ${CHART_FILE}"
