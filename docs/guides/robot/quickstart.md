@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Installing the controller manager for Robot servers"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Installing the controller manager for Robot servers"]
 scrape_type: "whole"
 priority: 60
 ---

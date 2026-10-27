@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["getting_started"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Disabling the zone label"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Disabling the zone label"]
 scrape_type: "whole"
 priority: 20
 ---

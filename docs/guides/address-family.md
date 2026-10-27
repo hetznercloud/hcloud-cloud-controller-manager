@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Address Family"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Address Family"]
 scrape_type: "whole"
 priority: 30
 ---
