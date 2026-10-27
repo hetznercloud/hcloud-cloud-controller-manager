@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Load Balancer setup"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Load Balancer setup"]
 scrape_type: "whole"
 priority: 90
 ---

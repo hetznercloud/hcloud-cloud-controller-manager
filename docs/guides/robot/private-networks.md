@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Adding Load Balancer targets via Robot API"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Adding Load Balancer targets via Robot API"]
 scrape_type: "whole"
 priority: 50
 ---

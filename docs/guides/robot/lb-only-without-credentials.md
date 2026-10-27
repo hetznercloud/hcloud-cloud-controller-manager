@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["how_to"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Adding Robot servers as Load Balancer targets via InternalIP"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Adding Robot servers as Load Balancer targets via InternalIP"]
 scrape_type: "whole"
 priority: 40
 ---

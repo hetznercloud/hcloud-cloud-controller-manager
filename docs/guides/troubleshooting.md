@@ -8,7 +8,7 @@ language: "en"
 description: ""
 docs_type: ["faq/troubleshooting"]
 product_category: ["Integrations"]
-translation: ["Integrations", "Hetzner Cloud Controller Manager", "Guides", "Common issues"]
+translation: ["Integrations", "Cloud Controller Manager", "Guides", "Common issues"]
 scrape_type: "whole"
 priority: 10
 ---
