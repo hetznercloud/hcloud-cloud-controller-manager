@@ -1,4 +1,4 @@
-package hcloud
+package routes
 
 import (
 	"context"
@@ -38,7 +38,7 @@ type routes struct {
 	nodeLister  corelisters.NodeLister
 }
 
-func newRoutes(client *hcloud.Client, networkID int64, clusterCIDR string, recorder record.EventRecorder, nodeLister corelisters.NodeLister, serverCache *cache.Cache[hcloud.Server]) (*routes, error) {
+func New(client *hcloud.Client, networkID int64, clusterCIDR string, recorder record.EventRecorder, nodeLister corelisters.NodeLister, serverCache *cache.Cache[hcloud.Server]) (cloudprovider.Routes, error) {
 	const op = "hcloud/newRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 

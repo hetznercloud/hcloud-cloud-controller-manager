@@ -39,6 +39,7 @@ import (
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/instance"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/robot"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/routes"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/metadata"
 )
@@ -227,7 +228,7 @@ func (c *cloud) Routes() (cloudprovider.Routes, bool) {
 		return nil, false
 	}
 
-	r, err := newRoutes(
+	r, err := routes.New(
 		c.client,
 		c.networkID,
 		c.cidr,
