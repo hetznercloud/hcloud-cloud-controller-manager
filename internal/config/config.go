@@ -218,8 +218,8 @@ func Read() (HCCMConfiguration, error) {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	cfg.LoadBalancer.Location = os.Getenv(hcloudLoadBalancersLocation)
-	cfg.LoadBalancer.NetworkZone = os.Getenv(hcloudLoadBalancersNetworkZone)
+	cfg.LoadBalancer.Location = os.Getenv(HcloudLoadBalancersLocation)
+	cfg.LoadBalancer.NetworkZone = os.Getenv(HcloudLoadBalancersNetworkZone)
 
 	disablePrivateIngress, err := getEnvBool(hcloudLoadBalancersDisablePrivateIngress, false)
 	if err != nil {
@@ -317,7 +317,7 @@ func (c HCCMConfiguration) Validate() (err error) {
 	}
 
 	if c.LoadBalancer.Location != "" && c.LoadBalancer.NetworkZone != "" {
-		errs = append(errs, fmt.Errorf("invalid value for %q/%q, only one of them can be set", hcloudLoadBalancersLocation, hcloudLoadBalancersNetworkZone))
+		errs = append(errs, fmt.Errorf("invalid value for %q/%q, only one of them can be set", HcloudLoadBalancersLocation, HcloudLoadBalancersNetworkZone))
 	}
 
 	if c.LoadBalancer.PrivateSubnetIPRange != "" {
