@@ -1,22 +1,10 @@
 package annotation
 
 const (
-	// LBPublicIPv4 is the public IPv4 address assigned to the Load Balancer by
-	// the backend.
-	//
-	// Read-only: true
-	LBPublicIPv4 String = "load-balancer.hetzner.cloud/ipv4"
-
 	// LBPublicIPv4RDNS specifies the reverse DNS record of the public IPv4
 	// address of the Load Balancer. Removing the annotation leaves the current
 	// record unchanged.
 	LBPublicIPv4RDNS String = "load-balancer.hetzner.cloud/ipv4-rdns"
-
-	// LBPublicIPv6 is the public IPv6 address assigned to the Load Balancer by
-	// the backend.
-	//
-	// Read-only: true
-	LBPublicIPv6 String = "load-balancer.hetzner.cloud/ipv6"
 
 	// LBPublicIPv6RDNS specifies the reverse DNS record of the public IPv6
 	// address of the Load Balancer. Removing the annotation leaves the current
@@ -239,12 +227,4 @@ const (
 	// LBSvcHealthCheckHTTPStatusCodes is a comma separated list of HTTP status
 	// codes which we expect.
 	LBSvcHealthCheckHTTPStatusCodes Strings = "load-balancer.hetzner.cloud/http-status-codes"
-
-	// LBID is the ID assigned to the Hetzner Cloud Load Balancer by the
-	// backend.
-	//
-	// Deprecated: This annotation is not used. It is reserved for possible future use.
-	//
-	// Read-only: true
-	LBID String = "load-balancer.hetzner.cloud/id"
 )
