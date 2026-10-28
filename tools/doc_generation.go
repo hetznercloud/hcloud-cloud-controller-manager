@@ -43,7 +43,6 @@ type DocEntry struct {
 	Description string
 	Type        string
 	Default     string
-	ReadOnly    bool
 	Internal    bool
 }
 
@@ -97,13 +96,6 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 				continue
 			}
 
-			if val := parseMetadataValue(line, "Read-only: "); val != "" {
-				if readOnly, err := strconv.ParseBool(val); err == nil {
-					entry.ReadOnly = readOnly
-				}
-				continue
-			}
-
 			if val := parseMetadataValue(line, "Internal: "); val != "" {
 				if internal, err := strconv.ParseBool(val); err == nil {
 					entry.Internal = internal
@@ -139,32 +131,11 @@ func (t *ConstantDocTable) FromAST(node ast.Node) (*ConstantDocTable, error) {
 	return t, nil
 }
 
-func (t *ConstantDocTable) hasReadOnly() bool {
-	for _, entry := range t.entries {
-		if entry.Internal {
-			continue
-		}
-
-		if entry.ReadOnly {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (t *ConstantDocTable) String() string {
 	tableStr := strings.Builder{}
 
-	hasReadOnlyColumn := t.hasReadOnly()
-
-	if hasReadOnlyColumn {
-		tableStr.WriteString("| Name | Type | Default | Read-only | Description |\n")
-		tableStr.WriteString("| --- | --- | --- | --- | --- |\n")
-	} else {
-		tableStr.WriteString("| Name | Type | Default | Description |\n")
-		tableStr.WriteString("| --- | --- | --- | --- |\n")
-	}
+	tableStr.WriteString("| Name | Type | Default | Description |\n")
+	tableStr.WriteString("| --- | --- | --- | --- |\n")
 
 	constValues := make([]string, len(t.entries))
 	for constValue, entry := range t.entries {
@@ -188,15 +159,6 @@ func (t *ConstantDocTable) String() string {
 		fmt.Fprintf(&tableStr, "| `%s` ", constValue)
 		fmt.Fprintf(&tableStr, "| `%s` ", typeVal)
 		fmt.Fprintf(&tableStr, "| `%s` ", defaultVal)
-
-		if hasReadOnlyColumn {
-			readOnlyVal := "No"
-			if t.entries[constValue].ReadOnly {
-				readOnlyVal = "Yes"
-			}
-			fmt.Fprintf(&tableStr, "| `%s` ", readOnlyVal)
-		}
-
 		fmt.Fprintf(&tableStr, "| %s |\n", t.entries[constValue].Description)
 	}
 
