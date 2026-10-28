@@ -405,8 +405,13 @@ func TestLoadBalancerOps_Create(t *testing.T) {
 		{
 			name:               "fails if location and network zone missing",
 			serviceAnnotations: map[string]string{},
-			err: fmt.Errorf("hcops/LoadBalancerOps.Create: neither %s nor %s set",
-				annotation.LBLocation, annotation.LBNetworkZone),
+			err: fmt.Errorf(
+				"hcops/LoadBalancerOps.Create: neither %s nor %s set, set one of these annotations or cluster-wide with the environment variable %s or %s",
+				annotation.LBLocation,
+				annotation.LBNetworkZone,
+				config.HcloudLoadBalancersLocation,
+				config.HcloudLoadBalancersNetworkZone,
+			),
 		},
 		{
 			name: "gives preference to location name",

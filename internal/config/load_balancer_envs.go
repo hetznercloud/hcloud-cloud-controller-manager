@@ -7,21 +7,21 @@ const (
 	// Default: true
 	hcloudLoadBalancersEnabled = "HCLOUD_LOAD_BALANCERS_ENABLED"
 
-	// hcloudLoadBalancersLocation specifies the default location where the Load Balancer will be
+	// HcloudLoadBalancersLocation specifies the default location where the Load Balancer will be
 	// created in.
 	//
-	// Mutually exclusive with [hcloudLoadBalancersNetworkZone].
+	// Mutually exclusive with [HcloudLoadBalancersNetworkZone].
 	//
 	// Type: string
-	hcloudLoadBalancersLocation = "HCLOUD_LOAD_BALANCERS_LOCATION"
+	HcloudLoadBalancersLocation = "HCLOUD_LOAD_BALANCERS_LOCATION"
 
-	// hcloudLoadBalancersNetworkZone specifies the default network zone where the Load Balancer will be
+	// HcloudLoadBalancersNetworkZone specifies the default network zone where the Load Balancer will be
 	// created in.
 	//
-	// Mutually exclusive with [hcloudLoadBalancersLocation].
+	// Mutually exclusive with [HcloudLoadBalancersLocation].
 	//
 	// Type: string
-	hcloudLoadBalancersNetworkZone = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
+	HcloudLoadBalancersNetworkZone = "HCLOUD_LOAD_BALANCERS_NETWORK_ZONE"
 
 	// hcloudLoadBalancersDisablePrivateIngress disables the use of the private network for ingress by default.
 	//

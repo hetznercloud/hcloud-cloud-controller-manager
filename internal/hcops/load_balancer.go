@@ -121,7 +121,14 @@ func (l *LoadBalancerOps) Create(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if spec.Location == "" && spec.NetworkZone == "" {
-		return nil, fmt.Errorf("%s: neither %s nor %s set", op, annotation.LBLocation, annotation.LBNetworkZone)
+		return nil, fmt.Errorf(
+			"%s: neither %s nor %s set, set one of these annotations or cluster-wide with the environment variable %s or %s",
+			op,
+			annotation.LBLocation,
+			annotation.LBNetworkZone,
+			config.HcloudLoadBalancersLocation,
+			config.HcloudLoadBalancersNetworkZone,
+		)
 	}
 
 	lbType, err := l.verifyType(ctx, svc, spec)
