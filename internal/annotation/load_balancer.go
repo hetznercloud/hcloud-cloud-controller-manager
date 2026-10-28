@@ -7,10 +7,9 @@ const (
 	// Read-only: true
 	LBPublicIPv4 String = "load-balancer.hetzner.cloud/ipv4"
 
-	// LBPublicIPv4RDNS is the reverse DNS record assigned to the IPv4 address of
-	// the Load Balancer.
-	//
-	// Read-only: true
+	// LBPublicIPv4RDNS specifies the reverse DNS record of the public IPv4
+	// address of the Load Balancer. Removing the annotation leaves the current
+	// record unchanged.
 	LBPublicIPv4RDNS String = "load-balancer.hetzner.cloud/ipv4-rdns"
 
 	// LBPublicIPv6 is the public IPv6 address assigned to the Load Balancer by
@@ -19,10 +18,9 @@ const (
 	// Read-only: true
 	LBPublicIPv6 String = "load-balancer.hetzner.cloud/ipv6"
 
-	// LBPublicIPv6RDNS is the reverse DNS record assigned to the IPv6 address of
-	// the Load Balancer.
-	//
-	// Read-only: true
+	// LBPublicIPv6RDNS specifies the reverse DNS record of the public IPv6
+	// address of the Load Balancer. Removing the annotation leaves the current
+	// record unchanged.
 	LBPublicIPv6RDNS String = "load-balancer.hetzner.cloud/ipv6-rdns"
 
 	// LBPublicNetIPv4 specifies the ID of an existing Primary IP of type IPv4 to
