@@ -29,6 +29,8 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
 
+const DefaultClusterCIDR = "10.244.0.0/16"
+
 func TestNewCloud(t *testing.T) {
 	env := testenv.New()
 	defer env.Teardown()

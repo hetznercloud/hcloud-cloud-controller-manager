@@ -1,4 +1,4 @@
-package hcloud
+package routes
 
 import (
 	"context"
@@ -91,7 +91,7 @@ func TestRoutes_CreateRoute(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "node15"},
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestRoutes_ListRoutes(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestRoutes_DeleteRoute(t *testing.T) {
 			},
 		})
 	})
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestRoutes_CreateRoute_RobotProviderID(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hrobot://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -266,7 +266,7 @@ func TestRoutes_CreateRoute_IPv6(t *testing.T) {
 		})
 	})
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -321,7 +321,7 @@ func TestRoutes_CreateRoute_NodeNameDrift(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://42"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -378,7 +378,7 @@ func TestRoutes_CreateRoute_NoProviderID(t *testing.T) {
 		// ProviderID intentionally unset
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -413,7 +413,7 @@ func TestRoutes_CreateRoute_PrivateNetMissingAfterRefresh(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -480,7 +480,7 @@ func TestRoutes_CreateRoute_ReplaceStaleRoute(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
@@ -528,7 +528,7 @@ func TestRoutes_CreateRoute_AlreadyExists(t *testing.T) {
 		Spec:       corev1.NodeSpec{ProviderID: "hcloud://1"},
 	}
 
-	routes, err := newRoutes(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
+	routes, err := New(env.Client, 1, DefaultClusterCIDR, env.Recorder, nodeLister(t, node), env.ServerCache)
 	require.NoError(t, err)
 
 	err = routes.CreateRoute(context.TODO(), "my-cluster", "route", &cloudprovider.Route{
