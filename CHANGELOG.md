@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.39.3](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.3)
+
+[Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.39.2...v1.39.3)
+
+### Bug Fixes
+
+- **load-balancer**: name env vars in missing location error (#1405) ([9697df9](https://github.com/hetznercloud/hcloud-cloud-controller-manager/commit/9697df9bdec88223221a1b2551d25f3109b88da3))
+
 ## [v1.39.2](https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/tag/v1.39.2)
 
 [Compare to previous version](https://github.com/hetznercloud/hcloud-cloud-controller-manager/compare/v1.39.1...v1.39.2)
