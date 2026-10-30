@@ -10,16 +10,15 @@ import (
 
 	hrobot "github.com/syself/hrobot-go"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/exp/deprecationutil"
 )
@@ -37,7 +36,7 @@ type LoadBalancerOps struct {
 	RetryDelay    time.Duration
 	NetworkID     int64
 	Cfg           config.HCCMConfiguration
-	Recorder      record.EventRecorder
+	Recorder      *events.Recorder
 }
 
 // GetByK8SServiceUID tries to find a Load Balancer by its Kubernetes service
@@ -243,10 +242,9 @@ func (l *LoadBalancerOps) reconcilePrimaryIPs(
 	spec lbspec.Spec,
 ) {
 	if spec.PrimaryIPv4 != 0 && spec.PrimaryIPv4 != lb.PublicNet.IPv4.ID {
-		utils.WarnEventLogf(
-			l.Recorder,
+		l.Recorder.Warnf(
 			svc,
-			"PrimaryIPChangeUnsupported",
+			events.PrimaryIPChangeUnsupported,
 			"Load Balancer has Primary IPv4 %d, changing it to %d is not supported",
 			lb.PublicNet.IPv4.ID,
 			spec.PrimaryIPv4,
@@ -254,10 +252,9 @@ func (l *LoadBalancerOps) reconcilePrimaryIPs(
 	}
 
 	if spec.PrimaryIPv6 != 0 && spec.PrimaryIPv6 != lb.PublicNet.IPv6.ID {
-		utils.WarnEventLogf(
-			l.Recorder,
+		l.Recorder.Warnf(
 			svc,
-			"PrimaryIPChangeUnsupported",
+			events.PrimaryIPChangeUnsupported,
 			"Load Balancer has Primary IPv6 %d, changing it to %d is not supported",
 			lb.PublicNet.IPv6.ID,
 			spec.PrimaryIPv6,
@@ -554,10 +551,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			if errors.As(err, new(*providerid.UnkownPrefixError)) {
 				// ProviderID has unknown prefix, cluster might have non-hccm nodes that can not be added to the
 				// Load Balancer. Emitting an event and ignoring that Node in this reconciliation loop.
-				utils.WarnEventLogf(
-					l.Recorder,
+				l.Recorder.Warnf(
 					node,
-					"UnknownProviderIDPrefix",
+					events.UnknownProviderIDPrefix,
 					"Node could not be added to Load Balancer for service %s because the provider ID does not match any known format",
 					svc.Name,
 				)
@@ -607,10 +603,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			// Check if InternalIP is set at Node object
 			internalIP := getNodeInternalIP(node)
 			if internalIP == "" {
-				utils.WarnEventLogf(
-					l.Recorder,
+				l.Recorder.Warnf(
 					svc,
-					"InternalIPNotConfigured",
+					events.InternalIPNotConfigured,
 					"%s: load balancer %s has set `use-private-ip: true`, but no InternalIP found for node %s. Continuing with ExternalIP.",
 					op,
 					svc.Name,
@@ -640,10 +635,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 
 			internalIP := getNodeInternalIP(node)
 			if internalIP == "" {
-				utils.WarnEventLogf(
-					l.Recorder,
+				l.Recorder.Warnf(
 					svc,
-					"InternalIPNotConfigured",
+					events.InternalIPNotConfigured,
 					"no InternalIP found for Robot node %s (id=%d), cannot add as LB target without Robot credentials; skipping",
 					node.Name,
 					id,
@@ -711,10 +705,9 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			}
 
 			if id, replaced := replacedExternalIPs[ip]; replaced {
-				utils.WarnEventLogf(
-					l.Recorder,
+				l.Recorder.Warnf(
 					svc,
-					"ExternalIPTargetReplaced",
+					events.ExternalIPTargetReplaced,
 					"removing ExternalIP target %s of node %s, because `use-private-ip: true` is set and its InternalIP %s is used instead",
 					ip,
 					k8sNodes[int64(id)].Name,
@@ -759,7 +752,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		node := k8sNodes[id]
 
 		if numberOfTargets >= lb.LoadBalancerType.MaxTargets {
-			l.emitMaxTargetsReachedError(node, svc, op)
+			l.emitMaxTargetsReachedError(node, svc)
 			continue
 		}
 
@@ -768,7 +761,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 		a, _, err := l.LBClient.AddServerTarget(ctx, lb, opts)
 		if err != nil {
 			if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
-				l.emitMaxTargetsReachedError(node, svc, op)
+				l.emitMaxTargetsReachedError(node, svc)
 				// Continue loop so that error is emitted for each node
 				continue
 			}
@@ -794,13 +787,12 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 				continue
 			}
 			if ip == "" {
-				l.Recorder.Eventf(node, corev1.EventTypeWarning, "ServerNotFound", "No server with id %d was found in Robot", id)
-				klog.InfoS("k8s node found but no corresponding server in robot", "id", id)
+				l.Recorder.Warnf(node, events.ServerNotFound, "No server with id %d was found in Robot", id)
 				continue
 			}
 
 			if numberOfTargets >= lb.LoadBalancerType.MaxTargets {
-				l.emitMaxTargetsReachedError(node, svc, op)
+				l.emitMaxTargetsReachedError(node, svc)
 				continue
 			}
 
@@ -811,7 +803,7 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 			a, _, err := l.LBClient.AddIPTarget(ctx, lb, opts)
 			if err != nil {
 				if hcloud.IsError(err, hcloud.ErrorCodeResourceLimitExceeded) {
-					l.emitMaxTargetsReachedError(node, svc, op)
+					l.emitMaxTargetsReachedError(node, svc)
 					continue
 				}
 				return changed, fmt.Errorf("%s: target %s: %w", op, node.Name, err)
@@ -827,12 +819,13 @@ func (l *LoadBalancerOps) ReconcileHCLBTargets(
 	return changed, nil
 }
 
-//nolint:unparam // op might get set to different values in the future
-func (l *LoadBalancerOps) emitMaxTargetsReachedError(node *corev1.Node, svc *corev1.Service, op string) {
-	l.Recorder.Eventf(node, corev1.EventTypeWarning, "MaxTargetsReached",
+func (l *LoadBalancerOps) emitMaxTargetsReachedError(node *corev1.Node, svc *corev1.Service) {
+	l.Recorder.Warnf(
+		node,
+		events.MaxTargetsReached,
 		"Node could not be added to Load Balancer for service %s because the max number of targets has been reached",
-		svc.ObjectMeta.Name)
-	klog.InfoS("cannot add server target because max number of targets have been reached", "op", op, "service", svc.ObjectMeta.Name, "targetName", node.Name)
+		svc.ObjectMeta.Name,
+	)
 }
 
 // ReconcileHCLBServices synchronizes services exposed by the Hetzner Cloud
@@ -868,10 +861,9 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 		var action *hcloud.Action
 
 		if port.Protocol != "" && port.Protocol != corev1.ProtocolTCP {
-			utils.WarnEventLogf(
-				l.Recorder,
+			l.Recorder.Warnf(
 				svc,
-				"UnsupportedProtocolConfigured",
+				events.UnsupportedProtocolConfigured,
 				"configured unsupported Hetzner Cloud load balancer protocol %s for service with name %s",
 				port.Protocol,
 				svc.Name,
@@ -997,10 +989,9 @@ func (l *LoadBalancerOps) verifyType(
 	ctx = cache.SetSubsystem(ctx, loadBalancerSubsystem)
 
 	if spec.TypeUnset {
-		utils.WarnEventLogf(
-			l.Recorder,
+		l.Recorder.Warnf(
 			svc,
-			"LoadBalancerTypeUnconfigured",
+			events.LoadBalancerTypeUnconfigured,
 			"Load Balancer Type unconfigured: this will be required in the future, set it with the annotation %q or cluster-wide with the environment variable %q",
 			annotation.LBType,
 			config.HcloudLoadBalancersType,
@@ -1021,10 +1012,9 @@ func (l *LoadBalancerOps) verifyType(
 		return nil, errors.New(msg)
 	}
 	if msg != "" {
-		utils.WarnEventLogf(
-			l.Recorder,
+		l.Recorder.Warnf(
 			svc,
-			"LoadBalancerTypeDeprecated",
+			events.LoadBalancerTypeDeprecated,
 			"%s", msg,
 		)
 	}

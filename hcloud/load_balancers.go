@@ -8,10 +8,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
@@ -41,10 +41,10 @@ type LoadBalancerOps interface {
 type loadBalancers struct {
 	lbOps    LoadBalancerOps
 	cfg      *config.LoadBalancerConfiguration
-	recorder record.EventRecorder
+	recorder *events.Recorder
 }
 
-func newLoadBalancers(lbOps LoadBalancerOps, lbCfg *config.LoadBalancerConfiguration, recorder record.EventRecorder) *loadBalancers {
+func newLoadBalancers(lbOps LoadBalancerOps, lbCfg *config.LoadBalancerConfiguration, recorder *events.Recorder) *loadBalancers {
 	return &loadBalancers{
 		lbOps:    lbOps,
 		cfg:      lbCfg,

@@ -13,6 +13,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -24,7 +25,7 @@ type TestEnv struct {
 	Client      *hcloud.Client
 	RobotClient hrobot.RobotClient
 	ServerCache *cache.Cache[hcloud.Server]
-	Recorder    record.EventRecorder
+	Recorder    *events.Recorder
 	Cfg         config.HCCMConfiguration
 }
 
@@ -53,7 +54,7 @@ func New() TestEnv {
 	robotClient := hrobot.NewBasicAuthClient("", "")
 	robotClient.SetBaseURL(server.URL + "/robot")
 	serverCache := cache.NewServerCache(client, cache.ModeOne, 10*time.Second)
-	recorder := record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
+	recorder := events.NewRecorder(record.NewBroadcaster().NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"}))
 
 	cfg := config.HCCMConfiguration{}
 	cfg.Instance.AddressFamily = config.AddressFamilyIPv4

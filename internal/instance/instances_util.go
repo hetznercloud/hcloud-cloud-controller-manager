@@ -25,7 +25,7 @@ import (
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 )
 
 func getRobotServerByName(c hrobot.RobotClient, node *corev1.Node) (server *hrobotmodels.Server, err error) {
@@ -69,10 +69,9 @@ func getRobotServerByID(i *instances, id int, node *corev1.Node) (*hrobotmodels.
 	// the name in the Robot API is updated. As the node no longer exists in the cluster with the old name,
 	// we need to return nil here.
 	if server.Name != node.Name {
-		utils.WarnEventLogf(
-			i.recorder,
+		i.recorder.Warnf(
 			node,
-			"PossibleNodeDeletion",
+			events.PossibleNodeDeletion,
 			"Might be deleted by node-lifecycle-manager due to name mismatch; Node name %q differs from Robot name %q",
 			node.ObjectMeta.Name,
 			server.Name,
