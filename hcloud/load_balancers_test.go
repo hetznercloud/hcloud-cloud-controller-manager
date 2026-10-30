@@ -14,6 +14,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -989,7 +990,7 @@ func TestLoadBalancer_matchNodeSelector(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			spec, err := lbspec.Resolve(record.NewFakeRecorder(10), c.service, config.LoadBalancerConfiguration{})
+			spec, err := lbspec.Resolve(events.NewRecorder(record.NewFakeRecorder(10)), c.service, config.LoadBalancerConfiguration{})
 			if err != nil {
 				t.Fatal(err)
 			}

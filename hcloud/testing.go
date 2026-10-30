@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
@@ -83,13 +84,13 @@ func (tt *LoadBalancerTestCase) run(t *testing.T) {
 
 	// The error is ignored on purpose: a test case may set an invalid
 	// annotation to check how the cloud provider reports it.
-	tt.Spec, _ = lbspec.Resolve(&record.FakeRecorder{}, tt.Service, *lbConfig)
+	tt.Spec, _ = lbspec.Resolve(events.NewRecorder(&record.FakeRecorder{}), tt.Service, *lbConfig)
 
 	if tt.Mock != nil {
 		tt.Mock(t, tt)
 	}
 
-	tt.LoadBalancers = newLoadBalancers(tt.LBOps, lbConfig, &record.FakeRecorder{})
+	tt.LoadBalancers = newLoadBalancers(tt.LBOps, lbConfig, events.NewRecorder(&record.FakeRecorder{}))
 	tt.Perform(t, tt)
 
 	tt.LBOps.AssertExpectations(t)

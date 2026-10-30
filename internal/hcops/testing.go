@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -38,6 +39,7 @@ type LoadBalancerOpsFixture struct {
 	ActionClient  *mocks.ActionClient
 	NetworkClient *mocks.NetworkClient
 	RobotClient   *mocks.RobotClient
+	FakeRecorder  *record.FakeRecorder
 
 	LBOps *LoadBalancerOps
 
@@ -52,6 +54,7 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 		CertClient:    &mocks.CertificateClient{},
 		NetworkClient: &mocks.NetworkClient{},
 		RobotClient:   &mocks.RobotClient{},
+		FakeRecorder:  &record.FakeRecorder{},
 		T:             t,
 	}
 
@@ -68,7 +71,7 @@ func NewLoadBalancerOpsFixture(t *testing.T) *LoadBalancerOpsFixture {
 		NetworkClient: fx.NetworkClient,
 		RobotClient:   fx.RobotClient,
 		LBTypeCache:   newLBTypeCacheFixture(t),
-		Recorder:      &record.FakeRecorder{},
+		Recorder:      events.NewRecorder(fx.FakeRecorder),
 	}
 
 	return fx

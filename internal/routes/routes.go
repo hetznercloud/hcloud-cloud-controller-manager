@@ -11,14 +11,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	corelisters "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -34,11 +33,11 @@ type routes struct {
 	network     *hcloud.Network
 	serverCache *cache.Cache[hcloud.Server]
 	clusterCIDR *net.IPNet
-	recorder    record.EventRecorder
+	recorder    *events.Recorder
 	nodeLister  corelisters.NodeLister
 }
 
-func New(client *hcloud.Client, networkID int64, clusterCIDR string, recorder record.EventRecorder, nodeLister corelisters.NodeLister, serverCache *cache.Cache[hcloud.Server]) (cloudprovider.Routes, error) {
+func New(client *hcloud.Client, networkID int64, clusterCIDR string, recorder *events.Recorder, nodeLister corelisters.NodeLister, serverCache *cache.Cache[hcloud.Server]) (cloudprovider.Routes, error) {
 	const op = "hcloud/newRoutes"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
@@ -325,10 +324,9 @@ func (r *routes) warnCIDRMismatch(cidr *net.IPNet, node *corev1.Node) {
 	destPrefixLen, _ := cidr.Mask.Size()
 
 	if !r.clusterCIDR.Contains(cidr.IP) || destPrefixLen < clusterPrefixLen {
-		utils.WarnEventLogf(
-			r.recorder,
+		r.recorder.Warnf(
 			node,
-			"ClusterCIDRMisconfigured",
+			events.ClusterCIDRMisconfigured,
 			"route CIDR %s is not contained within cluster CIDR %s",
 			cidr.String(),
 			r.clusterCIDR.String(),
