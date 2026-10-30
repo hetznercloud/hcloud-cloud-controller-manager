@@ -80,7 +80,7 @@ func TestRecorder(t *testing.T) {
 			testsupport.AssertEvent(t, fakeRecorder, tt.expectedEvent)
 			assert.Regexp(t, `^`+tt.expectedLevel+`\d`, logs.String())
 			assert.Contains(t, logs.String(), tt.expectedLog)
-			assert.Regexp(t, `events_test\.go:\d+\] `, logs.String())
+			assert.Regexp(t, `recorder_test\.go:\d+\] `, logs.String())
 		})
 	}
 }
