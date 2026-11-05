@@ -7,12 +7,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -32,7 +31,7 @@ func Name(svc *corev1.Service) string {
 // All invalid annotations are reported together in the returned error. The
 // returned Spec is still fully populated, with the offending settings left at
 // their fallback, so callers must not use it when err is non-nil.
-func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.LoadBalancerConfiguration) (Spec, error) {
+func Resolve(recorder *events.Recorder, svc *corev1.Service, cfg config.LoadBalancerConfiguration) (Spec, error) {
 	var errs []error
 	var spec Spec
 
@@ -79,16 +78,9 @@ func Resolve(recorder record.EventRecorder, svc *corev1.Service, cfg config.Load
 	}
 
 	for _, err := range errs {
-		klog.ErrorS(
-			err,
-			"invalid Load Balancer annotation",
-			"service",
-			klog.KObj(svc),
-		)
-		recorder.Eventf(
+		recorder.Errorf(
 			svc,
-			corev1.EventTypeWarning,
-			"InvalidLoadBalancerAnnotation",
+			events.InvalidLoadBalancerAnnotation,
 			"Invalid Load Balancer annotation %v",
 			err,
 		)

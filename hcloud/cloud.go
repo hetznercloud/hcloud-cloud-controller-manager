@@ -35,6 +35,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/instance"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
@@ -60,7 +61,7 @@ type cloud struct {
 	serverCache *cache.Cache[hcloud.Server]
 	lbTypeCache *cache.Cache[hcloud.LoadBalancerType]
 	cfg         config.HCCMConfiguration
-	recorder    record.EventRecorder
+	recorder    *events.Recorder
 	networkID   int64
 	cidr        string
 	nodeLister  corelisters.NodeLister
@@ -181,7 +182,7 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	}()
 
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "hcloud-cloud-controller-manager"})
-	c.recorder = recorder
+	c.recorder = events.NewRecorder(recorder)
 }
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {

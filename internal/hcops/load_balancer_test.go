@@ -19,8 +19,10 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/hcops"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
@@ -909,17 +911,14 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
-				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+				tt.fx.FakeRecorder = record.NewFakeRecorder(10)
+				tt.fx.LBOps.Recorder = events.NewRecorder(tt.fx.FakeRecorder)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
-				select {
-				case event := <-tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events:
-					t.Errorf("unexpected event: %s", event)
-				default:
-				}
+				testsupport.AssertEvents(t, tt.fx.FakeRecorder)
 			},
 		},
 		{
@@ -941,17 +940,14 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
-				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+				tt.fx.FakeRecorder = record.NewFakeRecorder(10)
+				tt.fx.LBOps.Recorder = events.NewRecorder(tt.fx.FakeRecorder)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
-				select {
-				case event := <-tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events:
-					t.Errorf("unexpected event: %s", event)
-				default:
-				}
+				testsupport.AssertEvents(t, tt.fx.FakeRecorder)
 			},
 		},
 		{
@@ -973,23 +969,18 @@ func TestLoadBalancerOps_ReconcileHCLB(t *testing.T) {
 				},
 			},
 			mock: func(_ *testing.T, tt *LBReconcilementTestCase) {
-				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+				tt.fx.FakeRecorder = record.NewFakeRecorder(10)
+				tt.fx.LBOps.Recorder = events.NewRecorder(tt.fx.FakeRecorder)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLB(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec)
 				assert.NoError(t, err)
 				assert.False(t, changed)
-
-				events := tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events
-				assert.Equal(
+				testsupport.AssertEvents(
 					t,
+					tt.fx.FakeRecorder,
 					"Warning PrimaryIPChangeUnsupported Load Balancer has Primary IPv4 4711, changing it to 4713 is not supported",
-					<-events,
-				)
-				assert.Equal(
-					t,
 					"Warning PrimaryIPChangeUnsupported Load Balancer has Primary IPv6 4712, changing it to 4714 is not supported",
-					<-events,
 				)
 			},
 		},
@@ -1894,19 +1885,17 @@ func TestLoadBalancerOps_ReconcileHCLBTargets(t *testing.T) {
 				action = tt.fx.MockAddIPTarget(tt.initialLB, optsIP, nil)
 				tt.fx.ActionClient.On("WaitFor", tt.fx.Ctx, action).Return(nil)
 
-				tt.fx.LBOps.Recorder = record.NewFakeRecorder(10)
+				tt.fx.FakeRecorder = record.NewFakeRecorder(10)
+				tt.fx.LBOps.Recorder = events.NewRecorder(tt.fx.FakeRecorder)
 			},
 			perform: func(t *testing.T, tt *LBReconcilementTestCase) {
 				changed, err := tt.fx.LBOps.ReconcileHCLBTargets(tt.fx.Ctx, tt.initialLB, tt.service, tt.spec, tt.k8sNodes)
 				assert.NoError(t, err)
 				assert.True(t, changed)
-
-				events := tt.fx.LBOps.Recorder.(*record.FakeRecorder).Events
-				assert.Len(t, events, 1)
-				assert.Equal(
+				testsupport.AssertEvent(
 					t,
+					tt.fx.FakeRecorder,
 					"Warning ExternalIPTargetReplaced removing ExternalIP target 1.2.3.4 of node robot-3, because `use-private-ip: true` is set and its InternalIP 10.0.1.10 is used instead",
-					<-events,
 				)
 			},
 		},

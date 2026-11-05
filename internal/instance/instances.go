@@ -27,35 +27,31 @@ import (
 	hrobot "github.com/syself/hrobot-go"
 	hrobotmodels "github.com/syself/hrobot-go/models"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/record"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/cache"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/legacydatacenter"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/metrics"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/providerid"
-	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/utils"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 const (
-	ProvidedBy              = "instance.hetzner.cloud/provided-by"
-	providedByCloud         = "cloud"
-	providedByRobot         = "robot"
-	MisconfiguredInternalIP = "MisconfiguredInternalIP"
-	IgnoredExternalIPv6     = "IgnoredExternalIPv6"
-	InvalidExternalIPv6     = "InvalidExternalIPv6"
-	instancesV2Subsystem    = "instances_v2"
+	ProvidedBy           = "instance.hetzner.cloud/provided-by"
+	providedByCloud      = "cloud"
+	providedByRobot      = "robot"
+	instancesV2Subsystem = "instances_v2"
 )
 
 type instances struct {
 	client      *hcloud.Client
 	robotClient hrobot.RobotClient
 	serverCache *cache.Cache[hcloud.Server]
-	recorder    record.EventRecorder
+	recorder    *events.Recorder
 	networkID   int64
 	cfg         config.HCCMConfiguration
 }
@@ -71,7 +67,7 @@ func New(
 	client *hcloud.Client,
 	robotClient hrobot.RobotClient,
 	serverCache *cache.Cache[hcloud.Server],
-	recorder record.EventRecorder,
+	recorder *events.Recorder,
 	networkID int64,
 	cfg config.HCCMConfiguration,
 ) cloudprovider.InstancesV2 {
@@ -156,10 +152,9 @@ func (i *instances) getServer(
 	}
 
 	if cloudServer != nil && hrobotServer != nil {
-		utils.WarnEventLogf(
-			i.recorder,
+		i.recorder.Warnf(
 			node,
-			"InstanceLookupFailed",
+			events.InstanceLookupFailed,
 			"Node %s could not be uniquely associated with a Cloud or Robot server, as a server with this name exists in both APIs",
 			node.Name,
 		)
@@ -245,7 +240,7 @@ func hcloudNodeAddresses(
 	server *hcloud.Server,
 	node *corev1.Node,
 	cfg config.HCCMConfiguration,
-	recorder record.EventRecorder,
+	recorder *events.Recorder,
 ) ([]corev1.NodeAddress, error) {
 	var addresses []corev1.NodeAddress
 	addresses = append(
@@ -299,7 +294,7 @@ func robotNodeAddresses(
 	server *hrobotmodels.Server,
 	node *corev1.Node,
 	cfg config.HCCMConfiguration,
-	recorder record.EventRecorder,
+	recorder *events.Recorder,
 ) ([]corev1.NodeAddress, error) {
 	family := cfg.Instance.AddressFamily
 	dualStack := family == config.AddressFamilyDualStack
@@ -334,14 +329,13 @@ func externalIPv6(
 	ipv6 bool,
 	subnet string,
 	node *corev1.Node,
-	recorder record.EventRecorder,
+	recorder *events.Recorder,
 ) (string, error) {
 	if !ipv6 {
 		if _, ok := node.GetAnnotations()[string(annotation.ExternalIPv6)]; ok {
-			utils.WarnEventLogf(
-				recorder,
+			recorder.Warnf(
 				node,
-				IgnoredExternalIPv6,
+				events.IgnoredExternalIPv6,
 				"The annotation %s is set, but IPv6 is not enabled for Node addresses. As a result, it is ignored",
 				annotation.ExternalIPv6,
 			)
@@ -387,11 +381,10 @@ func externalIPv6(
 
 // invalidExternalIPv6 reports err to the user as well, who would otherwise only see the Node fail
 // to initialize: the cloud node controller logs the error without emitting an event.
-func invalidExternalIPv6(recorder record.EventRecorder, node *corev1.Node, err error) error {
-	utils.WarnEventLogf(
-		recorder,
+func invalidExternalIPv6(recorder *events.Recorder, node *corev1.Node, err error) error {
+	recorder.Warnf(
 		node,
-		InvalidExternalIPv6,
+		events.InvalidExternalIPv6,
 		"Invalid Node annotation: %v. As a result, the Node is not initialized",
 		err,
 	)
@@ -417,7 +410,7 @@ func appendForwardedInternalIPs(
 	addresses []corev1.NodeAddress,
 	node *corev1.Node,
 	family config.AddressFamily,
-	recorder record.EventRecorder,
+	recorder *events.Recorder,
 ) []corev1.NodeAddress {
 	for _, internalIP := range node.Status.Addresses {
 		if internalIP.Type != corev1.NodeInternalIP {
@@ -431,26 +424,23 @@ func appendForwardedInternalIPs(
 
 		switch {
 		case isIPv4 && family == config.AddressFamilyIPv6:
-			utils.WarnEventLogf(
-				recorder,
+			recorder.Warnf(
 				node,
-				MisconfiguredInternalIP,
+				events.MisconfiguredInternalIP,
 				"Configured InternalIP is IPv4 even though IPv6 only is configured. As a result, %s is not added as an InternalIP",
 				internalIP.Address,
 			)
 		case !isIPv4 && family == config.AddressFamilyIPv4:
-			utils.WarnEventLogf(
-				recorder,
+			recorder.Warnf(
 				node,
-				MisconfiguredInternalIP,
+				events.MisconfiguredInternalIP,
 				"Configured InternalIP is IPv6 even though IPv4 only is configured. As a result, %s is not added as an InternalIP",
 				internalIP.Address,
 			)
 		case isKnown:
-			utils.WarnEventLogf(
-				recorder,
+			recorder.Warnf(
 				node,
-				MisconfiguredInternalIP,
+				events.MisconfiguredInternalIP,
 				"Configured InternalIP already exists as an ExternalIP. As a result, %s is not added as an InternalIP",
 				internalIP.Address,
 			)
@@ -473,7 +463,7 @@ type genericServer interface {
 
 type hcloudServer struct {
 	*hcloud.Server
-	recorder record.EventRecorder
+	recorder *events.Recorder
 }
 
 func (s hcloudServer) IsShutdown() (bool, error) {
@@ -508,7 +498,7 @@ func (s hcloudServer) Metadata(networkID int64, node *corev1.Node, cfg config.HC
 type robotServer struct {
 	*hrobotmodels.Server
 	robotClient hrobot.RobotClient
-	recorder    record.EventRecorder
+	recorder    *events.Recorder
 }
 
 func (s robotServer) IsShutdown() (bool, error) {

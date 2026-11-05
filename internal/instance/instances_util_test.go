@@ -10,7 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/mocks"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 )
 
 func TestGetRobotServerByID(t *testing.T) {
@@ -39,7 +41,7 @@ func TestGetRobotServerByID(t *testing.T) {
 			robotClientMock.On("ServerGet").Return(&hrobotmodels.Server{ServerNumber: 1, Name: "foobar"}, nil)
 
 			inst := &instances{
-				recorder:    recorder,
+				recorder:    events.NewRecorder(recorder),
 				robotClient: robotClientMock,
 			}
 
@@ -54,12 +56,11 @@ func TestGetRobotServerByID(t *testing.T) {
 
 			if tt.expectedEvent != "" {
 				require.Nil(t, server)
-				event := <-recorder.Events
-				assert.Equal(t, tt.expectedEvent, event)
 			} else {
 				assert.Equal(t, "foobar", server.Name)
-				assert.Empty(t, recorder.Events)
 			}
+
+			testsupport.AssertEvent(t, recorder, tt.expectedEvent)
 		})
 	}
 }

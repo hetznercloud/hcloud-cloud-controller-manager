@@ -15,6 +15,7 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/lbspec"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
@@ -346,7 +347,7 @@ func TestResolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			spec, err := lbspec.Resolve(record.NewFakeRecorder(10), service("some-uid", tt.annotations), tt.cfg)
+			spec, err := lbspec.Resolve(events.NewRecorder(record.NewFakeRecorder(10)), service("some-uid", tt.annotations), tt.cfg)
 			require.NoError(t, err)
 			tt.check(t, spec)
 		})
@@ -365,7 +366,7 @@ func TestResolveReportsEveryInvalidAnnotation(t *testing.T) {
 	logs := testsupport.CaptureKlog(t)
 	recorder := record.NewFakeRecorder(10)
 
-	_, err := lbspec.Resolve(recorder, svc, config.LoadBalancerConfiguration{})
+	_, err := lbspec.Resolve(events.NewRecorder(recorder), svc, config.LoadBalancerConfiguration{})
 
 	// The error only counts the invalid annotations, the details are reported
 	// through the logs and the Kubernetes events.
@@ -431,7 +432,7 @@ func TestResolveErrors(t *testing.T) {
 			logs := testsupport.CaptureKlog(t)
 			recorder := record.NewFakeRecorder(10)
 
-			_, err := lbspec.Resolve(recorder, service("some-uid", tt.annotations), config.LoadBalancerConfiguration{})
+			_, err := lbspec.Resolve(events.NewRecorder(recorder), service("some-uid", tt.annotations), config.LoadBalancerConfiguration{})
 
 			require.EqualError(t, err, "1 Load Balancer annotation(s) are invalid")
 

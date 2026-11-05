@@ -34,7 +34,9 @@ import (
 
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/config"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/events"
 	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testenv"
+	"github.com/hetznercloud/hcloud-cloud-controller-manager/internal/testsupport"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud/schema"
 )
@@ -466,25 +468,6 @@ func TestInstances_InstanceMetadataRobotServerInvalidExternalIPv6(t *testing.T) 
 	assert.Nil(t, metadata)
 }
 
-// assertEvent asserts that recorder recorded expected, or nothing at all if expected is empty.
-func assertEvent(t *testing.T, recorder *record.FakeRecorder, expected string) {
-	t.Helper()
-
-	close(recorder.Events)
-
-	var events []string
-	for event := range recorder.Events {
-		events = append(events, event)
-	}
-
-	if expected == "" {
-		assert.Empty(t, events)
-		return
-	}
-
-	assert.Equal(t, []string{expected}, events)
-}
-
 func TestExternalIPv6(t *testing.T) {
 	const subnet = "2001:db8:1234::"
 
@@ -603,9 +586,9 @@ func TestExternalIPv6(t *testing.T) {
 
 			recorder := record.NewFakeRecorder(10)
 
-			hostAddress, err := externalIPv6(test.ipv6Configured, test.ipv6Subnet, node, recorder)
+			hostAddress, err := externalIPv6(test.ipv6Configured, test.ipv6Subnet, node, events.NewRecorder(recorder))
 
-			assertEvent(t, recorder, test.expectedEvent)
+			testsupport.AssertEvent(t, recorder, test.expectedEvent)
 
 			if test.expectedErr != "" {
 				assert.EqualError(t, err, test.expectedErr)
@@ -831,9 +814,9 @@ func TestNodeAddresses(t *testing.T) {
 
 			recorder := record.NewFakeRecorder(10)
 
-			addresses, err := hcloudNodeAddresses(test.privateNetwork, test.server, node, cfg, recorder)
+			addresses, err := hcloudNodeAddresses(test.privateNetwork, test.server, node, cfg, events.NewRecorder(recorder))
 
-			assertEvent(t, recorder, test.expectedEvent)
+			testsupport.AssertEvent(t, recorder, test.expectedEvent)
 
 			if test.expectedErr != "" {
 				assert.EqualError(t, err, test.expectedErr)
@@ -1029,9 +1012,9 @@ func TestNodeAddressesRobotServer(t *testing.T) {
 
 			recorder := record.NewFakeRecorder(10)
 
-			addresses, err := robotNodeAddresses(test.server, node, cfg, recorder)
+			addresses, err := robotNodeAddresses(test.server, node, cfg, events.NewRecorder(recorder))
 
-			assertEvent(t, recorder, test.expectedEvent)
+			testsupport.AssertEvent(t, recorder, test.expectedEvent)
 
 			if test.expectedErr != "" {
 				assert.EqualError(t, err, test.expectedErr)
