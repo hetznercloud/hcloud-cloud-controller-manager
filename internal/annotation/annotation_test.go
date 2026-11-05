@@ -158,6 +158,11 @@ func TestStrings(t *testing.T) {
 			expected: []string{"a", "b", "c"},
 		},
 		{
+			name:     "spaces around items",
+			value:    "a, b ,c",
+			expected: []string{"a", "b", "c"},
+		},
+		{
 			name:   "value missing",
 			notSet: true,
 			err:    annotation.ErrNotSet,
@@ -312,6 +317,11 @@ func TestCertificates(t *testing.T) {
 		{
 			name:     "ids and names mixed",
 			value:    "3,cert-2",
+			expected: []*hcloud.Certificate{{ID: 3}, {Name: "cert-2"}},
+		},
+		{
+			name:     "spaces around items",
+			value:    "3, cert-2",
 			expected: []*hcloud.Certificate{{ID: 3}, {Name: "cert-2"}},
 		},
 		{

@@ -65,7 +65,7 @@ func (a Duration) FromService(svc *corev1.Service) (time.Duration, error) {
 
 func (a Strings) FromService(svc *corev1.Service) ([]string, error) {
 	return parse(string(a), svc, func(v string) ([]string, error) {
-		return strings.Split(v, ","), nil
+		return splitList(v), nil
 	})
 }
 
@@ -114,6 +114,16 @@ func parse[T any](name string, obj metav1.Object, convert func(string) (T, error
 	return converted, nil
 }
 
+// splitList splits a comma separated list and trims the whitespace around
+// each item, so "a, b" and "a,b" are read the same way.
+func splitList(v string) []string {
+	values := strings.Split(v, ",")
+	for i := range values {
+		values[i] = strings.TrimSpace(values[i])
+	}
+	return values
+}
+
 func parseIP(v string) (netip.Addr, error) {
 	ip, err := netip.ParseAddr(v)
 	if err != nil {
@@ -148,7 +158,7 @@ func parseServiceProtocol(v string) (hcloud.LoadBalancerServiceProtocol, error) 
 }
 
 func parseCertificates(v string) ([]*hcloud.Certificate, error) {
-	values := strings.Split(v, ",")
+	values := splitList(v)
 	certificates := make([]*hcloud.Certificate, len(values))
 
 	for i, value := range values {
