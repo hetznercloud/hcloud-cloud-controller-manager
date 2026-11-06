@@ -14,3 +14,5 @@ You can have a look at your provider IDs with the following command:
 ```bash
 kubectl get nodes -o=custom-columns='Node Name:metadata.name,Provider ID:spec.providerID'
 ```
+
+Nodes with other provider IDs are not supported, see [Hybrid Clusters](hybrid-clusters.md).
