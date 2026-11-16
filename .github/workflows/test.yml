@@ -66,7 +66,7 @@ jobs:
           tofu_version: v1.13.9 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
+      - uses: yokawasa/action-setup-kube-tools@f8b2f6cdd1eb8575530049beacfe5d04c0ea8944 # v0.14.1
         with:
           setup-tools: |
             helm
@@ -184,7 +184,7 @@ jobs:
           tofu_version: v1.13.9 # renovate: datasource=github-releases depName=opentofu/opentofu
           tofu_wrapper: false
 
-      - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
+      - uses: yokawasa/action-setup-kube-tools@f8b2f6cdd1eb8575530049beacfe5d04c0ea8944 # v0.14.1
         with:
           setup-tools: |
             helm
