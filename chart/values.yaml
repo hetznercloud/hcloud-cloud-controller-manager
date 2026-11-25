@@ -198,6 +198,17 @@ extraVolumes: []
 
 # Set the dns policy for the deployment.
 # See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
+#
+# Note: "Default" is the dns policy named "Default", which inherits the DNS configuration of the node.
+# It is not the Kubernetes default dns policy, which is "ClusterFirst".
+#
+# We intentionally do not use cluster DNS (e.g. CoreDNS) here to avoid a chicken-and-egg problem:
+# HCCM initializes nodes and removes the "node.cloudprovider.kubernetes.io/uninitialized" taint.
+# Until this happens, CoreDNS can not be scheduled. If HCCM relied on CoreDNS to resolve the
+# Hetzner Cloud API, it could never initialize the nodes, and CoreDNS would never become ready.
+#
+# With "networking.enabled", HCCM runs with "hostNetwork: true". In this case "ClusterFirst" behaves
+# like "Default", and "ClusterFirstWithHostNet" is required to use cluster DNS.
 dnsPolicy: Default
 # Set the dns config for the deployment.
 # See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
