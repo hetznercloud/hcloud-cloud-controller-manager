@@ -912,6 +912,8 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	return changed, nil
 }
 
+// reconcileOwnedCertificate finds the Service-owned certificate, creating it only
+// when the label lookup returns ErrNotFound. spec.OwnedCertificate must be non-nil.
 func (l *LoadBalancerOps) reconcileOwnedCertificate(
 	ctx context.Context,
 	svc *corev1.Service,
@@ -934,7 +936,8 @@ func (l *LoadBalancerOps) reconcileOwnedCertificate(
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Another reconciliation may have created the certificate after our lookup.
+	// Resolve by ownership label after creation, including when another reconciliation
+	// created the certificate first. A name conflict alone does not establish ownership.
 	cert, err = l.CertOps.GetCertificateByLabel(ctx, label)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -944,8 +947,8 @@ func (l *LoadBalancerOps) reconcileOwnedCertificate(
 
 // resolveCertificates turns the certificate references of the Service into
 // references the API accepts, which means looking up certificates referenced by
-// name. A certificate we own ourselves is looked up by the label it was created
-// with.
+// name. A certificate we own ourselves is looked up by its Service UID label
+// and created if missing.
 //
 // It returns nil when the Service has no certificates configured.
 func (l *LoadBalancerOps) resolveCertificates(
