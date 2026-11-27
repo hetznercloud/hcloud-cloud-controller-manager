@@ -2099,13 +2099,21 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				cert := &hcloud.Certificate{ID: 1}
 
 				tt.fx.CertClient.
+					On("AllWithOpts", mock.Anything, hcloud.CertificateListOpts{
+						ListOpts: hcloud.ListOpts{
+							LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, tt.serviceUID),
+						},
+					}).
+					Return([]*hcloud.Certificate(nil), nil).Once()
+
+				tt.fx.CertClient.
 					On("CreateCertificate", mock.Anything, hcloud.CertificateCreateOpts{
 						Name:        "ccm-managed-certificate-some service uid",
 						Type:        hcloud.CertificateTypeManaged,
 						DomainNames: []string{"example.com", "*.example.com"},
 						Labels:      map[string]string{lbspec.LabelServiceUID: tt.serviceUID},
 					}).
-					Return(hcloud.CertificateCreateResult{Certificate: cert}, nil, nil)
+					Return(hcloud.CertificateCreateResult{Certificate: cert}, nil, nil).Once()
 
 				tt.fx.CertClient.
 					On(
@@ -2116,7 +2124,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 								LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, tt.serviceUID),
 							},
 						}).
-					Return([]*hcloud.Certificate{cert}, nil, nil)
+					Return([]*hcloud.Certificate{cert}, nil).Once()
 
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,

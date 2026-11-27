@@ -838,10 +838,6 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 
 	var changed bool
 
-	if err := l.reconcileOwnedCertificate(ctx, spec); err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
 	// Resolved once for the whole Service, as every port uses the same
 	// certificates.
 	certificates, err := l.resolveCertificates(ctx, svc, spec)
@@ -918,23 +914,32 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 
 func (l *LoadBalancerOps) reconcileOwnedCertificate(
 	ctx context.Context,
+	svc *corev1.Service,
 	spec lbspec.Spec,
-) error {
+) (*hcloud.Certificate, error) {
 	const op = "hcops/LoadBalancerOps.reconcileOwnedCertificate"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	if spec.OwnedCertificate == nil {
-		return nil
+	label := fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID)
+	cert, err := l.CertOps.GetCertificateByLabel(ctx, label)
+	if err == nil {
+		return cert, nil
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err := l.CertOps.CreateManagedCertificate(ctx, spec.OwnedCertificate.CreateOpts())
-	if errors.Is(err, ErrAlreadyExists) {
-		return nil
+	err = l.CertOps.CreateManagedCertificate(ctx, spec.OwnedCertificate.CreateOpts())
+	if err != nil && !errors.Is(err, ErrAlreadyExists) {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	// Another reconciliation may have created the certificate after our lookup.
+	cert, err = l.CertOps.GetCertificateByLabel(ctx, label)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return nil
+	return cert, nil
 }
 
 // resolveCertificates turns the certificate references of the Service into
@@ -952,7 +957,7 @@ func (l *LoadBalancerOps) resolveCertificates(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if spec.OwnedCertificate != nil {
-		cert, err := l.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID))
+		cert, err := l.reconcileOwnedCertificate(ctx, svc, spec)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
