@@ -2099,13 +2099,21 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 				cert := &hcloud.Certificate{ID: 1}
 
 				tt.fx.CertClient.
+					On("AllWithOpts", mock.Anything, hcloud.CertificateListOpts{
+						ListOpts: hcloud.ListOpts{
+							LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, tt.serviceUID),
+						},
+					}).
+					Return([]*hcloud.Certificate(nil), nil).Once()
+
+				tt.fx.CertClient.
 					On("CreateCertificate", mock.Anything, hcloud.CertificateCreateOpts{
 						Name:        "ccm-managed-certificate-some service uid",
 						Type:        hcloud.CertificateTypeManaged,
 						DomainNames: []string{"example.com", "*.example.com"},
 						Labels:      map[string]string{lbspec.LabelServiceUID: tt.serviceUID},
 					}).
-					Return(hcloud.CertificateCreateResult{Certificate: cert}, nil, nil)
+					Return(hcloud.CertificateCreateResult{Certificate: cert}, nil, nil).Once()
 
 				tt.fx.CertClient.
 					On(
@@ -2116,7 +2124,7 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 								LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, tt.serviceUID),
 							},
 						}).
-					Return([]*hcloud.Certificate{cert}, nil, nil)
+					Return([]*hcloud.Certificate{cert}, nil).Once()
 
 				opts := hcloud.LoadBalancerAddServiceOpts{
 					Protocol:        hcloud.LoadBalancerServiceProtocolTCP,
@@ -2237,5 +2245,154 @@ func TestLoadBalancerOps_ReconcileHCLBServices(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, tt.run)
+	}
+}
+
+func TestLoadBalancerOps_ReconcileHCLBServices_OwnedCertificate(t *testing.T) {
+	cert := &hcloud.Certificate{ID: 42}
+	lookupErr := errors.New("certificate lookup failed")
+	createErr := errors.New("certificate creation failed")
+	waitErr := errors.New("certificate action failed")
+	conflictErr := hcloud.Error{Code: hcloud.ErrorCodeUniquenessError}
+
+	tests := []struct {
+		name        string
+		initial     []*hcloud.Certificate
+		lookupErr   error
+		create      bool
+		createErr   error
+		waitErr     error
+		lookupAgain bool
+		final       []*hcloud.Certificate
+		finalErr    error
+		wantErr     error
+	}{
+		{
+			name:    "reuse existing certificate across ports",
+			initial: []*hcloud.Certificate{cert},
+		},
+		{
+			name:   "create missing certificate",
+			create: true, lookupAgain: true, final: []*hcloud.Certificate{cert},
+		},
+		{
+			name:   "reuse concurrently created certificate",
+			create: true, createErr: conflictErr, lookupAgain: true, final: []*hcloud.Certificate{cert},
+		},
+		{
+			name:      "initial lookup failure prevents creation",
+			lookupErr: lookupErr, wantErr: lookupErr,
+		},
+		{
+			name:    "multiple matches prevent creation",
+			initial: []*hcloud.Certificate{cert, {ID: 43}}, wantErr: hcops.ErrNonUniqueResult,
+		},
+		{
+			name:   "creation failure stops reconciliation",
+			create: true, createErr: createErr, wantErr: createErr,
+		},
+		{
+			name:   "action failure stops reconciliation",
+			create: true, waitErr: waitErr, wantErr: waitErr,
+		},
+		{
+			name:   "lookup failure after creation",
+			create: true, lookupAgain: true, finalErr: lookupErr, wantErr: lookupErr,
+		},
+		{
+			name:   "certificate missing after creation",
+			create: true, lookupAgain: true, wantErr: hcops.ErrNotFound,
+		},
+		{
+			name:   "lookup failure after conflict",
+			create: true, createErr: conflictErr, lookupAgain: true, finalErr: lookupErr, wantErr: lookupErr,
+		},
+		{
+			name:   "name conflict does not establish ownership",
+			create: true, createErr: conflictErr, lookupAgain: true, wantErr: hcops.ErrNotFound,
+		},
+		{
+			name:   "multiple matches after conflict",
+			create: true, createErr: conflictErr, lookupAgain: true,
+			final: []*hcloud.Certificate{cert, {ID: 43}}, wantErr: hcops.ErrNonUniqueResult,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fx := hcops.NewLoadBalancerOpsFixture(t)
+			svc := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "service-uid",
+					Annotations: map[string]string{
+						string(annotation.LBSvcHTTPCertificateType):           "managed",
+						string(annotation.LBSvcHTTPManagedCertificateDomains): "example.com,*.example.com",
+					},
+				},
+				Spec: corev1.ServiceSpec{Ports: []corev1.ServicePort{
+					{Port: 443, NodePort: 30443},
+					{Port: 8443, NodePort: 31443},
+				}},
+			}
+			spec := fx.ResolveSpec(svc)
+			lb := &hcloud.LoadBalancer{ID: 11}
+			listOpts := hcloud.CertificateListOpts{ListOpts: hcloud.ListOpts{
+				LabelSelector: fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.UID),
+			}}
+			calls := []*mock.Call{
+				fx.CertClient.On("AllWithOpts", fx.Ctx, listOpts).Return(tt.initial, tt.lookupErr).Once(),
+			}
+			createCalls, lookupCalls := 0, 1
+			if tt.create {
+				createCalls = 1
+				action := &hcloud.Action{ID: 100}
+				calls = append(calls, fx.CertClient.On("CreateCertificate", fx.Ctx, hcloud.CertificateCreateOpts{
+					Name:        "ccm-managed-certificate-service-uid",
+					Type:        hcloud.CertificateTypeManaged,
+					DomainNames: []string{"example.com", "*.example.com"},
+					Labels:      map[string]string{lbspec.LabelServiceUID: string(svc.UID)},
+				}).Return(hcloud.CertificateCreateResult{Certificate: cert, Action: action}, nil, tt.createErr).Once())
+				if tt.createErr == nil {
+					calls = append(calls, fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(tt.waitErr).Once())
+				}
+			}
+			if tt.lookupAgain {
+				lookupCalls++
+				calls = append(calls, fx.CertClient.On("AllWithOpts", fx.Ctx, listOpts).Return(tt.final, tt.finalErr).Once())
+			}
+			if tt.wantErr == nil {
+				for _, port := range svc.Spec.Ports {
+					opts := hcloud.LoadBalancerAddServiceOpts{
+						Protocol:   hcloud.LoadBalancerServiceProtocolTCP,
+						ListenPort: new(int(port.Port)), DestinationPort: new(int(port.NodePort)),
+						HTTP: &hcloud.LoadBalancerAddServiceOptsHTTP{Certificates: []*hcloud.Certificate{{ID: cert.ID}}},
+						HealthCheck: &hcloud.LoadBalancerAddServiceOptsHealthCheck{
+							Protocol: hcloud.LoadBalancerServiceProtocolTCP, Port: new(int(port.NodePort)),
+						},
+					}
+					action := &hcloud.Action{ID: int64(port.Port)}
+					calls = append(calls,
+						fx.LBClient.On("AddService", fx.Ctx, lb, opts).Return(action, nil, nil).Once(),
+						fx.ActionClient.On("WaitFor", fx.Ctx, action).Return(nil).Once(),
+					)
+				}
+			}
+			mock.InOrder(calls...)
+
+			changed, err := fx.LBOps.ReconcileHCLBServices(fx.Ctx, lb, svc, spec)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				assert.ErrorContains(t, err, "hcops/LoadBalancerOps.reconcileOwnedCertificate")
+				assert.False(t, changed)
+				assert.Empty(t, fx.LBClient.Calls, "certificate errors must prevent load balancer mutations")
+			} else {
+				assert.NoError(t, err)
+				assert.True(t, changed)
+				fx.LBClient.AssertNumberOfCalls(t, "AddService", len(svc.Spec.Ports))
+			}
+			fx.CertClient.AssertNumberOfCalls(t, "AllWithOpts", lookupCalls)
+			fx.CertClient.AssertNumberOfCalls(t, "CreateCertificate", createCalls)
+			fx.AssertExpectations()
+		})
 	}
 }

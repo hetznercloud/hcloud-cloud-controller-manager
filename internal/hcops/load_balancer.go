@@ -838,10 +838,6 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 
 	var changed bool
 
-	if err := l.reconcileOwnedCertificate(ctx, spec); err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
 	// Resolved once for the whole Service, as every port uses the same
 	// certificates.
 	certificates, err := l.resolveCertificates(ctx, svc, spec)
@@ -916,31 +912,43 @@ func (l *LoadBalancerOps) ReconcileHCLBServices(
 	return changed, nil
 }
 
+// reconcileOwnedCertificate finds the Service-owned certificate, creating it only
+// when the label lookup returns ErrNotFound. spec.OwnedCertificate must be non-nil.
 func (l *LoadBalancerOps) reconcileOwnedCertificate(
 	ctx context.Context,
+	svc *corev1.Service,
 	spec lbspec.Spec,
-) error {
+) (*hcloud.Certificate, error) {
 	const op = "hcops/LoadBalancerOps.reconcileOwnedCertificate"
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
-	if spec.OwnedCertificate == nil {
-		return nil
+	label := fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID)
+	cert, err := l.CertOps.GetCertificateByLabel(ctx, label)
+	if err == nil {
+		return cert, nil
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err := l.CertOps.CreateManagedCertificate(ctx, spec.OwnedCertificate.CreateOpts())
-	if errors.Is(err, ErrAlreadyExists) {
-		return nil
+	err = l.CertOps.CreateManagedCertificate(ctx, spec.OwnedCertificate.CreateOpts())
+	if err != nil && !errors.Is(err, ErrAlreadyExists) {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	// Resolve by ownership label after creation, including when another reconciliation
+	// created the certificate first. A name conflict alone does not establish ownership.
+	cert, err = l.CertOps.GetCertificateByLabel(ctx, label)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return nil
+	return cert, nil
 }
 
 // resolveCertificates turns the certificate references of the Service into
 // references the API accepts, which means looking up certificates referenced by
-// name. A certificate we own ourselves is looked up by the label it was created
-// with.
+// name. A certificate we own ourselves is looked up by its Service UID label
+// and created if missing.
 //
 // It returns nil when the Service has no certificates configured.
 func (l *LoadBalancerOps) resolveCertificates(
@@ -952,7 +960,7 @@ func (l *LoadBalancerOps) resolveCertificates(
 	metrics.OperationCalled.WithLabelValues(op).Inc()
 
 	if spec.OwnedCertificate != nil {
-		cert, err := l.CertOps.GetCertificateByLabel(ctx, fmt.Sprintf("%s=%s", lbspec.LabelServiceUID, svc.ObjectMeta.UID))
+		cert, err := l.reconcileOwnedCertificate(ctx, svc, spec)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
